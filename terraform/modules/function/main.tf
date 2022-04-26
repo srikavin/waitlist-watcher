@@ -1,6 +1,5 @@
 locals {
   timestamp = formatdate("YYMMDDhhmmss", timestamp())
-  root_dir  = abspath("../")
 }
 
 # Compress source code
@@ -12,7 +11,7 @@ data "archive_file" "source" {
 
 # Create bucket that will host the source code
 resource "google_storage_bucket" "bucket" {
-  name     = "${var.project}-function"
+  name     = "${var.project}-function-${var.function_name}"
   location = var.region
 }
 

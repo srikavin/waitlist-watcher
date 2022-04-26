@@ -12,3 +12,12 @@ module "my_function" {
   function_entry_point = "app"
   runtime              = "nodejs16"
 }
+
+module "appengine" {
+  source     = "./modules/appengine"
+  project    = var.project
+  region     = var.region
+  name       = "web-app"
+  source_dir = abspath("../web")
+  runtime    = "nodejs16"
+}
