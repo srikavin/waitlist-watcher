@@ -7,19 +7,19 @@ locals {
 data "archive_file" "source" {
   type        = "zip"
   source_dir  = var.source_dir
-  output_path = "/tmp/function-${local.timestamp}.zip"
+  output_path = "/tmp/function-${var.function_name}-${local.timestamp}.zip"
 }
 
 # Create bucket that will host the source code
 resource "google_storage_bucket" "bucket" {
-  name = "${var.project}-function"
+  name     = "${var.project}-function"
   location = var.region
 }
 
 # Add source code zip to bucket
 resource "google_storage_bucket_object" "zip" {
   # Append file MD5 to force bucket to be recreated
-  name   = "source.zip#${data.archive_file.source.output_md5}"
+  name   = "source-${var.function_name}.zip#${data.archive_file.source.output_md5}"
   bucket = google_storage_bucket.bucket.name
   source = data.archive_file.source.output_path
 }
@@ -45,7 +45,7 @@ resource "google_project_service" "cb" {
 # Create Cloud Function
 resource "google_cloudfunctions_function" "function" {
   name    = var.function_name
-  runtime = "nodejs12" # Switch to a different runtime if needed
+  runtime = var.runtime
 
   available_memory_mb   = 128
   source_archive_bucket = google_storage_bucket.bucket.name

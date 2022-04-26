@@ -4,10 +4,11 @@ provider "google" {
 }
 
 module "my_function" {
+  source               = "./modules/function"
   project              = var.project
   region               = var.region
-  source               = "./modules/function"
-  function_name        = "my-function"
+  function_name        = "waitlist-scraper"
+  source_dir           = abspath("../app")
   function_entry_point = "app"
-  source_dir = abspath("../app")
+  runtime              = "nodejs16"
 }
