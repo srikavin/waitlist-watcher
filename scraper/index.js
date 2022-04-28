@@ -57,6 +57,7 @@ exports.app = async (message, context) => {
         let previous = {
             latest: [],
             timestamp: -1,
+            lastRun: -1,
             updateCount: 0
         };
         if (currentDoc.exists) {
@@ -70,6 +71,7 @@ exports.app = async (message, context) => {
             t.set(docRef, {
                 latest: data,
                 timestamp: context.timestamp,
+                lastRun: context.timestamp,
                 updateCount: newUpdateCount
             });
 
@@ -86,6 +88,10 @@ exports.app = async (message, context) => {
                     basedOn: previous.timestamp
                 });
             }
+        } else {
+            t.update(docRef, {
+                lastRun: context.timestamp
+            });
         }
     });
 }
