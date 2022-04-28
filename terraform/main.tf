@@ -3,19 +3,24 @@ provider "google" {
   region  = var.region
 }
 
+locals {
+  scraper_config = jsondecode(file("scraper-config.json"))
+}
+
 resource "google_pubsub_topic" "scrape-topic" {
   name = "scrape-prefix"
 }
 
 resource "google_cloud_scheduler_job" "job" {
-  name        = "cmsc-scraper-job"
-  description = "CMSC scraper"
-  schedule    = "*/10 * * * *"
+  for_each    = local.scraper_config
+  name        = "${each.key}-scraper-job"
+  description = "${each.key} scraper"
+  schedule    = each.value
 
   pubsub_target {
     # topic.id is the topic's full resource name.
     topic_name = google_pubsub_topic.scrape-topic.id
-    data       = base64encode("CMSC")
+    data       = base64encode(each.key)
   }
 }
 
