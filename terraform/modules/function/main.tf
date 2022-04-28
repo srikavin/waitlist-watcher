@@ -46,7 +46,7 @@ resource "google_cloudfunctions_function" "function" {
   name    = var.function_name
   runtime = var.runtime
 
-  max_instances = 1
+  max_instances = 10
 
   available_memory_mb   = 128
   source_archive_bucket = google_storage_bucket.bucket.name
