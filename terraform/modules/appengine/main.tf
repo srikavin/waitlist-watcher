@@ -26,6 +26,7 @@ resource "google_storage_bucket_object" "zip" {
 resource "google_app_engine_application" "app" {
   project     = var.project
   location_id = var.region
+  database_type = "CLOUD_FIRESTORE"
 }
 
 resource "google_app_engine_standard_app_version" "app" {
@@ -34,7 +35,7 @@ resource "google_app_engine_standard_app_version" "app" {
   version_id = "1"
 
   entrypoint {
-    shell = "node ./index.js"
+    shell = "node ./build/index.js"
   }
 
   deployment {
