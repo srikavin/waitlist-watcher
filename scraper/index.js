@@ -75,7 +75,7 @@ exports.app = async (message, context) => {
                 updateCount: newUpdateCount
             });
 
-            if (newUpdateCount % 15) {
+            if (newUpdateCount % 15 === 0 || previous.timestamp === -1) {
                 t.set(diffRef, {
                     type: "full",
                     contents: data,
