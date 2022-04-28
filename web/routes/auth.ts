@@ -33,7 +33,7 @@ export const authRoute = async (fastify: FastifyInstance, options: FastifyPlugin
 
         const uid = authSuccess["cas:attributes"]["cas:uid"];
 
-        const r = await getAuth()
+        const user = await getAuth()
             .getUserByEmail(`${uid}@umd.edu`)
             .catch(async (e) => {
                 if (e.errorInfo.code === 'auth/user-not-found') {
@@ -50,10 +50,14 @@ export const authRoute = async (fastify: FastifyInstance, options: FastifyPlugin
 
         fastify.log.info({uid}, "User logged in");
 
+        const token = await getAuth().createCustomToken(user.uid);
+
         return {
             status: "success",
             authSuccess,
-            uid: uid,
+            uid,
+            user,
+            token
         };
     });
 
@@ -68,5 +72,8 @@ export const authRoute = async (fastify: FastifyInstance, options: FastifyPlugin
         }
     }>("/register", async (request, reply) => {
         const {email, password} = request.body;
+
+        // const r = await getAuth()
+        //     .
     });
 }

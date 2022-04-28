@@ -46,11 +46,16 @@ resource "google_cloudfunctions_function" "function" {
   name    = var.function_name
   runtime = var.runtime
 
+  max_instances = 10
+
   available_memory_mb   = 128
   source_archive_bucket = google_storage_bucket.bucket.name
   source_archive_object = google_storage_bucket_object.zip.name
-  trigger_http          = true
-  entry_point           = var.function_entry_point
+  event_trigger {
+    event_type = "google.pubsub.topic.publish"
+    resource   = var.pubsub_name
+  }
+  entry_point = var.function_entry_point
 }
 
 # Create IAM entry so all users can invoke the function
