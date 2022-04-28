@@ -64,6 +64,8 @@ exports.scraper = async (message, context) => {
         const diff = compare(previous.latest, data, true);
         const newUpdateCount = previous.updateCount + 1;
 
+        console.log("scraped ", prefix, " and found ", data.length, " courses with ", diff.length, " changes");
+
         if (diff.length !== 0) {
             t.set(docRef, {
                 latest: data,
