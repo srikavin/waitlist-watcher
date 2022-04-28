@@ -9,13 +9,16 @@ const cron = (i) => `${Math.floor(i * 2 / 3.1)} */2 * * *`;
 
     const data = (await axios.get("https://app.testudo.umd.edu/soc/autocomplete/course?termId=202208&searchString=%25")).data.results;
 
-    const config = {};
+    const config = {
+        prefixes: [],
+        high_frequency: []
+    };
 
     data.forEach((el, index) => {
         if (high_frequency.includes(el.id)) {
-            config[el.id] = high_frequency_cron
+            config.high_frequency.push(el.id)
         } else {
-            config[el.id] = cron(index);
+            config.prefixes.push(el.id);
         }
     })
 
