@@ -61,7 +61,7 @@ exports.scraper = async (message, context) => {
             previous = currentDoc.data();
         }
 
-        const diff = compare(previous.latest, data);
+        const diff = compare(previous.latest, data, true);
         const newUpdateCount = previous.updateCount + 1;
 
         if (diff.length !== 0) {
