@@ -54,21 +54,12 @@ const getWaitlisted = async (prefix) => {
         });
 }
 
-exports.scraper = async (message, context) => {
-    let prefixes;
-    try {
-        prefixes = JSON.parse(Buffer.from(message.data, 'base64').toString());
-    } catch (e) {
-        console.log("Got invalid JSON: ", Buffer.from(message.data, 'base64').toString());
-        return;
-    }
-
+exports.scraper = async (prefixes, context) => {
     const updateTopic = pubsub.topic("prefix-update");
+    const updates = [];
 
     await Promise.all(prefixes.map(async (prefix) => {
         const data = await getWaitlisted(prefix);
-
-        const updates = [];
 
         await db.runTransaction(async t => {
             const docRef = db.collection("course_data").doc(prefix)
@@ -120,14 +111,14 @@ exports.scraper = async (message, context) => {
                     diff: diff
                 }), 'utf8');
 
-                updates.push(messageBuffer);
+                updates.push(updateTopic.publish(messageBuffer));
             } else {
                 t.update(docRef, {
                     lastRun: context.timestamp
                 });
             }
         });
-
-        await Promise.all(updates.map((e) => updateTopic.publish(e)));
     }));
+
+    await Promise.all(updates);
 }

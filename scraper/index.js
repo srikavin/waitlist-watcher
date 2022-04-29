@@ -1,27 +1,16 @@
 const {initializeApp} = require('firebase-admin/app');
 const {getFirestore} = require('firebase-admin/firestore');
-const {compare} = require("fast-json-patch");
-const {PubSub} = require('@google-cloud/pubsub');
 
 initializeApp();
 
 const db = getFirestore();
-const pubsub = new PubSub({projectId: "waitlist-watcher"});
 
 const config = require("./config.json");
 
-exports.scraper = require("./scraper.js").scraper;
+const {scraper} = require("./scraper");
 
-exports.triggerer = async (message, context) => {
-    const topic = pubsub.topic("scrape-prefix");
-
-    const sendPubSub = async (prefix) => {
-        console.log(prefix)
-
-        const messageBuffer = Buffer.from(JSON.stringify(prefix), 'utf8');
-
-        await topic.publish(messageBuffer);
-    }
+exports.launcher = async (message, context) => {
+    let scraperPromise = Promise.all([]);
 
     await db.runTransaction(async t => {
         const triggerDataRef = db.collection("trigger_data").doc("state");
@@ -42,10 +31,12 @@ exports.triggerer = async (message, context) => {
             prefixes.push(config.prefixes[(state.prefixIndex + i) % config.prefixes.length])
         }
 
-        await sendPubSub(prefixes);
+        scraperPromise = scraper(prefixes, context);
 
         state.prefixIndex = state.prefixIndex + BATCH_SIZE;
 
         t.set(triggerDataRef, state);
     });
+
+    await scraperPromise;
 }
