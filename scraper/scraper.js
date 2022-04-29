@@ -2,17 +2,31 @@ const {getFirestore} = require('firebase-admin/firestore');
 const axios = require("axios");
 const HTMLParser = require('node-html-parser');
 const {compare} = require("fast-json-patch");
+const {PubSub} = require("@google-cloud/pubsub");
 
 const SEMESTER_CODE = "202208";
 const COURSE_LIST_URL = (prefix) => `https://app.testudo.umd.edu/soc/${SEMESTER_CODE}/${prefix}`;
 const SECTIONS_URL = (prefix, courseList) => `https://app.testudo.umd.edu/soc/${SEMESTER_CODE}/sections?courseIds=${courseList}`;
 
 const db = getFirestore();
+const pubsub = new PubSub({projectId: "waitlist-watcher"});
 
 const getCourseList = async (prefix) => {
     const data = (await axios.get(COURSE_LIST_URL(prefix))).data;
 
     return HTMLParser.parse(data).querySelectorAll(".course").map((e) => e.id).join(",");
+}
+
+const parseNumber = (val) => {
+    val = val.trim();
+
+    const isNumber = /^\d+$/.test(val);
+
+    if (!isNumber) {
+        throw `'${val}' is not a valid number!`;
+    }
+
+    return Number(val);
 }
 
 const getWaitlisted = async (prefix) => {
@@ -26,13 +40,13 @@ const getWaitlisted = async (prefix) => {
                 course: course.id,
                 sections: course.querySelectorAll(".section").map(section => {
                     const waitlistField = section.querySelectorAll(".waitlist-count");
-                    let holdfile = waitlistField.length === 2 ? Number(waitlistField[1].textContent) : 0;
+                    let holdfile = waitlistField.length === 2 ? parseNumber(waitlistField[1].textContent) : 0;
                     return {
                         section: section.querySelector(".section-id").textContent.trim(),
-                        openSeats: Number(section.querySelector(".open-seats-count").textContent),
-                        totalSeats: Number(section.querySelector(".total-seats-count").textContent),
+                        openSeats: parseNumber(section.querySelector(".open-seats-count").textContent),
+                        totalSeats: parseNumber(section.querySelector(".total-seats-count").textContent),
                         instructor: section.querySelector(".section-instructor").textContent,
-                        waitlist: Number(waitlistField[0].textContent),
+                        waitlist: parseNumber(waitlistField[0].textContent),
                         holdfile: holdfile
                     };
                 })
