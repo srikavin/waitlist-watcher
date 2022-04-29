@@ -55,56 +55,79 @@ const getWaitlisted = async (prefix) => {
 }
 
 exports.scraper = async (message, context) => {
-    const prefix = Buffer.from(message.data, 'base64').toString();
+    let prefixes;
+    try {
+        prefixes = JSON.parse(Buffer.from(message.data, 'base64').toString());
+    } catch (e) {
+        console.log("Got invalid JSON: ", Buffer.from(message.data, 'base64').toString());
+        return;
+    }
 
-    const data = await getWaitlisted(prefix);
+    const updateTopic = pubsub.topic("prefix-update");
 
-    await db.runTransaction(async t => {
-        const docRef = db.collection("course_data").doc(prefix)
-        const diffRef = docRef.collection("historical").doc(context.timestamp);
+    await Promise.all(prefixes.map(async (prefix) => {
+        const data = await getWaitlisted(prefix);
 
-        const currentDoc = await docRef.get();
+        const updates = [];
 
-        let previous = {
-            latest: [],
-            timestamp: -1,
-            lastRun: -1,
-            updateCount: 0
-        };
-        if (currentDoc.exists) {
-            previous = currentDoc.data();
-        }
+        await db.runTransaction(async t => {
+            const docRef = db.collection("course_data").doc(prefix)
+            const diffRef = docRef.collection("historical").doc(context.timestamp);
 
-        const diff = compare(previous.latest, data, true);
-        const newUpdateCount = previous.updateCount + 1;
+            const currentDoc = await docRef.get();
 
-        console.log("scraped ", prefix, " and found ", data.length, " courses with ", diff.length, " changes");
+            let previous = {
+                latest: [],
+                timestamp: -1,
+                lastRun: -1,
+                updateCount: 0
+            };
+            if (currentDoc.exists) {
+                previous = currentDoc.data();
+            }
 
-        if (diff.length !== 0) {
-            t.set(docRef, {
-                latest: data,
-                timestamp: context.timestamp,
-                lastRun: context.timestamp,
-                updateCount: newUpdateCount
-            });
+            const diff = compare(previous.latest, data, true);
+            const newUpdateCount = previous.updateCount + 1;
 
-            if (newUpdateCount % 15 === 0 || previous.timestamp === -1) {
-                t.set(diffRef, {
-                    type: "full",
-                    contents: data,
-                    basedOn: previous.timestamp
-                })
+            console.log("scraped ", prefix, " and found ", data.length, " courses with ", diff.length, " changes");
+
+            if (diff.length !== 0) {
+                t.set(docRef, {
+                    latest: data,
+                    timestamp: context.timestamp,
+                    lastRun: context.timestamp,
+                    updateCount: newUpdateCount
+                });
+
+                if (newUpdateCount % 15 === 0 || previous.timestamp === -1) {
+                    t.set(diffRef, {
+                        type: "full",
+                        contents: data,
+                        basedOn: previous.timestamp
+                    })
+                } else {
+                    t.set(diffRef, {
+                        type: "diff",
+                        diff: diff,
+                        basedOn: previous.timestamp
+                    });
+                }
+
+                const messageBuffer = Buffer.from(JSON.stringify({
+                    prefix: prefix,
+                    previousState: previous.latest,
+                    newState: data,
+                    diff: diff
+                }), 'utf8');
+
+                updates.push(messageBuffer);
             } else {
-                t.set(diffRef, {
-                    type: "diff",
-                    diff: diff,
-                    basedOn: previous.timestamp
+                t.update(docRef, {
+                    lastRun: context.timestamp
                 });
             }
-        } else {
-            t.update(docRef, {
-                lastRun: context.timestamp
-            });
-        }
-    });
+        });
+
+        await Promise.all(updates.map((e) => updateTopic.publish(e)));
+    }));
 }

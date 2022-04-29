@@ -11,6 +11,10 @@ resource "google_pubsub_topic" "scrape-launcher-topic" {
   name = "scrape-launcher"
 }
 
+resource "google_pubsub_topic" "prefix-update-topic" {
+  name = "prefix-update"
+}
+
 resource "google_cloud_scheduler_job" "job" {
   name        = "scraper-launcher-job"
   description = "Cycles through course prefixes to scrape"

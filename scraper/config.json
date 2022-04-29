@@ -51,6 +51,7 @@
     "CLAS",
     "CLFS",
     "CMLT",
+    "CMSC",
     "COMM",
     "CPBE",
     "CPET",
@@ -136,6 +137,7 @@
     "LBSC",
     "LGBT",
     "LING",
+    "MATH",
     "MEES",
     "MIEH",
     "MITH",
@@ -182,9 +184,5 @@
     "VMSC",
     "WGSS",
     "WMST"
-  ],
-  "high_frequency": [
-    "CMSC",
-    "MATH"
   ]
 }

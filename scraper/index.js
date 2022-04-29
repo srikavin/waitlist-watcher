@@ -18,7 +18,7 @@ exports.triggerer = async (message, context) => {
     const sendPubSub = async (prefix) => {
         console.log(prefix)
 
-        const messageBuffer = Buffer.from(prefix, 'utf8');
+        const messageBuffer = Buffer.from(JSON.stringify(prefix), 'utf8');
 
         await topic.publish(messageBuffer);
     }
@@ -27,7 +27,6 @@ exports.triggerer = async (message, context) => {
         const triggerDataRef = db.collection("trigger_data").doc("state");
 
         let state = {
-            highFrequencyPrefixIndex: 0,
             prefixIndex: 0
         };
 
@@ -36,15 +35,16 @@ exports.triggerer = async (message, context) => {
             state = currentStateDoc.data();
         }
 
+        const BATCH_SIZE = 6;
 
-        for (let i = 0; i < 4; ++i) {
-            await sendPubSub(config.prefixes[(state.prefixIndex + i) % config.prefixes.length]);
+        const prefixes = [];
+        for (let i = 0; i < BATCH_SIZE; ++i) {
+            prefixes.push(config.prefixes[(state.prefixIndex + i) % config.prefixes.length])
         }
 
-        await sendPubSub(config.high_frequency[(state.highFrequencyPrefixIndex + 1) % config.high_frequency.length]);
+        await sendPubSub(prefixes);
 
-        state.prefixIndex = state.prefixIndex + 4;
-        state.highFrequencyPrefixIndex = state.highFrequencyPrefixIndex + 1;
+        state.prefixIndex = state.prefixIndex + BATCH_SIZE;
 
         t.set(triggerDataRef, state);
     });
