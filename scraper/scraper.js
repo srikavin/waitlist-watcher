@@ -54,71 +54,67 @@ const getWaitlisted = async (prefix) => {
         });
 }
 
-exports.scraper = async (prefixes, context) => {
+exports.scraper = async (prefix, context) => {
+    const docRef = db.collection("course_data").doc(prefix)
+    const currentDoc = await docRef.get();
+
+    let previous = {
+        latest: [],
+        timestamp: -1,
+        lastRun: -1,
+        updateCount: 0
+    };
+    if (currentDoc.exists) {
+        previous = currentDoc.data();
+    }
+
+    if (previous.lastRun === context.timestamp) {
+        return;
+    }
+
     const updateTopic = pubsub.topic("prefix-update");
-    const updates = [];
+    const data = await getWaitlisted(prefix);
 
-    await Promise.all(prefixes.map(async (prefix) => {
-        const data = await getWaitlisted(prefix);
+    const diff = compare(previous.latest, data, true);
+    const newUpdateCount = previous.updateCount + 1;
 
-        await db.runTransaction(async t => {
-            const docRef = db.collection("course_data").doc(prefix)
-            const diffRef = docRef.collection("historical").doc(context.timestamp);
+    console.log("scraped ", prefix, " and found ", data.length, " courses with ", diff.length, " changes");
 
-            const currentDoc = await docRef.get();
-
-            let previous = {
-                latest: [],
-                timestamp: -1,
-                lastRun: -1,
-                updateCount: 0
-            };
-            if (currentDoc.exists) {
-                previous = currentDoc.data();
-            }
-
-            const diff = compare(previous.latest, data, true);
-            const newUpdateCount = previous.updateCount + 1;
-
-            console.log("scraped ", prefix, " and found ", data.length, " courses with ", diff.length, " changes");
-
-            if (diff.length !== 0) {
-                t.set(docRef, {
-                    latest: data,
-                    timestamp: context.timestamp,
-                    lastRun: context.timestamp,
-                    updateCount: newUpdateCount
-                });
-
-                if (newUpdateCount % 15 === 0 || previous.timestamp === -1) {
-                    t.set(diffRef, {
-                        type: "full",
-                        contents: data,
-                        basedOn: previous.timestamp
-                    })
-                } else {
-                    t.set(diffRef, {
-                        type: "diff",
-                        diff: diff,
-                        basedOn: previous.timestamp
-                    });
-                }
-
-                const messageBuffer = Buffer.from(JSON.stringify({
-                    prefix: prefix,
-                    previousState: previous.latest,
-                    newState: data,
-                    diff: diff
-                }), 'utf8');
-
-                updates.push(updateTopic.publish(messageBuffer));
-            } else {
-                t.update(docRef, {
-                    lastRun: context.timestamp
-                });
-            }
+    if (diff.length === 0) {
+        await docRef.update({
+            lastRun: context.timestamp
         });
-    }));
+        return;
+    }
 
-    await Promise.all(updates);
+    await docRef.set({
+        latest: data,
+        timestamp: context.timestamp,
+        lastRun: context.timestamp,
+        updateCount: newUpdateCount
+    });
+
+    const diffRef = docRef.collection("historical").doc(context.timestamp);
+
+    if (newUpdateCount % 15 === 0 || previous.timestamp === -1) {
+        await diffRef.set({
+            type: "full",
+            contents: data
+        });
+    } else {
+        await diffRef.set({
+            type: "diff",
+            diff: diff,
+            basedOn: previous.timestamp
+        });
+    }
+
+    const messageBuffer = Buffer.from(JSON.stringify({
+        prefix: prefix,
+        previousState: previous.latest,
+        newState: data,
+        diff: diff
+    }), 'utf8');
+
+    await updateTopic.publish(messageBuffer);
 }
