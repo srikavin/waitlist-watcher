@@ -69,16 +69,16 @@ exports.scraper = async (prefix, context) => {
     }
 
     if (previous.lastRun === context.timestamp) {
+        console.log("Skipping ", prefix, " since lastRun is same as current timestamp: ", context.timestamp);
         return;
     }
 
-    const updateTopic = pubsub.topic("prefix-update");
     const data = await getWaitlisted(prefix);
 
     const diff = compare(previous.latest, data, true);
     const newUpdateCount = previous.updateCount + 1;
 
-    console.log("scraped ", prefix, " and found ", data.length, " courses with ", diff.length, " changes");
+    console.log("Scraped ", prefix, " and found ", data.length, " courses with ", diff.length, " changes");
 
     if (diff.length === 0) {
         await docRef.update({
@@ -86,13 +86,6 @@ exports.scraper = async (prefix, context) => {
         });
         return;
     }
-
-    await docRef.set({
-        latest: data,
-        timestamp: context.timestamp,
-        lastRun: context.timestamp,
-        updateCount: newUpdateCount
-    });
 
     const diffRef = docRef.collection("historical").doc(context.timestamp);
 
@@ -113,8 +106,19 @@ exports.scraper = async (prefix, context) => {
         prefix: prefix,
         previousState: previous.latest,
         newState: data,
-        diff: diff
+        diff: diff,
+        id: context.eventId
     }), 'utf8');
 
+    const updateTopic = pubsub.topic("prefix-update");
     await updateTopic.publish(messageBuffer);
+
+    await docRef.set({
+        latest: data,
+        timestamp: context.timestamp,
+        lastRun: context.timestamp,
+        updateCount: newUpdateCount
+    });
+
+    console.log("Published notification topic after scraping ", prefix)
 }
