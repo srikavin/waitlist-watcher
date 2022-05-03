@@ -34,6 +34,17 @@ module "scraper-launcher-function" {
   pubsub_name          = google_pubsub_topic.scrape-launcher-topic.name
 }
 
+module "notifier-function" {
+  source               = "./modules/function"
+  project              = var.project
+  region               = var.region
+  function_name        = "notifer"
+  source_dir           = abspath("../notifier")
+  function_entry_point = "notifier"
+  runtime              = "nodejs16"
+  pubsub_name          = google_pubsub_topic.prefix-update-topic.name
+}
+
 module "appengine" {
   source     = "./modules/appengine"
   project    = var.project
