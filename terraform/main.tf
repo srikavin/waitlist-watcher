@@ -33,6 +33,7 @@ module "scraper-launcher-function" {
   runtime              = "nodejs16"
   pubsub_name          = google_pubsub_topic.scrape-launcher-topic.name
   env_vars             = {}
+  max-instances        = 1
 }
 
 module "notifier-function" {
@@ -47,6 +48,7 @@ module "notifier-function" {
   env_vars             = {
     VAPID_PRIV_KEY = var.NOTIFIER_VAPID_PRIV_KEY
   }
+  max-instances = 100
 }
 
 module "appengine" {

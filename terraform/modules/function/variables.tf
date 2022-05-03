@@ -6,3 +6,4 @@ variable "source_dir" {}
 variable "runtime" {}
 variable "pubsub_name" {}
 variable "env_vars" {}
+variable "max-instances" {}
