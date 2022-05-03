@@ -103,11 +103,13 @@ exports.scraper = async (prefix, context) => {
     }
 
     const messageBuffer = Buffer.from(JSON.stringify({
-        prefix: prefix,
-        previousState: previous.latest,
-        newState: data,
-        diff: diff,
-        id: context.eventId
+        data: {
+            prefix: prefix,
+            previousState: previous.latest,
+            newState: data,
+            diff: diff,
+            id: context.eventId
+        }
     }), 'utf8');
 
     const updateTopic = pubsub.topic("prefix-update");
