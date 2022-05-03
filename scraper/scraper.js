@@ -33,25 +33,26 @@ const getWaitlisted = async (prefix) => {
     const courseList = await getCourseList(prefix);
     const data = (await axios.get(SECTIONS_URL(prefix, courseList))).data;
 
-    return HTMLParser.parse(data)
+    return Object.fromEntries(HTMLParser.parse(data)
         .querySelectorAll(".course-sections")
         .map(course => {
-            return {
+            return [course.id, {
                 course: course.id,
-                sections: course.querySelectorAll(".section").map(section => {
+                sections: Object.fromEntries(course.querySelectorAll(".section").map(section => {
                     const waitlistField = section.querySelectorAll(".waitlist-count");
                     let holdfile = waitlistField.length === 2 ? parseNumber(waitlistField[1].textContent) : 0;
-                    return {
-                        section: section.querySelector(".section-id").textContent.trim(),
+                    let sectionName = section.querySelector(".section-id").textContent.trim();
+                    return [sectionName, {
+                        section: sectionName,
                         openSeats: parseNumber(section.querySelector(".open-seats-count").textContent),
                         totalSeats: parseNumber(section.querySelector(".total-seats-count").textContent),
                         instructor: section.querySelector(".section-instructor").textContent,
                         waitlist: parseNumber(waitlistField[0].textContent),
                         holdfile: holdfile
-                    };
-                })
-            }
-        });
+                    }];
+                }))
+            }]
+        }));
 }
 
 exports.scraper = async (prefix, context) => {
@@ -62,7 +63,8 @@ exports.scraper = async (prefix, context) => {
         latest: [],
         timestamp: -1,
         lastRun: -1,
-        updateCount: 0
+        updateCount: 0,
+        version: 0
     };
     if (currentDoc.exists) {
         previous = currentDoc.data();
@@ -89,7 +91,7 @@ exports.scraper = async (prefix, context) => {
 
     const diffRef = docRef.collection("historical").doc(context.timestamp);
 
-    if (newUpdateCount % 15 === 0 || previous.timestamp === -1) {
+    if (newUpdateCount % 15 === 0 || previous.timestamp === -1 || previous.version === 0) {
         await diffRef.set({
             type: "full",
             contents: data
@@ -119,7 +121,8 @@ exports.scraper = async (prefix, context) => {
         latest: data,
         timestamp: context.timestamp,
         lastRun: context.timestamp,
-        updateCount: newUpdateCount
+        updateCount: newUpdateCount,
+        version: 2
     });
 
     console.log("Published notification topic after scraping ", prefix)
