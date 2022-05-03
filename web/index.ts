@@ -1,13 +1,13 @@
-import {Datastore} from "@google-cloud/datastore";
-import {applicationDefault, initializeApp} from 'firebase-admin/app';
+import {initializeApp} from 'firebase-admin/app';
+
+initializeApp({
+    databaseURL: "https://waitlist-watcher-default-rtdb.firebaseio.com"
+});
+
 import fastify from "fastify";
 import {authRoute} from "./routes/auth";
 
 const PORT = Number(process.env.PORT) || 8080;
-
-initializeApp();
-
-const datastore = new Datastore();
 
 const app = fastify({
     logger: true
