@@ -4,3 +4,7 @@ variable "project" {
 variable "region" {
   default = "us-east4"
 }
+
+variable "NOTIFIER_VAPID_PRIV_KEY" {}
+
+variable "GOOGLE_CREDENTIALS" {}

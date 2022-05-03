@@ -32,6 +32,7 @@ module "scraper-launcher-function" {
   function_entry_point = "launcher"
   runtime              = "nodejs16"
   pubsub_name          = google_pubsub_topic.scrape-launcher-topic.name
+  env_vars             = {}
 }
 
 module "notifier-function" {
@@ -43,6 +44,9 @@ module "notifier-function" {
   function_entry_point = "notifier"
   runtime              = "nodejs16"
   pubsub_name          = google_pubsub_topic.prefix-update-topic.name
+  env_vars             = {
+    VAPID_PRIV_KEY = var.NOTIFIER_VAPID_PRIV_KEY
+  }
 }
 
 module "appengine" {

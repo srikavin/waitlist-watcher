@@ -58,6 +58,7 @@ resource "google_cloudfunctions_function" "function" {
       retry = true
     }
   }
-  entry_point = var.function_entry_point
+  environment_variables = var.env_vars
+  entry_point           = var.function_entry_point
 }
 
