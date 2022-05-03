@@ -85,13 +85,9 @@ export const authRoute = async (fastify: FastifyInstance, options: FastifyPlugin
             uid: uid
         });
 
-        return {
-            status: "success",
-            authSuccess,
-            uid,
-            user,
-            token
-        };
+        reply.type('text/html');
+
+        return `Successfully authenticated as ${uid}. You can close this tab. <script>window.close()</script>`;
     });
 
     fastify.get<{ Querystring: { request_id: string } }>("/cas_init", async (request, reply) => {
