@@ -38,7 +38,7 @@ module "notifier-function" {
   source               = "./modules/function"
   project              = var.project
   region               = var.region
-  function_name        = "notifer"
+  function_name        = "notifier"
   source_dir           = abspath("../notifier")
   function_entry_point = "notifier"
   runtime              = "nodejs16"

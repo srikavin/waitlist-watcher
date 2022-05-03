@@ -15,5 +15,3 @@ exports.notifier = async (message, context) => {
 
     await axios.get(endpoints.notifications.webhook);
 }
-
-exports.notifier({}, {});
