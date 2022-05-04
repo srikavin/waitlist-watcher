@@ -80,7 +80,7 @@ exports.scraper = async (prefix, context) => {
     const diff = compare(previous.latest, data, true);
     const newUpdateCount = previous.updateCount + 1;
 
-    console.log("Scraped ", prefix, " and found ", data.length, " courses with ", diff.length, " changes");
+    console.log("Scraped ", prefix, " and found ", Object.entries(data).length, " courses with ", diff.length, " changes");
 
     if (diff.length === 0) {
         await docRef.update({
@@ -89,9 +89,33 @@ exports.scraper = async (prefix, context) => {
         return;
     }
 
+    if (previous.version >= 2) {
+        const messageBuffer = Buffer.from(JSON.stringify({
+            data: {
+                prefix: prefix,
+                previousState: previous.latest,
+                newState: data,
+                id: context.eventId
+            }
+        }), 'utf8');
+
+        const updateTopic = pubsub.topic("prefix-update");
+        await updateTopic.publish(messageBuffer);
+    }
+
+    await docRef.set({
+        latest: data,
+        timestamp: context.timestamp,
+        lastRun: context.timestamp,
+        updateCount: newUpdateCount,
+        version: 2
+    });
+
+    console.log("Published notification topic after scraping ", prefix)
+
     const diffRef = docRef.collection("historical").doc(context.timestamp);
 
-    if (newUpdateCount % 15 === 0 || previous.timestamp === -1 || previous.version === 0) {
+    if (newUpdateCount % 15 === 0 || previous.timestamp === -1 || diff.length > 20) {
         await diffRef.set({
             type: "full",
             contents: data
@@ -104,26 +128,5 @@ exports.scraper = async (prefix, context) => {
         });
     }
 
-    const messageBuffer = Buffer.from(JSON.stringify({
-        data: {
-            prefix: prefix,
-            previousState: previous.latest,
-            newState: data,
-            diff: diff,
-            id: context.eventId
-        }
-    }), 'utf8');
-
-    const updateTopic = pubsub.topic("prefix-update");
-    await updateTopic.publish(messageBuffer);
-
-    await docRef.set({
-        latest: data,
-        timestamp: context.timestamp,
-        lastRun: context.timestamp,
-        updateCount: newUpdateCount,
-        version: 2
-    });
-
-    console.log("Published notification topic after scraping ", prefix)
+    console.log("Updated historical state for ", prefix)
 }

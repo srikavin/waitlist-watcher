@@ -13,19 +13,21 @@ const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nli
 webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY)
 
 exports.notifier = async (message, context) => {
+    console.log(message);
+
     const parsedData = JSON.parse(Buffer.from(message.data, 'base64').toString());
 
-    const {prefix, previousState, newState, diff} = parsedData.data;
+    const {prefix, previousState, newState} = parsedData.data;
 
     console.log("Notifying users of changes in ", prefix);
 
     if (!previousState || !newState) {
-        console.warn("PreviousState or newState was invalid!");
+        console.log("PreviousState or newState was invalid!");
         return;
     }
 
-    const previousCourses = previousState.latest;
-    const newCourses = newState.latest
+    const previousCourses = previousState;
+    const newCourses = newState;
 
     const events = []
 
@@ -105,11 +107,11 @@ exports.notifier = async (message, context) => {
     for (const event of events) {
         if (!event.section) continue;
 
-        console.log("Notifying users of event type: ", event.type)
-
         const {type, course, section} = event;
 
-        promises.push(db.ref("section_subscriptions/" + prefix + "/" + section).once('value', (data) => {
+        console.log("Notifying users of event ", type, " for ", course, section);
+
+        promises.push(db.ref(`section_subscriptions/${course}/${section}`).once('value', (data) => {
             if (!data.exists()) return;
 
             const subscribers = data.val();
@@ -128,6 +130,9 @@ exports.notifier = async (message, context) => {
                         console.log("Notifying", key, "through a web push");
                         promises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
                     }
+                    if (sub_methods.discord) {
+                        console.log("Notifying", key, "through a web push");
+                    }
                 }));
             });
         }));
@@ -137,3 +142,48 @@ exports.notifier = async (message, context) => {
 
     results.forEach((e) => console.log(e.result));
 }
+
+// exports.notifier({
+//     data:
+//         Buffer.from(JSON.stringify({
+//             data: {
+//                 prefix: "JOUR",
+//                 previousState: {
+//                     latest: {
+//                         "JOUR123": {
+//                             course: "JOUR123",
+//                             sections: {
+//                                 "0101": {
+//                                     section: "0101",
+//                                     totalSeats: 60,
+//                                     holdFile: 0,
+//                                     openSeats: 0,
+//                                     instructor: "Aajklda akjlad",
+//                                     waitlist: 60
+//                                 }
+//                             }
+//                         }
+//                     },
+//                 },
+//                 newState: {
+//                     latest: {
+//                         "JOUR123": {
+//                             course: "JOUR123",
+//                             sections: {
+//                                 "0101": {
+//                                     section: "0101",
+//                                     totalSeats: 60,
+//                                     holdFile: 0,
+//                                     openSeats: 14,
+//                                     instructor: "Aajklda akjlad aslkj",
+//                                     waitlist: 0
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 },
+//                 diff: {},
+//                 id: "asdasd"
+//             }
+//         }), 'utf8').toString('base64')
+// }, {})

@@ -48,15 +48,12 @@ resource "google_cloudfunctions_function" "function" {
 
   max_instances = var.max-instances
 
-  available_memory_mb   = 128
+  available_memory_mb   = 256
   source_archive_bucket = google_storage_bucket.bucket.name
   source_archive_object = google_storage_bucket_object.zip.name
   event_trigger {
     event_type = "google.pubsub.topic.publish"
     resource   = var.pubsub_name
-    failure_policy {
-      retry = true
-    }
   }
   environment_variables = var.env_vars
   entry_point           = var.function_entry_point

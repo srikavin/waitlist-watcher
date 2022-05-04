@@ -7,8 +7,7 @@ const db = getFirestore();
 
 const {scraper} = require("./scraper");
 
-const BATCH_SIZE = 12;
-
+const BATCH_SIZE = 2;
 
 
 exports.launcher = async (message, context) => {
@@ -33,10 +32,9 @@ exports.launcher = async (message, context) => {
     }
 
     state.prefixIndex = state.prefixIndex + BATCH_SIZE;
+    await triggerDataRef.set(state);
 
     console.log("Waiting for scraper completion");
     await Promise.all(prefixPromises);
     console.log("Scrapers finished");
-
-    await triggerDataRef.set(state);
 }
