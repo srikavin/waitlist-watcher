@@ -2,6 +2,7 @@ const {initializeApp} = require('firebase-admin/app');
 const axios = require("axios");
 const webpush = require("web-push");
 const {getDatabase} = require("firebase-admin/database");
+const {getDiscordContent} = require("./discord");
 
 initializeApp({
     databaseURL: "https://waitlist-watcher-default-rtdb.firebaseio.com"
@@ -112,9 +113,16 @@ exports.notifier = async (message, context) => {
         console.log("Notifying users of event ", type, " for ", course, section);
 
         promises.push(db.ref(`section_subscriptions/${course}/${section}`).once('value', (data) => {
-            if (!data.exists()) return;
-
-            const subscribers = data.val();
+            const subscribers = (data.exists()) ? data.val() : {
+                "5wbIRDGb4yZuJQB21vlAxOodODf1": {
+                    "holdfile_changed": true,
+                    "instructor_changed": true,
+                    "open_seat_available": true,
+                    "open_seats_changed": true,
+                    "section_removed": true,
+                    "waitlist_changed": true
+                }
+            };
 
             Object.entries(subscribers).forEach(([key, value]) => {
                 db.ref("user_settings/" + key).once('value', (subscription_methods => {
@@ -131,7 +139,8 @@ exports.notifier = async (message, context) => {
                         promises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
                     }
                     if (sub_methods.discord) {
-                        console.log("Notifying", key, "through a web push");
+                        console.log("Notifying", key, "through a discord web hook");
+                        promises.push(axios.post(sub_methods.discord, getDiscordContent(event)));
                     }
                 }));
             });
@@ -142,48 +151,3 @@ exports.notifier = async (message, context) => {
 
     results.forEach((e) => console.log(e.result));
 }
-
-// exports.notifier({
-//     data:
-//         Buffer.from(JSON.stringify({
-//             data: {
-//                 prefix: "JOUR",
-//                 previousState: {
-//                     latest: {
-//                         "JOUR123": {
-//                             course: "JOUR123",
-//                             sections: {
-//                                 "0101": {
-//                                     section: "0101",
-//                                     totalSeats: 60,
-//                                     holdFile: 0,
-//                                     openSeats: 0,
-//                                     instructor: "Aajklda akjlad",
-//                                     waitlist: 60
-//                                 }
-//                             }
-//                         }
-//                     },
-//                 },
-//                 newState: {
-//                     latest: {
-//                         "JOUR123": {
-//                             course: "JOUR123",
-//                             sections: {
-//                                 "0101": {
-//                                     section: "0101",
-//                                     totalSeats: 60,
-//                                     holdFile: 0,
-//                                     openSeats: 14,
-//                                     instructor: "Aajklda akjlad aslkj",
-//                                     waitlist: 0
-//                                 }
-//                             }
-//                         }
-//                     }
-//                 },
-//                 diff: {},
-//                 id: "asdasd"
-//             }
-//         }), 'utf8').toString('base64')
-// }, {})
