@@ -31,6 +31,7 @@ module "scraper-launcher-function" {
   source_dir           = abspath("../scraper")
   function_entry_point = "launcher"
   runtime              = "nodejs16"
+  available_memory_mb  = 256
   pubsub_name          = google_pubsub_topic.scrape-launcher-topic.name
   env_vars             = {}
   max-instances        = 5
@@ -44,6 +45,7 @@ module "notifier-function" {
   source_dir           = abspath("../notifier")
   function_entry_point = "notifier"
   runtime              = "nodejs16"
+  available_memory_mb  = 128
   pubsub_name          = google_pubsub_topic.prefix-update-topic.name
   env_vars             = {
     VAPID_PRIV_KEY = var.NOTIFIER_VAPID_PRIV_KEY

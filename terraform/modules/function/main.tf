@@ -48,7 +48,7 @@ resource "google_cloudfunctions_function" "function" {
 
   max_instances = var.max-instances
 
-  available_memory_mb   = 256
+  available_memory_mb   = var.available_memory_mb
   source_archive_bucket = google_storage_bucket.bucket.name
   source_archive_object = google_storage_bucket_object.zip.name
   event_trigger {

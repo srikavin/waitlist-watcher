@@ -7,3 +7,4 @@ variable "runtime" {}
 variable "pubsub_name" {}
 variable "env_vars" {}
 variable "max-instances" {}
+variable "available_memory_mb" {}
