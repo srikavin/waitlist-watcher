@@ -14,7 +14,7 @@ resource "google_pubsub_topic" "prefix-update-topic" {
 resource "google_cloud_scheduler_job" "job" {
   name        = "scraper-launcher-job"
   description = "Cycles through course prefixes to scrape"
-  schedule    = "*/1 0-5,11-23 * * *"
+  schedule    = "*/2 0-5,11-23 * * *"
 
   pubsub_target {
     # topic.id is the topic's full resource name.
