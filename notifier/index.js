@@ -28,7 +28,7 @@ const notifier = async (message, context) => {
     const previousCourses = previousState;
     const newCourses = newState;
 
-    const events = []
+    const events = [];
 
     for (let course in previousCourses) {
         if (!(course in newCourses)) {
@@ -113,9 +113,37 @@ const notifier = async (message, context) => {
 
     events.sort((a, b) => a.course.localeCompare(b.course));
 
+    const everythingSubscribers = await db.ref(`everything_subscriptions/`).once('value');
+    const courseSubscribersCache = {}
+    const sectionSubscribersCache = {}
+
+    const cachePromises = [];
+    const cacheSeen = new Set();
+
+    for (const event of events) {
+        if (!event.section) continue;
+
+        const key = event.course + '-' + event.section;
+
+        if (!cacheSeen.has(key)) {
+            cachePromises.push((async () => {
+                sectionSubscribersCache[key] = await db.ref(`section_subscriptions/${event.course}/${event.section}`).once('value');
+            })())
+            cacheSeen.add(key);
+        }
+
+        if (!cacheSeen.has(event.course)) {
+            cachePromises.push((async () => {
+                courseSubscribersCache[event.course] = await db.ref(`course_subscriptions/${event.course}/`).once('value');
+            })());
+            cacheSeen.add(key);
+        }
+    }
+
+    await Promise.all(cachePromises);
+
     const promises = [];
     const webhookPromises = [];
-
     const discordBatch = {}
 
     for (const event of events) {
@@ -126,22 +154,33 @@ const notifier = async (message, context) => {
         console.log("Notifying users of event ", type, " for ", course, section);
 
         promises.push((async () => {
-            const data = await db.ref(`section_subscriptions/${course}/${section}`).once('value');
+            let [sectionSubscribers, courseSubscribers] = [sectionSubscribersCache[event.course + '-' + event.section], courseSubscribersCache[event.course]];
 
-            const subscribers = (data.exists()) ? data.val() : {
-                "5wbIRDGb4yZuJQB21vlAxOodODf1": {
-                    "course_removed": true,
-                    "holdfile_changed": true,
-                    "instructor_changed": true,
-                    "open_seat_available": true,
-                    "open_seats_changed": true,
-                    "section_removed": true,
-                    "waitlist_changed": true
+            if (!sectionSubscribers.exists()) {
+                sectionSubscribers = {}
+            } else {
+                sectionSubscribers = sectionSubscribers.val();
+            }
+
+            if (!courseSubscribers.exists()) {
+                courseSubscribers = {}
+            } else {
+                courseSubscribers = courseSubscribers.val();
+            }
+
+            let subscribers = [];
+            subscribers = subscribers.concat(Object.keys(sectionSubscribers));
+            subscribers = subscribers.concat(Object.keys(courseSubscribers));
+            subscribers = subscribers.concat(Object.keys(everythingSubscribers));
+
+            subscribers = [...new Set(subscribers)]
+
+            for (const key of subscribers) {
+                if (!(sectionSubscribers?.[key]?.[type] === true
+                    || courseSubscribers?.[key]?.[type] === true
+                    || everythingSubscribers?.[key]?.[type] === true)) {
+                    return;
                 }
-            };
-
-            for (const [key, value] of Object.entries(subscribers)) {
-                if (value[type] !== true) return;
 
                 const subscription_methods = await db.ref("user_settings/" + key).once('value');
                 if (!subscription_methods.exists()) return;
