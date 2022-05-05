@@ -7,7 +7,7 @@ const db = getFirestore();
 
 const {scraper} = require("./scraper");
 
-const BATCH_SIZE = 4;
+const BATCH_SIZE = 8;
 
 
 exports.launcher = async (message, context) => {
