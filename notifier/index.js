@@ -139,13 +139,14 @@ exports.notifier = async (message, context) => {
         }
     }
 
+    const everythingSubscribers = (await db.ref(`everything_subscriptions/`).once('value')).val() || {};
+
     await Promise.all(cachePromises);
 
     const promises = [];
     const webhookPromises = [];
     const discordBatch = {}
 
-    const everythingSubscribers = (await db.ref(`everything_subscriptions/`).once('value')).val() || {};
 
     for (const event of events) {
         if (!event.section) continue;
@@ -154,56 +155,54 @@ exports.notifier = async (message, context) => {
 
         console.log("Notifying users of event ", type, " for ", course, section);
 
-        promises.push((async () => {
-            let [sectionSubscribers, courseSubscribers] = [sectionSubscribersCache[event.course + '-' + event.section], courseSubscribersCache[event.course]];
+        let [sectionSubscribers, courseSubscribers] = [sectionSubscribersCache[event.course + '-' + event.section], courseSubscribersCache[event.course]];
 
-            sectionSubscribers = sectionSubscribers.val() || {};
-            courseSubscribers = courseSubscribers.val() || {};
+        sectionSubscribers = sectionSubscribers.val() || {};
+        courseSubscribers = courseSubscribers.val() || {};
 
-            let subscribers = [];
-            subscribers = subscribers.concat(Object.keys(sectionSubscribers));
-            subscribers = subscribers.concat(Object.keys(courseSubscribers));
-            subscribers = subscribers.concat(Object.keys(everythingSubscribers));
+        let subscribers = [];
+        subscribers = subscribers.concat(Object.keys(sectionSubscribers));
+        subscribers = subscribers.concat(Object.keys(courseSubscribers));
+        subscribers = subscribers.concat(Object.keys(everythingSubscribers));
 
-            subscribers = [...new Set(subscribers)]
+        subscribers = [...new Set(subscribers)]
 
-            console.log("Found subscribers", subscribers);
+        console.log("Found subscribers", subscribers);
 
-            for (const key of subscribers) {
-                if (!(sectionSubscribers?.[key]?.[type] === true
-                    || courseSubscribers?.[key]?.[type] === true
-                    || everythingSubscribers?.[key]?.[type] === true)) {
-                    return;
-                }
-
-                const subscription_methods = await db.ref("user_settings/" + key).once('value');
-                if (!subscription_methods.exists()) return;
-
-                const sub_methods = subscription_methods.val();
-
-                if (sub_methods.web_hook) {
-                    console.log("Notifying", key, "through a web hook");
-                    webhookPromises.push(axios.post(sub_methods.web_hook, event));
-                }
-                if (sub_methods.web_push) {
-                    console.log("Notifying", key, "through a web push");
-                    webhookPromises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
-                }
-                if (sub_methods.discord) {
-                    if (discordBatch[sub_methods.discord] === undefined) {
-                        discordBatch[sub_methods.discord] = [[]]
-                    }
-
-                    let batches = discordBatch[sub_methods.discord];
-
-                    if (batches[batches.length - 1].length === 10) {
-                        batches.push([])
-                    }
-
-                    batches[batches.length - 1].push(event);
-                }
+        for (const key of subscribers) {
+            if (!(sectionSubscribers?.[key]?.[type] === true
+                || courseSubscribers?.[key]?.[type] === true
+                || everythingSubscribers?.[key]?.[type] === true)) {
+                return;
             }
-        })());
+
+            const subscription_methods = await db.ref("user_settings/" + key).once('value');
+            if (!subscription_methods.exists()) return;
+
+            const sub_methods = subscription_methods.val();
+
+            if (sub_methods.web_hook) {
+                console.log("Notifying", key, "through a web hook");
+                webhookPromises.push(axios.post(sub_methods.web_hook, event));
+            }
+            if (sub_methods.web_push) {
+                console.log("Notifying", key, "through a web push");
+                webhookPromises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
+            }
+            if (sub_methods.discord) {
+                if (discordBatch[sub_methods.discord] === undefined) {
+                    discordBatch[sub_methods.discord] = [[]]
+                }
+
+                let batches = discordBatch[sub_methods.discord];
+
+                if (batches[batches.length - 1].length === 10) {
+                    batches.push([])
+                }
+
+                batches[batches.length - 1].push(event);
+            }
+        }
     }
 
     const results = await Promise.allSettled(promises);
