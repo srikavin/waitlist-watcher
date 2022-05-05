@@ -1,91 +1,72 @@
 const seatAvailable = (event) => {
     return {
-        "content": null,
-        "embeds": [
+        "title": `Open Seat Available in ${event.course}-${event.section}`,
+        "color": 5832650,
+        "fields": [
             {
-                "title": `Open Seat Available in ${event.course}-${event.section}`,
-                "color": 5832650,
-                "fields": [
-                    {
-                        "name": "Course Name",
-                        "value": event.course,
-                        "inline": true
-                    },
-                    {
-                        "name": "Section",
-                        "value": event.section,
-                        "inline": true
-                    },
-                    {
-                        "name": "Seats Available",
-                        "value": event.new
-                    }
-                ]
+                "name": "Course Name",
+                "value": event.course,
+                "inline": true
+            },
+            {
+                "name": "Section",
+                "value": event.section,
+                "inline": true
+            },
+            {
+                "name": "Seats Available",
+                "value": event.new
             }
-        ],
-        "username": "Waitlist Watcher",
-        "attachments": []
+        ]
     }
 }
 
 const sectionRemoved = (event) => {
     return {
-        "content": null,
-        "embeds": [
+        "title": `Section ${event.course}-${event.section} Removed`,
+        "color": 16734296,
+        "fields": [
             {
-                "title": `Section ${event.course}-${event.section} Removed`,
-                "color": 16734296,
-                "fields": [
-                    {
-                        "name": "Course Name",
-                        "value": event.course,
-                        "inline": true
-                    },
-                    {
-                        "name": "Section",
-                        "value": event.section,
-                        "inline": true
-                    }
-                ]
+                "name": "Course Name",
+                "value": event.course,
+                "inline": true
+            },
+            {
+                "name": "Section",
+                "value": event.section,
+                "inline": true
             }
-        ],
-        "username": "Waitlist Watcher",
-        "attachments": []
+        ]
     }
 }
 
 const simpleSectionChangeEvent = (title_fn, old_title, new_title, color) => {
-    return (event) => ({
-        "content": null,
-        "embeds": [
-            {
-                "title": title_fn(event),
-                "color": color,
-                "fields": [
-                    {
-                        "name": "Course Name",
-                        "value": event.course,
-                        "inline": true
-                    },
-                    {
-                        "name": "Section",
-                        "value": event.section,
-                        "inline": true
-                    },
-                    {
-                        "name": old_title,
-                        "value": event.old
-                    },
-                    {
-                        "name": new_title,
-                        "value": event.new
-                    }
-                ]
-            }
-        ],
-        "username": "Waitlist Watcher",
-        "attachments": []
-    });
+    return (event) => (
+        {
+            "title": title_fn(event),
+            "color": color,
+            "fields": [
+                {
+                    "name": "Course Name",
+                    "value": event.course,
+                    "inline": true
+                },
+                {
+                    "name": "Section",
+                    "value": event.section,
+                    "inline": true
+                },
+                {
+                    "name": old_title,
+                    "value": event.old
+                },
+                {
+                    "name": new_title,
+                    "value": event.new
+                }
+            ]
+        }
+    );
 }
 
 const totalSeatsChanged = simpleSectionChangeEvent(
@@ -141,7 +122,7 @@ const unknownEvent = (event) => {
     }
 }
 
-exports.getDiscordContent = (event) => {
+exports.getDiscordContent = (events) => {
     const mapping = {
         "open_seat_available": seatAvailable,
         "open_seats_changed": openSeatsChanged,
@@ -152,9 +133,15 @@ exports.getDiscordContent = (event) => {
         "section_removed": sectionRemoved
     }
 
-    if (event.type in mapping) {
-        return mapping[event.type](event);
+    return {
+        "content": null,
+        "embeds": events.map((event) => {
+            if (event.type in mapping) {
+                return mapping[event.type](event)
+            }
+            return unknownEvent(event);
+        }),
+        "username": "Waitlist Watcher",
+        "attachments": []
     }
-
-    return unknownEvent(event);
 }

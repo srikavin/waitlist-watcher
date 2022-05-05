@@ -114,6 +114,8 @@ const notifier = async (message, context) => {
     const promises = [];
     const webhookPromises = [];
 
+    const discordBatch = {}
+
     for (const event of events) {
         if (!event.section) continue;
 
@@ -153,14 +155,30 @@ const notifier = async (message, context) => {
                     webhookPromises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
                 }
                 if (sub_methods.discord) {
-                    console.log("Notifying", key, "through a discord web hook");
-                    webhookPromises.push(axios.post(sub_methods.discord, getDiscordContent(event)));
+                    if (discordBatch[sub_methods.discord] === undefined) {
+                        discordBatch[sub_methods.discord] = [[]]
+                    }
+
+                    let batches = discordBatch[sub_methods.discord];
+
+                    if (batches[batches.length - 1].length === 10) {
+                        batches.push([])
+                    }
+
+                    batches[batches.length - 1].push(event);
                 }
             }
         })());
     }
 
     const results = await Promise.allSettled(promises);
+
+    for (const [discordHookUrl, batches] of Object.entries(discordBatch)) {
+        batches.forEach((events) => {
+            webhookPromises.push(axios.post(discordHookUrl, getDiscordContent(events)));
+        });
+    }
+
     const webhookResults = await Promise.allSettled(webhookPromises);
 
     results.forEach((e) => {
