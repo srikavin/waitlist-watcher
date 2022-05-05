@@ -113,7 +113,6 @@ exports.notifier = async (message, context) => {
 
     events.sort((a, b) => a.course.localeCompare(b.course));
 
-    const everythingSubscribers = await db.ref(`everything_subscriptions/`).once('value');
     const courseSubscribersCache = {}
     const sectionSubscribersCache = {}
 
@@ -146,6 +145,8 @@ exports.notifier = async (message, context) => {
     const webhookPromises = [];
     const discordBatch = {}
 
+    const everythingSubscribers = (await db.ref(`everything_subscriptions/`).once('value')).val() || {};
+
     for (const event of events) {
         if (!event.section) continue;
 
@@ -156,17 +157,8 @@ exports.notifier = async (message, context) => {
         promises.push((async () => {
             let [sectionSubscribers, courseSubscribers] = [sectionSubscribersCache[event.course + '-' + event.section], courseSubscribersCache[event.course]];
 
-            if (!sectionSubscribers.exists()) {
-                sectionSubscribers = {}
-            } else {
-                sectionSubscribers = sectionSubscribers.val();
-            }
-
-            if (!courseSubscribers.exists()) {
-                courseSubscribers = {}
-            } else {
-                courseSubscribers = courseSubscribers.val();
-            }
+            sectionSubscribers = sectionSubscribers.val() || {};
+            courseSubscribers = courseSubscribers.val() || {};
 
             let subscribers = [];
             subscribers = subscribers.concat(Object.keys(sectionSubscribers));
