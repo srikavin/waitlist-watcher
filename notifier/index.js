@@ -112,6 +112,7 @@ exports.notifier = async (message, context) => {
     }
 
     const promises = [];
+    const webhookPromises = [];
 
     for (const event of events) {
         if (!event.section) continue;
@@ -120,7 +121,9 @@ exports.notifier = async (message, context) => {
 
         console.log("Notifying users of event ", type, " for ", course, section);
 
-        promises.push(db.ref(`section_subscriptions/${course}/${section}`).once('value', (data) => {
+        promises.push(async () => {
+            const data = await db.ref(`section_subscriptions/${course}/${section}`).once('value');
+
             const subscribers = (data.exists()) ? data.val() : {
                 "5wbIRDGb4yZuJQB21vlAxOodODf1": {
                     "course_removed": true,
@@ -133,32 +136,33 @@ exports.notifier = async (message, context) => {
                 }
             };
 
-            Object.entries(subscribers).forEach(([key, value]) => {
+            for (const [key, value] of Object.entries(subscribers)) {
                 if (value[type] !== true) return;
 
-                db.ref("user_settings/" + key).once('value', (subscription_methods => {
-                    if (!subscription_methods.exists()) return;
+                const subscription_methods = await db.ref("user_settings/" + key).once('value');
+                if (!subscription_methods.exists()) return;
 
-                    const sub_methods = subscription_methods.val();
+                const sub_methods = subscription_methods.val();
 
-                    if (sub_methods.web_hook) {
-                        console.log("Notifying", key, "through a web hook");
-                        promises.push(axios.post(sub_methods.web_hook, event));
-                    }
-                    if (sub_methods.web_push) {
-                        console.log("Notifying", key, "through a web push");
-                        promises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
-                    }
-                    if (sub_methods.discord) {
-                        console.log("Notifying", key, "through a discord web hook");
-                        promises.push(axios.post(sub_methods.discord, getDiscordContent(event)));
-                    }
-                }));
-            });
-        }));
+                if (sub_methods.web_hook) {
+                    console.log("Notifying", key, "through a web hook");
+                    webhookPromises.push(axios.post(sub_methods.web_hook, event));
+                }
+                if (sub_methods.web_push) {
+                    console.log("Notifying", key, "through a web push");
+                    webhookPromises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
+                }
+                if (sub_methods.discord) {
+                    console.log("Notifying", key, "through a discord web hook");
+                    webhookPromises.push(axios.post(sub_methods.discord, getDiscordContent(event)));
+                }
+            }
+        });
     }
 
     const results = await Promise.allSettled(promises);
+    const webhookResults = await Promise.allSettled(webhookPromises);
 
     results.forEach((e) => console.log(e.result));
+    webhookResults.forEach((e) => console.log(e.result));
 }
