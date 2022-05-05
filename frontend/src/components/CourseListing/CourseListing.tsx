@@ -5,7 +5,7 @@ import {AuthContext} from "../../context/AuthContext";
 import {Alert, Button, Checkbox, EmptyState, Heading, Pane, Popover, Spinner, Table, Text, Tooltip} from "evergreen-ui";
 import dayjs from 'dayjs'
 import relativeTime from "dayjs/plugin/relativeTime";
-import {get, ref, set} from "firebase/database";
+import {get, ref, set, update} from "firebase/database";
 import styles from "./CourseListing.module.css"
 
 dayjs.extend(relativeTime);
@@ -35,14 +35,91 @@ interface CourseData {
     updateCount: number
 }
 
+interface WatchButtonBaseProps {
+    subscriptionState: Record<string, boolean>;
+    updateSubscriptionState: (newState: any) => any;
+    subscriptionLabels: Record<string, string>;
+    onOpen: () => void;
+    onSave: (close: () => void) => void;
+    isLoading: boolean,
+    isErrored: boolean,
+    title: string
+    label: String
+}
+
+
+export function WatchButtonBase(props: WatchButtonBaseProps) {
+    const {
+        subscriptionState,
+        updateSubscriptionState,
+        subscriptionLabels,
+        onOpen,
+        isErrored,
+        isLoading,
+        title,
+        label,
+        onSave
+    } = props;
+
+    return (
+        <Popover
+            bringFocusInside
+            onOpen={onOpen}
+            content={({close}) => (
+                <Pane
+                    paddingX={20}
+                    paddingY={20}
+                    display="flex"
+                    justifyContent="center"
+                    flexDirection="column"
+                >
+
+                    <Heading>{title}</Heading>
+                    <Pane marginBottom={10}>
+                        <Text>Which events would you like to watch?</Text>
+
+                        {isErrored ? (
+                            <Alert intent="danger" title="Changes failed to save." marginY={12}>
+                                Ensure that you are logged in.
+                            </Alert>
+                        ) : null}
+
+                        {Object.keys(subscriptionLabels).map((k: keyof (typeof subscriptionLabels)) => (
+                            <Checkbox key={k} checked={subscriptionState[k]}
+                                      onChange={(v) => {
+                                          let temp = {...subscriptionState};
+                                          temp[k] = v.target.checked;
+                                          updateSubscriptionState(temp);
+                                      }}
+                                      label={subscriptionLabels[k]}/>
+                        ))}
+
+                        <Pane display="flex">
+                            <Button intent="danger" onClick={() => updateSubscriptionState({})}>Uncheck All</Button>
+                        </Pane>
+                    </Pane>
+                    <Button isLoading={isLoading} onClick={() => onSave(close)}>Save</Button>
+                </Pane>
+            )}
+        >
+            <Button>{label}</Button>
+        </Popover>
+    );
+}
+
 interface WatchButtonProps {
-    prefix: string,
-    course: Course,
-    section: CourseSection
+    courseName: string;
+    sectionName: string;
+    label?: string;
+}
+
+interface WatchCourseButtonProps {
+    courseName: string,
+    label?: string;
 }
 
 export function WatchButton(props: WatchButtonProps) {
-    const {prefix, course, section} = props;
+    const {courseName, sectionName} = props;
 
     const {auth, getUser} = useContext(AuthContext);
 
@@ -59,12 +136,22 @@ export function WatchButton(props: WatchButtonProps) {
         total_seats_changed: false
     };
 
+    const subscriptionLabels = {
+        instructor_changed: "Instructor changed",
+        open_seat_available: "Open seat available",
+        section_removed: "Section removed",
+        waitlist_changed: "Waitlist changed",
+        holdfile_changed: "Holdfile changed",
+        open_seats_changed: "Open seats changed",
+        total_seats_changed: "Total seats changed"
+    };
+
     const [subscriptions, setSubscriptions] = useState(subscriptionDefaults);
 
     const onPopoverOpen = useCallback(() => {
         if (!auth) return;
 
-        const subscriptionsRef = ref(realtime_db, `section_subscriptions/${course.course}/${section.section}/${getUser()?.uid}`);
+        const subscriptionsRef = ref(realtime_db, `section_subscriptions/${courseName}/${sectionName}/${getUser()?.uid}`);
 
         get(subscriptionsRef).then((snapshot) => {
             if (!snapshot.exists()) {
@@ -73,16 +160,22 @@ export function WatchButton(props: WatchButtonProps) {
 
             setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
         });
-    }, [auth, course, section, getUser, setSubscriptions]);
+    }, [auth, courseName, sectionName, getUser, setSubscriptions]);
 
     const onSave = useCallback((closePopover: () => void) => {
         if (!auth) return;
 
-        const subscriptionsRef = ref(realtime_db, `section_subscriptions/${course.course}/${section.section}/${getUser()?.uid}`);
+        const updates: any = {};
+
+        const filteredEntries = Object.fromEntries(Object.entries(subscriptions).filter(([_, val]) => val));
+
+        updates[`section_subscriptions/${courseName}/${sectionName}/${getUser()!.uid}`] = filteredEntries;
+        updates[`user_settings/${getUser()!.uid}/subscriptions/${courseName}-${sectionName}`] = filteredEntries;
 
         setIsSaving(true);
+        setIsErrored(false);
 
-        set(subscriptionsRef, Object.fromEntries(Object.entries(subscriptions).filter(([_, val]) => val)))
+        update(ref(realtime_db), updates)
             .then(() => {
                 setIsSaving(false);
                 closePopover();
@@ -92,83 +185,97 @@ export function WatchButton(props: WatchButtonProps) {
                 setIsErrored(true);
                 console.error(e);
             })
-    }, [course, section, subscriptions])
+    }, [courseName, sectionName, subscriptions])
 
     return (
-        <Popover
-            bringFocusInside
-            onOpen={onPopoverOpen}
-            content={({close}) => (
-                <Pane
-                    paddingX={20}
-                    paddingY={20}
-                    display="flex"
-                    justifyContent="center"
-                    flexDirection="column"
-                >
-
-                    <Heading>Watch {course.course}-{section.section}</Heading>
-                    <Pane>
-                        <Text>Which events would you like to watch?</Text>
-
-                        {isErrored ? (
-                            <Alert intent="danger"
-                                   title="Changes failed to save." marginY={12}>
-                                Ensure that you are logged in.
-                            </Alert>
-                        ) : null}
-
-                        <Checkbox checked={subscriptions.instructor_changed}
-                                  onChange={(v) => setSubscriptions({
-                                      ...subscriptions,
-                                      instructor_changed: v.target.checked
-                                  })}
-                                  label="Instructor changed"/>
-                        <Checkbox checked={subscriptions.open_seat_available}
-                                  onChange={(v) => setSubscriptions({
-                                      ...subscriptions,
-                                      open_seat_available: v.target.checked
-                                  })}
-                                  label="Open seat available"/>
-                        <Checkbox checked={subscriptions.section_removed}
-                                  onChange={(v) => setSubscriptions({
-                                      ...subscriptions,
-                                      section_removed: v.target.checked
-                                  })}
-                                  label="Section removed"/>
-                        <Checkbox checked={subscriptions.waitlist_changed}
-                                  onChange={(v) => setSubscriptions({
-                                      ...subscriptions,
-                                      waitlist_changed: v.target.checked
-                                  })}
-                                  label="Waitlist changed"/>
-                        <Checkbox checked={subscriptions.holdfile_changed}
-                                  onChange={(v) => setSubscriptions({
-                                      ...subscriptions,
-                                      holdfile_changed: v.target.checked
-                                  })}
-                                  label="Holdfile changed"/>
-                        <Checkbox checked={subscriptions.open_seats_changed}
-                                  onChange={(v) => setSubscriptions({
-                                      ...subscriptions,
-                                      open_seats_changed: v.target.checked
-                                  })}
-                                  label="Open seats changed"/>
-                        <Checkbox checked={subscriptions.total_seats_changed}
-                                  onChange={(v) => setSubscriptions({
-                                      ...subscriptions,
-                                      total_seats_changed: v.target.checked
-                                  })}
-                                  label="Total seats changed"/>
-                    </Pane>
-                    <Button isLoading={isSaving} onClick={() => onSave(close)}>Save</Button>
-                </Pane>
-            )}
-        >
-            <Button>Watch</Button>
-        </Popover>
-    );
+        <WatchButtonBase subscriptionState={subscriptions} updateSubscriptionState={setSubscriptions}
+                         subscriptionLabels={subscriptionLabels} onOpen={onPopoverOpen} isLoading={isSaving}
+                         isErrored={isErrored} title={`Watch ${courseName}-${sectionName}`} onSave={onSave}
+                         label={props.label || 'Watch'}/>
+    )
 }
+
+export function WatchCourseButton(props: WatchCourseButtonProps) {
+    const {courseName} = props;
+
+    const {auth, getUser} = useContext(AuthContext);
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [isErrored, setIsErrored] = useState(false);
+
+    const subscriptionDefaults = {
+        course_removed: true,
+        section_added: true,
+        instructor_changed: true,
+        open_seat_available: true,
+        section_removed: true,
+        waitlist_changed: true,
+        holdfile_changed: false,
+        open_seats_changed: false,
+        total_seats_changed: false
+    };
+
+    const subscriptionLabels = {
+        course_removed: "Course removed",
+        section_added: "Section added",
+        instructor_changed: "Section instructor changed",
+        open_seat_available: "Open seat available",
+        section_removed: "Section removed",
+        waitlist_changed: "Section waitlist changed",
+        holdfile_changed: "Section holdfile changed",
+        open_seats_changed: "Section open seats changed",
+        total_seats_changed: "Section total seats changed"
+    };
+
+    const [subscriptions, setSubscriptions] = useState(subscriptionDefaults);
+
+    const onPopoverOpen = useCallback(() => {
+        if (!auth) return;
+
+        const subscriptionsRef = ref(realtime_db, `course_subscriptions/${courseName}/${getUser()?.uid}`);
+
+        get(subscriptionsRef).then((snapshot) => {
+            if (!snapshot.exists()) {
+                return;
+            }
+
+            setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
+        });
+    }, [auth, courseName, getUser, setSubscriptions]);
+
+    const onSave = useCallback((closePopover: () => void) => {
+        if (!auth) return;
+
+        const updates: any = {};
+
+        const filteredEntries = Object.fromEntries(Object.entries(subscriptions).filter(([_, val]) => val));
+
+        updates[`course_subscriptions/${courseName}/${getUser()!.uid}`] = filteredEntries;
+        updates[`user_settings/${getUser()!.uid}/subscriptions/${courseName}`] = filteredEntries;
+
+        setIsSaving(true);
+        setIsErrored(false);
+
+        update(ref(realtime_db), updates)
+            .then(() => {
+                setIsSaving(false);
+                closePopover();
+            })
+            .catch((e) => {
+                setIsSaving(false);
+                setIsErrored(true);
+                console.error(e);
+            })
+    }, [courseName, subscriptions])
+
+    return (
+        <WatchButtonBase subscriptionState={subscriptions} updateSubscriptionState={setSubscriptions}
+                         subscriptionLabels={subscriptionLabels} onOpen={onPopoverOpen} isLoading={isSaving}
+                         isErrored={isErrored} title={`Watch ${courseName}`} onSave={onSave}
+                         label={props.label || 'Watch'}/>
+    )
+}
+
 
 export function CourseListing(props: CourseListingProps) {
     const {prefix} = props;
@@ -193,10 +300,10 @@ export function CourseListing(props: CourseListingProps) {
 
             <Table minWidth="800px">
                 <Table.Head>
-                    <Table.SearchHeaderCell flexBasis={100} flexShrink={0} flexGrow={0} value={courseFilter}
+                    <Table.SearchHeaderCell flexBasis={200} flexShrink={0} flexGrow={0} value={courseFilter}
                                             onChange={setCourseFilter}>Course</Table.SearchHeaderCell>
                     <Table.TextHeaderCell flexBasis={100} flexShrink={0} flexGrow={0}>Section</Table.TextHeaderCell>
-                    <Table.TextHeaderCell flexBasis={200} flexShrink={0} flexGrow={0}>Instructor</Table.TextHeaderCell>
+                    <Table.TextHeaderCell flexBasis={150} flexShrink={0} flexGrow={0}>Instructor</Table.TextHeaderCell>
                     <Table.TextHeaderCell>Open Seats</Table.TextHeaderCell>
                     <Table.TextHeaderCell>Total Seats</Table.TextHeaderCell>
                     <Table.TextHeaderCell>Waitlist</Table.TextHeaderCell>
@@ -211,18 +318,15 @@ export function CourseListing(props: CourseListingProps) {
                                 const course = [(
                                     <Table.Row key={e.course} isSelectable
                                                onSelect={() => setSelectedCourse(selectedCourse === e.course ? '' : e.course)}>
-                                        <Table.TextCell flexBasis={100} flexShrink={0}
-                                                        flexGrow={0}>{e.course}</Table.TextCell>
-                                        <Table.TextCell flexBasis={100} flexShrink={0}
-                                                        flexGrow={0}></Table.TextCell>
                                         <Table.TextCell flexBasis={200} flexShrink={0}
-                                                        flexGrow={0}></Table.TextCell>
+                                                        flexGrow={0}>{e.course}</Table.TextCell>
+                                        <Table.TextCell flexBasis={100} flexShrink={0} flexGrow={0}></Table.TextCell>
+                                        <Table.TextCell flexBasis={150} flexShrink={0} flexGrow={0}></Table.TextCell>
                                         <Table.TextCell isNumber></Table.TextCell>
                                         <Table.TextCell isNumber></Table.TextCell>
                                         <Table.TextCell isNumber></Table.TextCell>
                                         <Table.TextCell isNumber></Table.TextCell>
-                                        <Table.TextCell isNumber><WatchButton prefix={prefix} course={e}
-                                                                              section={e.sections["0101"]}/></Table.TextCell>
+                                        <Table.TextCell><WatchCourseButton courseName={e.course}/></Table.TextCell>
                                     </Table.Row>
                                 )]
                                 if (e.course === selectedCourse) {
@@ -230,18 +334,18 @@ export function CourseListing(props: CourseListingProps) {
                                         .sort((a, b) => a.section.localeCompare(b.section))
                                         .map((s) => (
                                             <Table.Row key={e.course + s.section} className={styles.sectionRow}>
-                                                <Table.TextCell flexBasis={100} flexShrink={0}
+                                                <Table.TextCell flexBasis={200} flexShrink={0}
                                                                 flexGrow={0}></Table.TextCell>
                                                 <Table.TextCell flexBasis={100} flexShrink={0}
                                                                 flexGrow={0}>{s.section}</Table.TextCell>
-                                                <Table.TextCell flexBasis={200} flexShrink={0}
+                                                <Table.TextCell flexBasis={150} flexShrink={0}
                                                                 flexGrow={0}>{s.instructor}</Table.TextCell>
                                                 <Table.TextCell isNumber>{s.openSeats}</Table.TextCell>
                                                 <Table.TextCell isNumber>{s.totalSeats}</Table.TextCell>
                                                 <Table.TextCell isNumber>{s.waitlist}</Table.TextCell>
                                                 <Table.TextCell isNumber>{s.holdfile}</Table.TextCell>
-                                                <Table.TextCell isNumber><WatchButton prefix={prefix} course={e}
-                                                                                      section={s}/></Table.TextCell>
+                                                <Table.TextCell><WatchButton courseName={e.course}
+                                                                             sectionName={s.section}/></Table.TextCell>
                                             </Table.Row>
                                         )))
                                 }

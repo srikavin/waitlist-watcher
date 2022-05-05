@@ -15,8 +15,9 @@ import {
     TextInputField
 } from "evergreen-ui";
 import {realtime_db} from "../../firebase";
-import {get, ref, set} from "firebase/database";
+import {get, onValue, ref, set} from "firebase/database";
 import {notifWorker} from "../../main";
+import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 
 function EnableNotificationsButton() {
     const [isLoading, setIsLoading] = useState(false);
@@ -108,6 +109,49 @@ function EnableNotificationsButton() {
     );
 }
 
+function CurrentSubscriptions() {
+    const {auth, getUser} = useContext(AuthContext);
+
+    const [subscriptions, setSubscriptions] = useState({});
+
+    useEffect(() => {
+        return onValue(ref(realtime_db, "user_settings/" + getUser()!.uid + "/subscriptions"), e => {
+            if (e.exists()) {
+                setSubscriptions(e.val())
+            } else {
+                setSubscriptions({})
+            }
+        });
+    }, [auth, getUser(), setSubscriptions]);
+
+    if (Object.keys(subscriptions).length === 0) {
+        return (
+            <EmptyState
+                title="You have no subscriptions"
+                icon={<SearchTemplateIcon/>}
+                iconBgColor="#EDEFF5"
+                description="Try watching a course to get notified about updates"
+            />
+        );
+    }
+
+    return (
+        <Pane display="flex" flexDirection="column">
+            {
+                Object.entries(subscriptions).map(([k, v]) => (
+                    <Pane key={k} display="flex" gap={10} marginY={5}>
+                        <Text>{k}</Text>
+                        {k.includes('-') ? (
+                            <WatchButton courseName={k.split('-')[0]} sectionName={k.split('-')[1]} label={"Edit"}/>
+                        ) : (
+                            <WatchCourseButton courseName={k} label={"Edit"}/>
+                        )}
+                    </Pane>
+                ))}
+        </Pane>
+    )
+}
+
 export function ProfileScreen() {
     const {auth, getUser} = useContext(AuthContext);
     const navigate = useNavigate();
@@ -139,8 +183,7 @@ export function ProfileScreen() {
     }, [auth, discordUrl, webhookUrl])
 
     if (!auth) {
-        navigate("/");
-        return null;
+        return <Text>Need to be logged in.</Text>;
     }
 
     return (
@@ -159,7 +202,7 @@ export function ProfileScreen() {
                         />
                         <TextInputField
                             label="Password"
-                            description="Used when logging in without UMD CAS"
+                            description="Used when logging in without UMD CAS (currently unused)"
                             placeholder="*********"
                         />
                     </Pane>
@@ -204,14 +247,11 @@ export function ProfileScreen() {
 
                 <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
                     <Heading size={800}>Your subscriptions</Heading>
+                    <Text>Edit and delete your subscriptions. Removing all subscription categories will unsubscribe
+                        you.</Text>
 
                     <Pane marginTop={10}>
-                        <EmptyState
-                            title="You have no subscriptions"
-                            icon={<SearchTemplateIcon/>}
-                            iconBgColor="#EDEFF5"
-                            description="Try watching a course to get notified about updates"
-                        />
+                        <CurrentSubscriptions/>
                     </Pane>
                 </Card>
 
