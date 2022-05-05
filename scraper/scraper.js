@@ -46,7 +46,7 @@ const getWaitlisted = async (prefix) => {
                         section: sectionName,
                         openSeats: parseNumber(section.querySelector(".open-seats-count").textContent),
                         totalSeats: parseNumber(section.querySelector(".total-seats-count").textContent),
-                        instructor: section.querySelector(".section-instructor").textContent,
+                        instructor: section.querySelectorAll(".section-instructor").map(e => e.textContent).sort().join(', '),
                         waitlist: parseNumber(waitlistField[0].textContent),
                         holdfile: holdfile
                     }];
