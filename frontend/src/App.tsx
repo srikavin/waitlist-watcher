@@ -10,6 +10,7 @@ import {Navigation} from "./components/Navigation/Navigation";
 import {BrowserRouter, Route, Routes, useParams} from "react-router-dom";
 import {LandingPageScreen} from "./screens/LandingPageScreen/LandingPageScreen";
 import {CourseListing} from "./components/CourseListing/CourseListing";
+import {ProfileScreen} from "./screens/ProfileScreen/ProfileScreen";
 
 function PrefixRenderer() {
     let {prefix} = useParams();
@@ -61,6 +62,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<LandingPageScreen/>}/>
                         <Route path="/department/:prefix" element={<PrefixRenderer/>}/>
+                        <Route path="/profile" element={<ProfileScreen/>}/>
                     </Routes>
                 </Card>
             </AuthContext.Provider>

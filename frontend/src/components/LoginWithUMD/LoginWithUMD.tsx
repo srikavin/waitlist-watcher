@@ -1,5 +1,5 @@
 import {auth, realtime_db} from "../../firebase";
-import {onValue, ref} from "firebase/database";
+import {onValue, ref, set} from "firebase/database";
 import {signInWithCustomToken} from "firebase/auth";
 import {useCallback, useContext, useEffect, useState} from "react";
 import {AuthContext} from "../../context/AuthContext";
@@ -19,6 +19,7 @@ function startLoginListener(req_id: string, callback: (isAuthed: boolean) => voi
                 signInWithCustomToken(auth, localStorage.getItem("customToken")!)
                     .then((e) => {
                         callback(true);
+                        set(req_ref, {});
                     });
             }
         }
@@ -26,7 +27,7 @@ function startLoginListener(req_id: string, callback: (isAuthed: boolean) => voi
 }
 
 export function LoginWithUMD() {
-    const [reqId, setReqId] = useState(window.crypto.randomUUID().replaceAll("-", ""));
+    const [reqId, setReqId] = useState(window.crypto.randomUUID().replace(/-/g, ""));
     const {auth, setAuth} = useContext(AuthContext);
 
     useEffect(() => {

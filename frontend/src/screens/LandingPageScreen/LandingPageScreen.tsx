@@ -14,7 +14,7 @@ export function LandingPageScreen() {
     return (
         <>
             <Heading size={900} marginBottom={12}>Departments</Heading>
-            <Text size={600} paddingBottom={8}>Choose a department</Text>
+            <Text size={600} marginBottom={16}>Choose a department</Text>
             <CoursePrefixListing/>
         </>
     );

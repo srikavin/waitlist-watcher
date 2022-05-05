@@ -1,0 +1,16 @@
+@keyframes slide-up {
+    0% {
+        opacity: 0;
+        /*transform: translateY(-10px);*/
+        max-height: 0;
+    }
+    100% {
+        opacity: 1;
+        /*transform: translateY(0);*/
+        max-height: 60px;
+    }
+}
+
+.sectionRow {
+    animation: slide-up 0.2s ease;
+}

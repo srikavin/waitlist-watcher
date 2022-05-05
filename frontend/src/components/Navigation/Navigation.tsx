@@ -20,7 +20,7 @@ export function Navigation() {
                     <LoginWithUMD/>
                 ) : (
                     <>
-                        <Button appearance="minimal">{getUser()!.email}</Button>
+                        <Button appearance="minimal" onClick={() => navigate("/profile")}>{getUser()!.email}</Button>
                         <Button marginRight={8} intent="danger" appearance="minimal" onClick={logout}>Logout</Button>
                     </>
                 )}
