@@ -111,6 +111,8 @@ const notifier = async (message, context) => {
         }
     }
 
+    events.sort((a, b) => a.course.localeCompare(b.course));
+
     const promises = [];
     const webhookPromises = [];
 
