@@ -13,7 +13,7 @@ const db = getDatabase();
 const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
 webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY)
 
-const notifier = async (message, context) => {
+exports.notifier = async (message, context) => {
     const parsedData = JSON.parse(Buffer.from(message.data, 'base64').toString());
 
     const {prefix, previousState, newState} = parsedData.data;
@@ -233,9 +233,4 @@ const notifier = async (message, context) => {
             console.error("webhookResults", "rejected", e.reason.message)
         }
     });
-}
-
-exports.notifier = (message, context) => {
-    return notifier(message, context)
-        .catch(console.error);
 }
