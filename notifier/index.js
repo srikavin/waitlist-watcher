@@ -13,7 +13,7 @@ const db = getDatabase();
 const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
 webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY)
 
-exports.notifier = async (message, context) => {
+const notifier = async (message, context) => {
     const parsedData = JSON.parse(Buffer.from(message.data, 'base64').toString());
 
     const {prefix, previousState, newState} = parsedData.data;
@@ -121,7 +121,7 @@ exports.notifier = async (message, context) => {
 
         console.log("Notifying users of event ", type, " for ", course, section);
 
-        promises.push(async () => {
+        promises.push((async () => {
             const data = await db.ref(`section_subscriptions/${course}/${section}`).once('value');
 
             const subscribers = (data.exists()) ? data.val() : {
@@ -157,12 +157,26 @@ exports.notifier = async (message, context) => {
                     webhookPromises.push(axios.post(sub_methods.discord, getDiscordContent(event)));
                 }
             }
-        });
+        })());
     }
 
     const results = await Promise.allSettled(promises);
     const webhookResults = await Promise.allSettled(webhookPromises);
 
-    results.forEach((e) => console.log(e.result));
-    webhookResults.forEach((e) => console.log(e.result));
+    results.forEach((e) => {
+        if (e.status === 'rejected') {
+            console.error("results", "rejected", e.reason)
+        }
+    });
+
+    webhookResults.forEach((e) => {
+        if (e.status === 'rejected') {
+            console.error("webhookResults", "rejected", e.reason.message)
+        }
+    });
+}
+
+exports.notifier = (message, context) => {
+    return notifier(message, context)
+        .catch(console.error);
 }
