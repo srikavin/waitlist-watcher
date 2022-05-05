@@ -3,7 +3,7 @@ import {doc, onSnapshot} from "firebase/firestore";
 import {useCallback, useContext, useEffect, useState} from "react";
 import {AuthContext} from "../../context/AuthContext";
 import {Alert, Button, Checkbox, EmptyState, Heading, Pane, Popover, Spinner, Table, Text, Tooltip} from "evergreen-ui";
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs'
 import relativeTime from "dayjs/plugin/relativeTime";
 import {get, ref, set} from "firebase/database";
 import styles from "./CourseListing.module.css"

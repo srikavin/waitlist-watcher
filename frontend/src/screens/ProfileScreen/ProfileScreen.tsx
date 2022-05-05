@@ -10,13 +10,13 @@ import {
     Heading,
     Pane,
     SearchTemplateIcon,
-    Text, TextInput,
+    Text,
+    TextInput,
     TextInputField
 } from "evergreen-ui";
 import {realtime_db} from "../../firebase";
-import {get, ref, set, update} from "firebase/database";
-
-const notifWorker = navigator.serviceWorker.register("/src/sw-custom.ts");
+import {get, ref, set} from "firebase/database";
+import {notifWorker} from "../../main";
 
 function EnableNotificationsButton() {
     const [isLoading, setIsLoading] = useState(false);
