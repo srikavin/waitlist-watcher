@@ -14,8 +14,6 @@ const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nli
 webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY)
 
 exports.notifier = async (message, context) => {
-    console.log(message);
-
     const parsedData = JSON.parse(Buffer.from(message.data, 'base64').toString());
 
     const {prefix, previousState, newState} = parsedData.data;
