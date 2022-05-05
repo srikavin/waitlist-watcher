@@ -175,6 +175,8 @@ exports.notifier = async (message, context) => {
 
             subscribers = [...new Set(subscribers)]
 
+            console.log("Found subscribers", subscribers);
+
             for (const key of subscribers) {
                 if (!(sectionSubscribers?.[key]?.[type] === true
                     || courseSubscribers?.[key]?.[type] === true
@@ -215,6 +217,7 @@ exports.notifier = async (message, context) => {
     const results = await Promise.allSettled(promises);
 
     for (const [discordHookUrl, batches] of Object.entries(discordBatch)) {
+        console.log("Notifying discord webhook with ", batches.length, " batches")
         batches.forEach((events) => {
             webhookPromises.push(axios.post(discordHookUrl, getDiscordContent(events)));
         });
