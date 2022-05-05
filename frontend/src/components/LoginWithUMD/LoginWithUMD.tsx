@@ -4,6 +4,7 @@ import {signInWithCustomToken} from "firebase/auth";
 import {useCallback, useContext, useEffect, useState} from "react";
 import {AuthContext} from "../../context/AuthContext";
 import {Button} from "evergreen-ui";
+import {v4 as uuidv4} from 'uuid';
 
 
 function startLoginListener(req_id: string, callback: (isAuthed: boolean) => void) {
@@ -27,12 +28,12 @@ function startLoginListener(req_id: string, callback: (isAuthed: boolean) => voi
 }
 
 export function LoginWithUMD() {
-    const [reqId, setReqId] = useState(window.crypto.randomUUID().replace(/-/g, ""));
+    const [reqId, setReqId] = useState(uuidv4().replace(/-/g, ""));
     const {auth, setAuth} = useContext(AuthContext);
 
     useEffect(() => {
         return startLoginListener(reqId, setAuth);
-    });
+    }, [reqId]);
 
     const startAuthFlow = useCallback(() => {
         window.open("https://waitlist-watcher.uk.r.appspot.com/cas_init?request_id=" + reqId, "Login", "popup");
