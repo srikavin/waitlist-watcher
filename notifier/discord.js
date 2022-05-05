@@ -95,6 +95,13 @@ const totalSeatsChanged = simpleSectionChangeEvent(
     5814783
 );
 
+const openSeatsChanged = simpleSectionChangeEvent(
+    (event) => `Open Seats changed for ${event.course}-${event.section}`,
+    "Previous open seats available",
+    "Open seats available",
+    5814783
+);
+
 const instructorChanged = simpleSectionChangeEvent(
     (event) => `Instructor changed for ${event.course}-${event.section}`,
     "Previous Instructor",
@@ -137,6 +144,7 @@ const unknownEvent = (event) => {
 exports.getDiscordContent = (event) => {
     const mapping = {
         "open_seat_available": seatAvailable,
+        "open_seats_changed": openSeatsChanged,
         "total_seats_changed": totalSeatsChanged,
         "instructor_changed": instructorChanged,
         "waitlist_changed": waitlistChanged,
