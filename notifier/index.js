@@ -81,6 +81,16 @@ exports.notifier = async (message, context) => {
                 });
             }
 
+            if (previousSection.openSeats !== newSection.openSeats) {
+                events.push({
+                    type: "open_seats_changed",
+                    course,
+                    section,
+                    old: previousSection.openSeats,
+                    new: newSection.openSeats
+                });
+            }
+
             if (previousSection.waitlist !== newSection.waitlist) {
                 events.push({
                     type: "waitlist_changed",
@@ -115,6 +125,7 @@ exports.notifier = async (message, context) => {
         promises.push(db.ref(`section_subscriptions/${course}/${section}`).once('value', (data) => {
             const subscribers = (data.exists()) ? data.val() : {
                 "5wbIRDGb4yZuJQB21vlAxOodODf1": {
+                    "course_removed": true,
                     "holdfile_changed": true,
                     "instructor_changed": true,
                     "open_seat_available": true,
@@ -125,6 +136,8 @@ exports.notifier = async (message, context) => {
             };
 
             Object.entries(subscribers).forEach(([key, value]) => {
+                if (value[type] !== true) return;
+
                 db.ref("user_settings/" + key).once('value', (subscription_methods => {
                     if (!subscription_methods.exists()) return;
 
