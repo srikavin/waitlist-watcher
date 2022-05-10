@@ -7,7 +7,7 @@ import {Button} from "evergreen-ui";
 import {v4 as uuidv4} from 'uuid';
 
 
-function startLoginListener(req_id: string, callback: (isAuthed: boolean) => void) {
+function startLoginListener(req_id: string) {
     const req_ref = ref(realtime_db, 'auth_requests/' + req_id);
 
     return onValue(req_ref, (snapshot) => {
@@ -19,7 +19,6 @@ function startLoginListener(req_id: string, callback: (isAuthed: boolean) => voi
                 localStorage.setItem("customToken", data.token);
                 signInWithCustomToken(auth, localStorage.getItem("customToken")!)
                     .then((e) => {
-                        callback(true);
                         set(req_ref, {});
                     });
             }
@@ -28,11 +27,10 @@ function startLoginListener(req_id: string, callback: (isAuthed: boolean) => voi
 }
 
 export function LoginWithUMD() {
-    const [reqId, setReqId] = useState(uuidv4().replace(/-/g, ""));
-    const {auth, setAuth} = useContext(AuthContext);
+    const [reqId,] = useState(uuidv4().replace(/-/g, ""));
 
     useEffect(() => {
-        return startLoginListener(reqId, setAuth);
+        return startLoginListener(reqId);
     }, [reqId]);
 
     const startAuthFlow = useCallback(() => {

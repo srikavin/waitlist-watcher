@@ -44,6 +44,8 @@ resource "google_app_engine_standard_app_version" "app" {
     }
   }
 
+  env_variables = var.env_vars
+
   basic_scaling {
     max_instances = 1
   }

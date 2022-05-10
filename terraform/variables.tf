@@ -8,3 +8,5 @@ variable "region" {
 variable "NOTIFIER_VAPID_PRIV_KEY" {}
 
 variable "GOOGLE_CREDENTIALS" {}
+
+variable "DISCORD_CLIENT_SECRET" {}

@@ -5,7 +5,7 @@ import {auth} from "./firebase";
 import type {User} from "firebase/auth";
 import {signInWithCustomToken} from 'firebase/auth';
 import {AuthContext} from './context/AuthContext';
-import {Card, Pane, Text} from 'evergreen-ui'
+import {Card} from 'evergreen-ui'
 import {Navigation} from "./components/Navigation/Navigation";
 import {BrowserRouter, Route, Routes, useParams} from "react-router-dom";
 import {LandingPageScreen} from "./screens/LandingPageScreen/LandingPageScreen";
@@ -28,7 +28,6 @@ function App() {
         signInWithCustomToken(auth, localStorage.getItem("customToken")!)
             .then((e) => {
                 setUser(e.user);
-                setAuthed(true);
             })
             .catch(() => {
                 // reauth
@@ -36,20 +35,22 @@ function App() {
     }, []);
 
     useEffect(() => {
-        if (!isAuthed) return;
-
-        setUser(auth.currentUser!);
-    }, [isAuthed])
+        return auth.onAuthStateChanged(() => {
+            if (!!auth.currentUser) {
+                setUser(auth.currentUser!);
+            } else {
+                setUser(undefined);
+            }
+            setAuthed(!!auth.currentUser);
+        });
+    }, [setAuthed, setUser])
 
     const authCtx = {
-        auth: isAuthed,
-        setAuth: setAuthed,
-        getUser: () => auth.currentUser as User,
+        isAuthed: isAuthed,
+        getUser: () => user as User,
         logout: () => {
             auth.signOut();
             localStorage.removeItem("customToken");
-            setAuthed(false);
-            setUser(undefined);
         }
     };
 

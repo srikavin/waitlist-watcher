@@ -5,7 +5,7 @@ import {LoginWithUMD} from "../LoginWithUMD/LoginWithUMD";
 import {useNavigate} from "react-router-dom";
 
 export function Navigation() {
-    const {auth, getUser, logout} = useContext(AuthContext);
+    const {isAuthed, getUser, logout} = useContext(AuthContext);
     const navigate = useNavigate();
 
     return (
@@ -16,7 +16,7 @@ export function Navigation() {
                 <Button marginLeft={20} appearance="minimal" onClick={() => navigate("/")}>Departments</Button>
             </Pane>
             <Pane>
-                {!auth ? (
+                {!isAuthed ? (
                     <LoginWithUMD/>
                 ) : (
                     <>

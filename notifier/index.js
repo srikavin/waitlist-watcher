@@ -210,7 +210,11 @@ exports.notifier = async (message, context) => {
     for (const [discordHookUrl, batches] of Object.entries(discordBatch)) {
         console.log("Notifying discord webhook with ", batches.length, " batches")
         batches.forEach((events) => {
-            webhookPromises.push(axios.post(discordHookUrl, getDiscordContent(events)));
+            webhookPromises.push(axios.post(discordHookUrl, getDiscordContent(events), {
+                headers: {
+                    "Authorization": `Bot ${process.env.DISCORD_CLIENT_SECRET}`
+                }
+            }));
         });
     }
 

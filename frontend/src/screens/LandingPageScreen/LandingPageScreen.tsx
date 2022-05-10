@@ -1,14 +1,14 @@
 import {useContext} from "react";
 import {AuthContext} from "../../context/AuthContext";
-import {LoginWithUMD} from "../../components/LoginWithUMD/LoginWithUMD";
 import {Heading, Text} from "evergreen-ui";
 import {CoursePrefixListing} from "../../components/CoursePrefixListing/CoursePrefixListing";
+import {LoginScreen} from "../LoginScreen/LoginScreen";
 
 export function LandingPageScreen() {
-    const {auth} = useContext(AuthContext);
+    const {isAuthed} = useContext(AuthContext);
 
-    if (!auth) {
-        return <LoginWithUMD/>
+    if (!isAuthed) {
+        return <LoginScreen/>
     }
 
     return (

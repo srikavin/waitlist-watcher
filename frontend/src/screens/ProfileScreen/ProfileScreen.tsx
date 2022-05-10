@@ -1,6 +1,5 @@
 import {AuthContext} from "../../context/AuthContext";
 import {useCallback, useContext, useEffect, useState} from "react";
-import {useNavigate} from "react-router-dom";
 import {
     Alert,
     Button,
@@ -24,7 +23,7 @@ function EnableNotificationsButton() {
     const [isErrored, setIsErrored] = useState(false);
     const [subscriptionUrl, setSubscriptionUrl] = useState("");
 
-    const {auth, getUser} = useContext(AuthContext);
+    const {getUser} = useContext(AuthContext);
 
     const webPushRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_push");
 
@@ -110,7 +109,7 @@ function EnableNotificationsButton() {
 }
 
 function CurrentSubscriptions() {
-    const {auth, getUser} = useContext(AuthContext);
+    const {isAuthed, getUser} = useContext(AuthContext);
 
     const [subscriptions, setSubscriptions] = useState({});
 
@@ -122,7 +121,7 @@ function CurrentSubscriptions() {
                 setSubscriptions({})
             }
         });
-    }, [auth, getUser(), setSubscriptions]);
+    }, [isAuthed, getUser(), setSubscriptions]);
 
     if (Object.keys(subscriptions).length === 0) {
         return (
@@ -153,8 +152,7 @@ function CurrentSubscriptions() {
 }
 
 export function ProfileScreen() {
-    const {auth, getUser} = useContext(AuthContext);
-    const navigate = useNavigate();
+    const {isAuthed, getUser} = useContext(AuthContext);
 
     const [discordUrl, setDiscordUrl] = useState('');
     const [webhookUrl, setWebhookUrl] = useState('');
@@ -176,13 +174,13 @@ export function ProfileScreen() {
     }, []);
 
     const save = useCallback(() => {
-        if (!auth) return;
+        if (!isAuthed) return;
 
         set(discordUrlRef, discordUrl);
         set(webhookUrlRef, webhookUrl);
-    }, [auth, discordUrl, webhookUrl])
+    }, [isAuthed, discordUrl, webhookUrl])
 
-    if (!auth) {
+    if (!isAuthed) {
         return <Text>Need to be logged in.</Text>;
     }
 
@@ -202,7 +200,7 @@ export function ProfileScreen() {
                         />
                         <TextInputField
                             label="Password"
-                            description="Used when logging in without UMD CAS (currently unused)"
+                            description="Change your password"
                             placeholder="*********"
                         />
                     </Pane>

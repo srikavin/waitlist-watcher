@@ -121,7 +121,7 @@ interface WatchCourseButtonProps {
 export function WatchButton(props: WatchButtonProps) {
     const {courseName, sectionName} = props;
 
-    const {auth, getUser} = useContext(AuthContext);
+    const {isAuthed, getUser} = useContext(AuthContext);
 
     const [isSaving, setIsSaving] = useState(false);
     const [isErrored, setIsErrored] = useState(false);
@@ -149,7 +149,7 @@ export function WatchButton(props: WatchButtonProps) {
     const [subscriptions, setSubscriptions] = useState(subscriptionDefaults);
 
     const onPopoverOpen = useCallback(() => {
-        if (!auth) return;
+        if (!isAuthed) return;
 
         const subscriptionsRef = ref(realtime_db, `section_subscriptions/${courseName}/${sectionName}/${getUser()?.uid}`);
 
@@ -160,10 +160,10 @@ export function WatchButton(props: WatchButtonProps) {
 
             setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
         });
-    }, [auth, courseName, sectionName, getUser, setSubscriptions]);
+    }, [isAuthed, courseName, sectionName, getUser, setSubscriptions]);
 
     const onSave = useCallback((closePopover: () => void) => {
-        if (!auth) return;
+        if (!isAuthed) return;
 
         const updates: any = {};
 
@@ -198,7 +198,7 @@ export function WatchButton(props: WatchButtonProps) {
 export function WatchCourseButton(props: WatchCourseButtonProps) {
     const {courseName} = props;
 
-    const {auth, getUser} = useContext(AuthContext);
+    const {isAuthed, getUser} = useContext(AuthContext);
 
     const [isSaving, setIsSaving] = useState(false);
     const [isErrored, setIsErrored] = useState(false);
@@ -230,7 +230,7 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
     const [subscriptions, setSubscriptions] = useState(subscriptionDefaults);
 
     const onPopoverOpen = useCallback(() => {
-        if (!auth) return;
+        if (!isAuthed) return;
 
         const subscriptionsRef = ref(realtime_db, `course_subscriptions/${courseName}/${getUser()?.uid}`);
 
@@ -241,10 +241,10 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
 
             setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
         });
-    }, [auth, courseName, getUser, setSubscriptions]);
+    }, [isAuthed, courseName, getUser, setSubscriptions]);
 
     const onSave = useCallback((closePopover: () => void) => {
-        if (!auth) return;
+        if (!isAuthed) return;
 
         const updates: any = {};
 
