@@ -128,6 +128,8 @@ exports.notifier = async (message, context) => {
     const courseSubscribersCache = {}
     const sectionSubscribersCache = {}
 
+    const departmentSubscribers = (await db.ref(`department_subscriptions/${prefix}`).once('value')).val() || {};
+
     const cachePromises = [];
     const cacheSeen = new Set();
 
@@ -180,6 +182,7 @@ exports.notifier = async (message, context) => {
         let subscribers = [];
         subscribers = subscribers.concat(Object.keys(sectionSubscribers));
         subscribers = subscribers.concat(Object.keys(courseSubscribers));
+        subscribers = subscribers.concat(Object.keys(departmentSubscribers));
         subscribers = subscribers.concat(Object.keys(everythingSubscribers));
 
         subscribers = [...new Set(subscribers)]
