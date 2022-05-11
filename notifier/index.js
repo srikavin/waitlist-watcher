@@ -41,7 +41,7 @@ exports.notifier = async (message, context) => {
         const newSections = newCourses[course].sections;
 
         for (let section in previousSections) {
-            if (!section in newSections) {
+            if (!newSections[section]) {
                 events.push({type: "section_removed", course, section})
                 continue;
             }
