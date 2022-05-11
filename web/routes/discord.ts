@@ -16,13 +16,16 @@ import {
     APIChatInputApplicationCommandInteractionData
 } from "discord-api-types/payloads/v10/_interactions/_applicationCommands/chatInput";
 import {
-    subscribeToCourse, subscribeToCourseSection,
+    subscribeToCourse,
+    subscribeToCourseSection,
     subscribeToDepartment,
     subscribeToEverything,
     updateDiscordNotificationSettings
 } from "../controllers/subscriptions";
+import {FieldPath, getFirestore} from "firebase-admin/firestore";
 
 const realtime_db = getDatabase();
+const firestore = getFirestore();
 
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 const APPLICATION_ID = "973034033669894165";
@@ -144,17 +147,25 @@ export const discordRoute = async (fastify: FastifyInstance, options: FastifyPlu
             } else if (interactionData.options![0].name === "course") {
                 const subInteractionData = interactionData.options![0] as APIApplicationCommandInteractionDataSubcommandOption
 
-                const course = subInteractionData.options![0].value;
+                const course = subInteractionData.options![0].value as string;
                 const section = subInteractionData.options?.[1]?.value as string | undefined;
 
-                if (section) {
-                    await subscribeToCourseSection(discordUserId, course as string, section);
-                } else {
-                    await subscribeToCourse(discordUserId, course as string);
+                const prefixDoc = await firestore.collection("course_data").doc(course.substring(0, 4)).get();
+                let name = "";
+                if (prefixDoc.exists) {
+                    const nameField = prefixDoc.get(new FieldPath("latest", course, "name"));
+                    if (nameField) {
+                        name = " - " + nameField;
+                    }
                 }
 
+                if (section) {
+                    await subscribeToCourseSection(discordUserId, course, section);
+                } else {
+                    await subscribeToCourse(discordUserId, course);
+                }
 
-                response = `${course} (${section || "all sections"})`;
+                response = `${course}${name} (${section || "all sections"})`;
             } else if (interactionData.options![0].name === "department") {
                 const subInteractionData = interactionData.options![0] as APIApplicationCommandInteractionDataSubcommandOption
                 const department = subInteractionData.options![0].value as string;

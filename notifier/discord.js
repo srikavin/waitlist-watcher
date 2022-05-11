@@ -10,7 +10,12 @@ const seatAvailable = (execution, event) => {
         "color": 5832650,
         "fields": [
             {
-                "name": "Course Name",
+                "name": "Course Title",
+                "value": String(event.title),
+                "inline": true
+            },
+            {
+                "name": "Course Code",
                 "value": event.course,
                 "inline": true
             },
@@ -34,7 +39,12 @@ const sectionRemoved = (execution, event) => {
         "color": 16734296,
         "fields": [
             {
-                "name": "Course Name",
+                "name": "Course Title",
+                "value": String(event.title),
+                "inline": true
+            },
+            {
+                "name": "Course Code",
                 "value": event.course,
                 "inline": true
             },
@@ -55,7 +65,12 @@ const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
             "color": color,
             "fields": [
                 {
-                    "name": "Course Name",
+                    "name": "Course Title",
+                    "value": String(event.title),
+                    "inline": true
+                },
+                {
+                    "name": "Course Code",
                     "value": String(event.course),
                     "inline": true
                 },

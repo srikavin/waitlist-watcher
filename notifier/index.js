@@ -3,6 +3,7 @@ const axios = require("axios");
 const webpush = require("web-push");
 const {getDatabase} = require("firebase-admin/database");
 const {getDiscordContent} = require("./discord");
+const {getFirestore} = require("firebase-admin/firestore");
 
 initializeApp({
     databaseURL: "https://waitlist-watcher-default-rtdb.firebaseio.com"
@@ -49,12 +50,14 @@ exports.notifier = async (message, context) => {
             });
         }
 
+        const title = newCourse.name;
+
         const previousSections = previousCourses[course].sections;
         const newSections = newCourses[course].sections;
 
         for (let section in previousSections) {
             if (!newSections[section]) {
-                events.push({type: "section_removed", course, section})
+                events.push({type: "section_removed", course, title, section})
                 continue;
             }
 
@@ -65,6 +68,7 @@ exports.notifier = async (message, context) => {
                 events.push({
                     type: "instructor_changed",
                     course,
+                    title,
                     section,
                     old: previousSection.instructor,
                     new: newSection.instructor
@@ -75,6 +79,7 @@ exports.notifier = async (message, context) => {
                 events.push({
                     type: "total_seats_changed",
                     course,
+                    title,
                     section,
                     old: previousSection.totalSeats,
                     new: newSection.totalSeats
@@ -85,6 +90,7 @@ exports.notifier = async (message, context) => {
                 events.push({
                     type: "open_seat_available",
                     course,
+                    title,
                     section,
                     old: previousSection.openSeats,
                     new: newSection.openSeats
@@ -95,6 +101,7 @@ exports.notifier = async (message, context) => {
                 events.push({
                     type: "open_seats_changed",
                     course,
+                    title,
                     section,
                     old: previousSection.openSeats,
                     new: newSection.openSeats
@@ -105,6 +112,7 @@ exports.notifier = async (message, context) => {
                 events.push({
                     type: "waitlist_changed",
                     course,
+                    title,
                     section,
                     old: previousSection.waitlist,
                     new: newSection.waitlist
@@ -115,6 +123,7 @@ exports.notifier = async (message, context) => {
                 events.push({
                     type: "holdfile_changed",
                     course,
+                    title,
                     section,
                     old: previousSection.holdfile,
                     new: newSection.holdfile
