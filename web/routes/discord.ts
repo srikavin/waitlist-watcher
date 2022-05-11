@@ -15,6 +15,12 @@ import axios from "axios";
 import {
     APIChatInputApplicationCommandInteractionData
 } from "discord-api-types/payloads/v10/_interactions/_applicationCommands/chatInput";
+import {
+    subscribeToCourse, subscribeToCourseSection,
+    subscribeToDepartment,
+    subscribeToEverything,
+    updateDiscordNotificationSettings
+} from "../controllers/subscriptions";
 
 const realtime_db = getDatabase();
 
@@ -26,7 +32,7 @@ const registerCommands = () => {
     const endpoint = `https://discord.com/api/v8/applications/${APPLICATION_ID}/commands`
 
     const payload: RESTPostAPIApplicationCommandsJSONBody = {
-        "name": "subscribe",
+        "name": "coursewatcher",
         "type": ApplicationCommandType.ChatInput,
         "description": "Subscribe to course updates",
         "options": [
@@ -66,6 +72,11 @@ const registerCommands = () => {
                 "description": "Subscribe to all course updates",
                 "type": ApplicationCommandOptionType.Subcommand,
             },
+            {
+                "name": "list",
+                "description": "List subscriptions",
+                "type": ApplicationCommandOptionType.Subcommand,
+            }
         ]
     };
 
@@ -99,73 +110,59 @@ export const discordRoute = async (fastify: FastifyInstance, options: FastifyPlu
             };
         } else if (interaction.type === InteractionType.ApplicationCommand) {
             const interactionData = interaction.data as APIChatInputApplicationCommandInteractionData;
-
             const discordUserId = `${interaction.guild_id}@guild@discord`;
 
-            const updates: Record<string, any> = {}
+            if (interactionData.options![0].name === "list") {
+                const subscriptions = await realtime_db.ref(`user_settings/${discordUserId}/subscriptions`).get();
 
-            updates[`user_settings/${discordUserId}/discord`] = `https://discord.com/api/v8/channels/${interaction.channel_id}/messages`;
+                let subscriptionText = "No subscriptions.";
+
+                if (subscriptions.exists()) {
+                    subscriptionText = "Subscriptions: " + Object.keys(subscriptions.val()).join(", ");
+                }
+
+                return {
+                    type: InteractionResponseType.ChannelMessageWithSource,
+                    data: {
+                        embeds: [
+                            {
+                                title: "Current Subscriptions",
+                                description: subscriptionText
+                            }
+                        ]
+                    }
+                };
+            }
+
+            await updateDiscordNotificationSettings(discordUserId, interaction.channel_id);
 
             let response = "";
-
             if (interactionData.options![0].name === "everything") {
-                const subscription = {
-                    course_removed: true,
-                    section_added: true,
-                    instructor_changed: true,
-                    open_seat_available: true,
-                    section_removed: true,
-                    waitlist_changed: true,
-                    holdfile_changed: false,
-                    open_seats_changed: false,
-                    total_seats_changed: false
-                }
-                updates[`user_settings/${discordUserId}/subscriptions/everything`] = subscription;
-                updates[`everything_subscriptions/${discordUserId}`] = subscription;
+                await subscribeToEverything(discordUserId);
 
                 response = "everything";
-            }
-            if (interactionData.options![0].name === "course") {
-                const courseSubscriptionDefaults = {
-                    course_removed: true,
-                    section_added: true,
-                    instructor_changed: true,
-                    open_seat_available: true,
-                    section_removed: true,
-                    waitlist_changed: true,
-                    holdfile_changed: false,
-                    open_seats_changed: true,
-                    total_seats_changed: true
-                };
-
-                const sectionSubscriptionDefaults = {
-                    instructor_changed: true,
-                    open_seat_available: true,
-                    section_removed: true,
-                    waitlist_changed: true,
-                    holdfile_changed: false,
-                    open_seats_changed: false,
-                    total_seats_changed: false
-                };
-
+            } else if (interactionData.options![0].name === "course") {
                 const subInteractionData = interactionData.options![0] as APIApplicationCommandInteractionDataSubcommandOption
 
                 const course = subInteractionData.options![0].value;
-                const section = subInteractionData.options?.[1]?.value;
+                const section = subInteractionData.options?.[1]?.value as string | undefined;
 
                 if (section) {
-                    updates[`section_subscriptions/${course}/${section}/`] = sectionSubscriptionDefaults;
-                    updates[`user_settings/${discordUserId}/subscriptions/${course}-${section}`] = sectionSubscriptionDefaults;
-                    response = `${course} (${section})`;
+                    await subscribeToCourseSection(discordUserId, course as string, section);
                 } else {
-                    updates[`course_subscriptions/${course}/`] = courseSubscriptionDefaults;
-                    updates[`user_settings/${discordUserId}/subscriptions/${course}`] = courseSubscriptionDefaults;
-                    response = `${course} (all sections)`;
+                    await subscribeToCourse(discordUserId, course as string);
                 }
-            }
 
-            const rootRef = realtime_db.ref("/");
-            await rootRef.update(updates);
+
+                response = `${course} (${section || "all sections"})`;
+            } else if (interactionData.options![0].name === "department") {
+                const subInteractionData = interactionData.options![0] as APIApplicationCommandInteractionDataSubcommandOption
+                const department = subInteractionData.options![0].value as string;
+
+                await subscribeToDepartment(discordUserId, department);
+
+                response = `${department}`;
+            }
 
             return {
                 type: InteractionResponseType.ChannelMessageWithSource,
