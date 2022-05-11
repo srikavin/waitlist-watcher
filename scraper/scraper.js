@@ -16,11 +16,18 @@ const getCourseList = async (prefix) => {
 
     return Object.fromEntries(HTMLParser.parse(data)
         .querySelectorAll(".course")
-        .map((e) => [
-            e.id, {
-                name: e.querySelector(".course-title").textContent
+        .map((e, i) => {
+            let courseTitle = e.querySelector(".course-title");
+            if (!courseTitle) {
+                // workaround for some course pages
+                courseTitle = e.parentNode.querySelectorAll(`.course-title`)[i]
             }
-        ]));
+            return [
+                e.id, {
+                    name: courseTitle ? courseTitle.textContent : "<unknown>"
+                }
+            ]
+        }));
 }
 
 const parseNumber = (val) => {
@@ -62,6 +69,7 @@ const getWaitlisted = async (prefix) => {
             }]
         }));
 }
+
 
 exports.scraper = async (prefix, context) => {
     const docRef = db.collection("course_data").doc(prefix)
