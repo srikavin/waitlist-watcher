@@ -201,6 +201,7 @@ exports.notifier = async (message, context) => {
         for (const key of subscribers) {
             if (!(sectionSubscribers?.[key]?.[type] === true
                 || courseSubscribers?.[key]?.[type] === true
+                || departmentSubscribers?.[key]?.[type] === true
                 || everythingSubscribers?.[key]?.[type] === true)) {
                 return;
             }

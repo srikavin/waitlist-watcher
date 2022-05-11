@@ -99,7 +99,7 @@ export const subscribeToEverything = async (userId: string, channels: Record<str
 export const subscribeToDepartment = async (userId: string, department: string, channels: Record<string, boolean> = departmentSubscriptionDefaults) => {
     const updates: Record<string, any> = {}
 
-    updates[`department_subscriptions/${userId}`] = channels;
+    updates[`department_subscriptions/${department}/${userId}`] = channels;
     updates[`user_settings/${userId}/subscriptions/${department}`] = channels;
 
     await realtime_db.ref('/').update(updates);
