@@ -48,7 +48,7 @@ const sectionRemoved = (execution, event) => {
     }
 }
 
-const simpleSectionChangeEvent = (title_fn, old_title, new_title, color) => {
+const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
     return (execution, event) => (
         {
             "title": title_fn(event),
@@ -59,11 +59,11 @@ const simpleSectionChangeEvent = (title_fn, old_title, new_title, color) => {
                     "value": event.course,
                     "inline": true
                 },
-                {
+                ...(event.section ? [{
                     "name": "Section",
                     "value": event.section,
                     "inline": true
-                },
+                }] : []),
                 {
                     "name": old_title,
                     "value": event.old
@@ -78,39 +78,46 @@ const simpleSectionChangeEvent = (title_fn, old_title, new_title, color) => {
     );
 }
 
-const totalSeatsChanged = simpleSectionChangeEvent(
+const totalSeatsChanged = simpleChangeEvent(
     (event) => `Total Seats changed for ${event.course}-${event.section}`,
     "Previous seats available",
     "Seats available",
     5814783
 );
 
-const openSeatsChanged = simpleSectionChangeEvent(
+const openSeatsChanged = simpleChangeEvent(
     (event) => `Open Seats changed for ${event.course}-${event.section}`,
     "Previous open seats available",
     "Open seats available",
     5814783
 );
 
-const instructorChanged = simpleSectionChangeEvent(
+const instructorChanged = simpleChangeEvent(
     (event) => `Instructor changed for ${event.course}-${event.section}`,
     "Previous Instructor",
     "New Instructor",
     16734296
 );
 
-const waitlistChanged = simpleSectionChangeEvent(
+const waitlistChanged = simpleChangeEvent(
     (event) => `Waitlist changed for ${event.course}-${event.section}`,
     "Previous Waitlist Count",
     "New Waitlist Count",
     5814783
 );
 
-const holdfileChanged = simpleSectionChangeEvent(
+const holdfileChanged = simpleChangeEvent(
     (event) => `Holdfile changed for ${event.course}-${event.section}`,
     "Previous Holdfile Count",
     "New Holdfile Count",
     5814783
+);
+
+const courseNameChanged = simpleChangeEvent(
+    (event) => `Course Name changed for ${event.course}`,
+    "Previous Course Name",
+    "New Course Name",
+    16734296
 );
 
 const unknownEvent = (execution, event) => {
@@ -133,7 +140,8 @@ exports.getDiscordContent = (execution, events) => {
         "instructor_changed": instructorChanged,
         "waitlist_changed": waitlistChanged,
         "holdfile_changed": holdfileChanged,
-        "section_removed": sectionRemoved
+        "section_removed": sectionRemoved,
+        "course_name_changed": courseNameChanged
     }
 
     return {

@@ -31,10 +31,22 @@ exports.notifier = async (message, context) => {
     const events = [];
 
     for (let course in previousCourses) {
-        if (!(course in newCourses)) {
+        if (!newCourses[course]) {
             // course removed?
             events.push({type: "course_removed", course});
             continue;
+        }
+
+        const previousCourse = previousCourses[course];
+        const newCourse = newCourses[course];
+
+        if (previousCourse.name !== newCourse.name) {
+            events.push({
+                type: "course_name_changed",
+                course,
+                old: previousCourse.name,
+                new: newCourse.name
+            });
         }
 
         const previousSections = previousCourses[course].sections;
@@ -120,11 +132,13 @@ exports.notifier = async (message, context) => {
     const cacheSeen = new Set();
 
     for (const event of events) {
-        if (!event.section) continue;
 
-        const key = event.course + '-' + event.section;
+        let key = event.course;
+        if (event.section) {
+            key += '-' + event.section;
+        }
 
-        if (!cacheSeen.has(key)) {
+        if (!cacheSeen.has(key) && event.section) {
             cachePromises.push((async () => {
                 sectionSubscribersCache[key] = await db.ref(`section_subscriptions/${event.course}/${event.section}`).once('value');
             })())
@@ -149,15 +163,18 @@ exports.notifier = async (message, context) => {
 
 
     for (const event of events) {
-        if (!event.section) continue;
+        const {type, course} = event;
 
-        const {type, course, section} = event;
+        console.log(event);
 
-        console.log("Notifying users of event ", type, " for ", course, section);
 
-        let [sectionSubscribers, courseSubscribers] = [sectionSubscribersCache[event.course + '-' + event.section], courseSubscribersCache[event.course]];
+        let sectionSubscribers = {};
+        if (event.section) {
+            sectionSubscribers = sectionSubscribersCache[event.course + '-' + event.section];
+            sectionSubscribers = sectionSubscribers.val() || {};
+        }
 
-        sectionSubscribers = sectionSubscribers.val() || {};
+        let courseSubscribers = courseSubscribersCache[event.course];
         courseSubscribers = courseSubscribers.val() || {};
 
         let subscribers = [];

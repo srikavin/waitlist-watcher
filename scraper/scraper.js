@@ -14,7 +14,13 @@ const pubsub = new PubSub({projectId: "waitlist-watcher"});
 const getCourseList = async (prefix) => {
     const data = (await axios.get(COURSE_LIST_URL(prefix))).data;
 
-    return HTMLParser.parse(data).querySelectorAll(".course").map((e) => e.id).join(",");
+    return Object.fromEntries(HTMLParser.parse(data)
+        .querySelectorAll(".course")
+        .map((e) => [
+            e.id, {
+                name: e.querySelector(".course-title").textContent
+            }
+        ]));
 }
 
 const parseNumber = (val) => {
@@ -30,7 +36,8 @@ const parseNumber = (val) => {
 }
 
 const getWaitlisted = async (prefix) => {
-    const courseList = await getCourseList(prefix);
+    const courseData = await getCourseList(prefix);
+    const courseList = Object.keys(courseData).join(",");
     const data = (await axios.get(SECTIONS_URL(prefix, courseList))).data;
 
     return Object.fromEntries(HTMLParser.parse(data)
@@ -38,6 +45,7 @@ const getWaitlisted = async (prefix) => {
         .map(course => {
             return [course.id, {
                 course: course.id,
+                name: courseData[course.id] ? courseData[course.id].name : "<unknown>",
                 sections: Object.fromEntries(course.querySelectorAll(".section").map(section => {
                     const waitlistField = section.querySelectorAll(".waitlist-count");
                     let holdfile = waitlistField.length === 2 ? parseNumber(waitlistField[1].textContent) : 0;
