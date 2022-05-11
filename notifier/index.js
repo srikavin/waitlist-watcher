@@ -163,7 +163,7 @@ exports.notifier = async (message, context) => {
 
 
     for (const event of events) {
-        const {type, course} = event;
+        const {type} = event;
 
         console.log(event);
 

@@ -21,7 +21,7 @@ const seatAvailable = (execution, event) => {
             },
             {
                 "name": "Seats Available",
-                "value": event.new
+                "value": String(event.new)
             }
         ],
         "footer": generateFooter(execution, event)
@@ -56,7 +56,7 @@ const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
             "fields": [
                 {
                     "name": "Course Name",
-                    "value": event.course,
+                    "value": String(event.course),
                     "inline": true
                 },
                 ...(event.section ? [{
@@ -66,11 +66,11 @@ const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
                 }] : []),
                 {
                     "name": old_title,
-                    "value": event.old
+                    "value": String(event.old)
                 },
                 {
                     "name": new_title,
-                    "value": event.new
+                    "value": String(event.new)
                 }
             ],
             "footer": generateFooter(execution, event)
