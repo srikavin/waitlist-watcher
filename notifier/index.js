@@ -137,8 +137,6 @@ exports.notifier = async (message, context) => {
     const courseSubscribersCache = {}
     const sectionSubscribersCache = {}
 
-    const departmentSubscribers = (await db.ref(`department_subscriptions/${prefix}`).once('value')).val() || {};
-
     const cachePromises = [];
     const cacheSeen = new Set();
 
@@ -164,6 +162,7 @@ exports.notifier = async (message, context) => {
         }
     }
 
+    const departmentSubscribers = (await db.ref(`department_subscriptions/${prefix}`).once('value')).val() || {};
     const everythingSubscribers = (await db.ref(`everything_subscriptions/`).once('value')).val() || {};
 
     await Promise.all(cachePromises);
@@ -199,10 +198,24 @@ exports.notifier = async (message, context) => {
         console.log("Found subscribers", subscribers);
 
         for (const key of subscribers) {
-            if (!(sectionSubscribers?.[key]?.[type] === true
-                || courseSubscribers?.[key]?.[type] === true
-                || departmentSubscribers?.[key]?.[type] === true
-                || everythingSubscribers?.[key]?.[type] === true)) {
+            const defaultsChannels = {
+                "course_removed": true,
+                "course_added": true,
+                "course_name_changed": true,
+                "section_removed": true,
+                "section_added": true,
+                "instructor_changed": true
+            };
+
+            const merged = {
+                ...defaultsChannels,
+                ...everythingSubscribers?.[key],
+                ...departmentSubscribers?.[key],
+                ...courseSubscribers?.[key],
+                ...sectionSubscribers?.[key],
+            };
+
+            if (merged[type] !== true) {
                 return;
             }
 
