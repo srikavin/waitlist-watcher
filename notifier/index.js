@@ -31,10 +31,27 @@ exports.notifier = async (message, context) => {
 
     const events = [];
 
+    for (let course in newCourses) {
+        if (!previousCourses[course]) {
+            // course removed?
+            events.push({type: "course_added", course, title: newCourses[course].title});
+            continue;
+        }
+
+        const previousSections = previousCourses[course].sections;
+        const newSections = newCourses[course].sections;
+
+        for (let section in newSections) {
+            if (!previousSections[section]) {
+                events.push({type: "section_added", course, title: newCourses[course].title, section})
+            }
+        }
+    }
+
     for (let course in previousCourses) {
         if (!newCourses[course]) {
             // course removed?
-            events.push({type: "course_removed", course});
+            events.push({type: "course_removed", course, title: previousCourses[course].title});
             continue;
         }
 
@@ -215,12 +232,14 @@ exports.notifier = async (message, context) => {
                 ...sectionSubscribers?.[key],
             };
 
+            console.log("merged preferences", JSON.stringify(merged));
+
             if (merged[type] !== true) {
-                return;
+                continue;
             }
 
             const subscription_methods = await db.ref("user_settings/" + key).once('value');
-            if (!subscription_methods.exists()) return;
+            if (!subscription_methods.exists()) continue;
 
             const sub_methods = subscription_methods.val();
 
