@@ -1,8 +1,9 @@
 const {getFirestore} = require('firebase-admin/firestore');
 const axios = require("axios");
-const HTMLParser = require('node-html-parser');
 const {compare} = require("fast-json-patch");
 const {PubSub} = require("@google-cloud/pubsub");
+const jsdom = require("jsdom");
+const {JSDOM} = jsdom;
 
 const SEMESTER_CODE = "202208";
 const COURSE_LIST_URL = (prefix) => `https://app.testudo.umd.edu/soc/${SEMESTER_CODE}/${prefix}`;
@@ -14,8 +15,7 @@ const pubsub = new PubSub({projectId: "waitlist-watcher"});
 const getCourseList = async (prefix) => {
     const data = (await axios.get(COURSE_LIST_URL(prefix))).data;
 
-    return Object.fromEntries(HTMLParser.parse(data)
-        .querySelectorAll(".course")
+    return Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course")]
         .map((e, i) => {
             let courseTitle = e.querySelector(".course-title");
             if (!courseTitle) {
@@ -47,21 +47,20 @@ const getWaitlisted = async (prefix) => {
     const courseList = Object.keys(courseData).join(",");
     const data = (await axios.get(SECTIONS_URL(prefix, courseList))).data;
 
-    return Object.fromEntries(HTMLParser.parse(data)
-        .querySelectorAll(".course-sections")
+    return Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course-sections")]
         .map(course => {
             return [course.id, {
                 course: course.id,
                 name: courseData[course.id] ? courseData[course.id].name : "<unknown>",
-                sections: Object.fromEntries(course.querySelectorAll(".section").map(section => {
-                    const waitlistField = section.querySelectorAll(".waitlist-count");
+                sections: Object.fromEntries([...course.querySelectorAll(".section")].map(section => {
+                    const waitlistField = [...section.querySelectorAll(".waitlist-count")];
                     let holdfile = waitlistField.length === 2 ? parseNumber(waitlistField[1].textContent) : 0;
                     let sectionName = section.querySelector(".section-id").textContent.trim();
                     return [sectionName, {
                         section: sectionName,
                         openSeats: parseNumber(section.querySelector(".open-seats-count").textContent),
                         totalSeats: parseNumber(section.querySelector(".total-seats-count").textContent),
-                        instructor: section.querySelectorAll(".section-instructor").map(e => e.textContent).sort().join(', '),
+                        instructor: [...section.querySelectorAll(".section-instructor")].map(e => e.textContent).sort().join(', '),
                         waitlist: parseNumber(waitlistField[0].textContent),
                         holdfile: holdfile
                     }];
