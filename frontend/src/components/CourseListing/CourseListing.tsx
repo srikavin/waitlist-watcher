@@ -5,8 +5,8 @@ import {AuthContext} from "../../context/AuthContext";
 import {Alert, Button, Checkbox, EmptyState, Heading, Pane, Popover, Spinner, Table, Text, Tooltip} from "evergreen-ui";
 import dayjs from 'dayjs'
 import relativeTime from "dayjs/plugin/relativeTime";
-import {get, ref, set, update} from "firebase/database";
-import styles from "./CourseListing.module.css"
+import {get, ref, update} from "firebase/database";
+import ProfessorNames from "../ProfessorName/ProfessorNames";
 
 dayjs.extend(relativeTime);
 
@@ -25,6 +25,7 @@ interface CourseSection {
 
 interface Course {
     course: string,
+    name: string,
     sections: Record<string, CourseSection>
 }
 
@@ -95,7 +96,8 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
                         ))}
 
                         <Pane display="flex">
-                            <Button intent="danger" onClick={() => updateSubscriptionState({})}>Uncheck All</Button>
+                            <Button intent="danger" onClick={() => updateSubscriptionState({})}>Uncheck
+                                All</Button>
                         </Pane>
                     </Pane>
                     <Button isLoading={isLoading} onClick={() => onSave(close)}>Save</Button>
@@ -281,8 +283,6 @@ export function CourseListing(props: CourseListingProps) {
     const {prefix} = props;
 
     const [courses, setCourses] = useState<CourseData>();
-    const [courseFilter, setCourseFilter] = useState('');
-    const [selectedCourse, setSelectedCourse] = useState('');
 
     useEffect(() => {
         return onSnapshot(doc(db, "course_data", prefix), (doc) => {
@@ -290,77 +290,79 @@ export function CourseListing(props: CourseListingProps) {
         });
     }, [setCourses]);
 
+    const headingPane = (
+        <Pane display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" width="fit-content">
+            <Heading size={900}>{prefix}</Heading>
+            <Tooltip content={`${courses?.lastRun}\nUpdated a total of ${courses?.updateCount} times`}>
+                <Text>Last updated {dayjs().to(courses?.lastRun ?? -1)}</Text>
+            </Tooltip>
+        </Pane>
+    );
+
+    if (!courses) {
+        return (
+            <>
+                {headingPane}
+                <EmptyState
+                    title="Loading course and section waitlist data"
+                    icon={<Spinner/>}
+                    iconBgColor="#EDEFF5"
+                    description="This might take a couple seconds for large departments."
+                />
+            </>
+        )
+    }
+
     return (
         <>
-            <Pane display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" width="fit-content">
-                <Heading size={900}>{prefix}</Heading>
-                <Tooltip content={courses?.lastRun}><Text>Last
-                    updated {dayjs().to(courses?.lastRun ?? -1)}</Text></Tooltip>
-            </Pane>
+            {headingPane}
 
-            <Table minWidth="800px">
-                <Table.Head>
-                    <Table.SearchHeaderCell flexBasis={200} flexShrink={0} flexGrow={0} value={courseFilter}
-                                            onChange={setCourseFilter}>Course</Table.SearchHeaderCell>
-                    <Table.TextHeaderCell flexBasis={100} flexShrink={0} flexGrow={0}>Section</Table.TextHeaderCell>
-                    <Table.TextHeaderCell flexBasis={150} flexShrink={0} flexGrow={0}>Instructor</Table.TextHeaderCell>
-                    <Table.TextHeaderCell>Open Seats</Table.TextHeaderCell>
-                    <Table.TextHeaderCell>Total Seats</Table.TextHeaderCell>
-                    <Table.TextHeaderCell>Waitlist</Table.TextHeaderCell>
-                    <Table.TextHeaderCell>Holdfile</Table.TextHeaderCell>
-                    <Table.TextHeaderCell></Table.TextHeaderCell>
-                </Table.Head>
-                <Table.Body>
-                    {courses ? (
-                        Object.values(courses.latest).sort((a, b) => a.course.localeCompare(b.course))
-                            .filter(e => e.course.includes(courseFilter))
-                            .flatMap((e) => {
-                                const course = [(
-                                    <Table.Row key={e.course} isSelectable
-                                               onSelect={() => setSelectedCourse(selectedCourse === e.course ? '' : e.course)}>
-                                        <Table.TextCell flexBasis={200} flexShrink={0}
-                                                        flexGrow={0}>{e.course}</Table.TextCell>
-                                        <Table.TextCell flexBasis={100} flexShrink={0} flexGrow={0}></Table.TextCell>
-                                        <Table.TextCell flexBasis={150} flexShrink={0} flexGrow={0}></Table.TextCell>
-                                        <Table.TextCell isNumber></Table.TextCell>
-                                        <Table.TextCell isNumber></Table.TextCell>
-                                        <Table.TextCell isNumber></Table.TextCell>
-                                        <Table.TextCell isNumber></Table.TextCell>
-                                        <Table.TextCell><WatchCourseButton courseName={e.course}/></Table.TextCell>
-                                    </Table.Row>
-                                )]
-                                if (e.course === selectedCourse) {
-                                    return course.concat(Object.values(e.sections)
-                                        .sort((a, b) => a.section.localeCompare(b.section))
-                                        .map((s) => (
-                                            <Table.Row key={e.course + s.section} className={styles.sectionRow}>
-                                                <Table.TextCell flexBasis={200} flexShrink={0}
-                                                                flexGrow={0}></Table.TextCell>
+            {Object.values(courses.latest)
+                .sort((a, b) => a.course.localeCompare(b.course))
+                .map((e) => (
+                    <Pane key={e.name} display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" gap={8}>
+                        <Heading size={700}><WatchCourseButton courseName={e.course}/> {e.course} - {e.name}</Heading>
+                        <Table minWidth="800px">
+                            <Table.Head>
+                                <Table.TextHeaderCell flexBasis={100} flexShrink={0}
+                                                      flexGrow={0}>Section</Table.TextHeaderCell>
+                                <Table.TextHeaderCell flexBasis={150} flexShrink={0}
+                                                      flexGrow={0}>Instructor</Table.TextHeaderCell>
+                                <Table.TextHeaderCell>Open Seats</Table.TextHeaderCell>
+                                <Table.TextHeaderCell>Total Seats</Table.TextHeaderCell>
+                                <Table.TextHeaderCell>Waitlist</Table.TextHeaderCell>
+                                <Table.TextHeaderCell>Holdfile</Table.TextHeaderCell>
+                                <Table.TextHeaderCell></Table.TextHeaderCell>
+                            </Table.Head>
+                            <Table.Body>
+                                {Object.values(e.sections).length === 0 ? (
+                                    <EmptyState
+                                        title="No sections."
+                                        iconBgColor="#EDEFF5"
+                                        description="This course has no sections."
+                                        icon={<></>}/>
+                                ) : (
+                                    <>{Object.entries(e.sections)
+                                        .sort((a, b) => a[0].localeCompare(b[0]))
+                                        .map(([_, section]) => (
+                                            <Table.Row key={section.section}>
                                                 <Table.TextCell flexBasis={100} flexShrink={0}
-                                                                flexGrow={0}>{s.section}</Table.TextCell>
+                                                                flexGrow={0}>{section.section}</Table.TextCell>
                                                 <Table.TextCell flexBasis={150} flexShrink={0}
-                                                                flexGrow={0}>{s.instructor}</Table.TextCell>
-                                                <Table.TextCell isNumber>{s.openSeats}</Table.TextCell>
-                                                <Table.TextCell isNumber>{s.totalSeats}</Table.TextCell>
-                                                <Table.TextCell isNumber>{s.waitlist}</Table.TextCell>
-                                                <Table.TextCell isNumber>{s.holdfile}</Table.TextCell>
+                                                                flexGrow={0}><ProfessorNames name={section.instructor}/></Table.TextCell>
+                                                <Table.TextCell isNumber>{section.openSeats}</Table.TextCell>
+                                                <Table.TextCell isNumber>{section.totalSeats}</Table.TextCell>
+                                                <Table.TextCell isNumber>{section.waitlist}</Table.TextCell>
+                                                <Table.TextCell isNumber>{section.holdfile}</Table.TextCell>
                                                 <Table.TextCell><WatchButton courseName={e.course}
-                                                                             sectionName={s.section}/></Table.TextCell>
+                                                                             sectionName={section.section}/></Table.TextCell>
                                             </Table.Row>
-                                        )))
-                                }
-                                return course;
-                            })
-                    ) : (
-                        <EmptyState
-                            title="Loading course and section waitlist data"
-                            icon={<Spinner/>}
-                            iconBgColor="#EDEFF5"
-                            description="This might take a couple seconds for large departments."
-                        />
-                    )}
-                </Table.Body>
-            </Table>
+                                        ))}</>
+                                )}
+                            </Table.Body>
+                        </Table>
+                    </Pane>
+                ))}
         </>
     );
 }

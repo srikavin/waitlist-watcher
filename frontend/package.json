@@ -8,11 +8,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "dayjs": "^1.11.1",
-    "evergreen-ui": "^6.9.9",
-    "firebase": "^9.7.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "dayjs": "^1.11.5",
+    "evergreen-ui": "^6.10.3",
+    "firebase": "^9.9.2",
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0",
     "react-router-dom": "^6.3.0",
     "uuid": "^8.3.2"
   },

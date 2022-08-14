@@ -6,7 +6,6 @@ import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "fireba
 
 
 export function LoginScreen() {
-
     const [selected, setSelected] = useState("Login")
     const [tabs] = useState(['Login', 'Register'])
 
@@ -21,11 +20,10 @@ export function LoginScreen() {
         setError('');
 
         signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
+            .then(() => {
                 // do nothing
             })
             .catch((error) => {
-                const errorCode = error.code;
                 const errorMessage = error.message;
                 console.error(error);
                 setError(errorMessage);
@@ -39,11 +37,10 @@ export function LoginScreen() {
         setError('');
 
         createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
+            .then(() => {
                 // do nothing
             })
             .catch((error) => {
-                const errorCode = error.code;
                 const errorMessage = error.message;
                 console.error(error);
                 setError(errorMessage);
@@ -53,12 +50,15 @@ export function LoginScreen() {
 
     return (
         <Pane margin={10}>
-            <Tablist marginBottom={16} flexBasis={240} marginRight={24}>
+            <Tablist marginBottom={16} flexBasis={2000} marginRight={24}>
                 {tabs.map((tab, index) => (
                     <Tab
                         key={tab}
                         id={tab}
-                        onSelect={() => setSelected(tabs[index])}
+                        onSelect={() => {
+                            setError('');
+                            setSelected(tabs[index])
+                        }}
                         isSelected={tabs[index] === selected}
                         aria-controls={`panel-${tab}`}
                     >

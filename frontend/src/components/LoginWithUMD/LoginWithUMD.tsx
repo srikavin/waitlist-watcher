@@ -1,8 +1,7 @@
 import {auth, realtime_db} from "../../firebase";
 import {onValue, ref, set} from "firebase/database";
 import {signInWithCustomToken} from "firebase/auth";
-import {useCallback, useContext, useEffect, useState} from "react";
-import {AuthContext} from "../../context/AuthContext";
+import {useCallback, useEffect, useState} from "react";
 import {Button} from "evergreen-ui";
 import {v4 as uuidv4} from 'uuid';
 
@@ -18,7 +17,7 @@ function startLoginListener(req_id: string) {
             if (success) {
                 localStorage.setItem("customToken", data.token);
                 signInWithCustomToken(auth, localStorage.getItem("customToken")!)
-                    .then((e) => {
+                    .then(() => {
                         set(req_ref, {});
                     });
             }

@@ -1,4 +1,4 @@
-import {Button, Heading, Pane, Text} from "evergreen-ui";
+import {Button, Heading, Pane} from "evergreen-ui";
 import {useContext} from "react";
 import {AuthContext} from "../../context/AuthContext";
 import {LoginWithUMD} from "../LoginWithUMD/LoginWithUMD";
