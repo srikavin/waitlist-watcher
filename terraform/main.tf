@@ -23,6 +23,11 @@ resource "google_cloud_scheduler_job" "job" {
   }
 }
 
+resource "google_storage_bucket" "historical_bucket" {
+  name     = "${var.project}-historical-data"
+  location = var.region
+}
+
 module "scraper-launcher-function" {
   source               = "./modules/function"
   project              = var.project
