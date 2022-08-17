@@ -11,11 +11,18 @@ import {BrowserRouter, Route, Routes, useParams} from "react-router-dom";
 import {LandingPageScreen} from "./screens/LandingPageScreen/LandingPageScreen";
 import {CourseListing} from "./components/CourseListing/CourseListing";
 import {ProfileScreen} from "./screens/ProfileScreen/ProfileScreen";
+import {HistoryScreen} from './screens/HistoryScreen/HistoryScreen';
 
 function PrefixRenderer() {
     let {prefix} = useParams();
 
     return <CourseListing prefix={prefix!}/>
+}
+
+function HistoryRenderer() {
+    let {name} = useParams();
+
+    return <HistoryScreen name={name!}/>
 }
 
 function App() {
@@ -63,6 +70,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<LandingPageScreen/>}/>
                         <Route path="/department/:prefix" element={<PrefixRenderer/>}/>
+                        <Route path="/history/:name" element={<HistoryRenderer/>}/>
                         <Route path="/profile" element={<ProfileScreen/>}/>
                     </Routes>
                 </Card>

@@ -16,17 +16,21 @@ interface PlanetTerpProfessorResponse {
 export function ProfessorName(props: ProfessorNameProps) {
     const handleClick = (e: MouseEvent) => {
         (async () => {
-            const result = await fetch("https://api.planetterp.com/v1/professor?" + new URLSearchParams({
-                name: props.name
-            }));
+            try {
+                const result = await fetch("https://api.planetterp.com/v1/professor?" + new URLSearchParams({
+                    name: props.name
+                }));
 
-            if (!result.ok) {
-                window.open(`https://planetterp.com/search?${new URLSearchParams({query: props.name})}`);
-                return;
+                if (result.ok) {
+                    const data: PlanetTerpProfessorResponse = await result.json();
+                    window.open(`https://planetterp.com/professor/${data.slug}`);
+                    return;
+                }
+            } catch (e) {
+                console.error(e);
             }
 
-            const data: PlanetTerpProfessorResponse = await result.json();
-            window.open(`https://planetterp.com/professor/${data.slug}`);
+            window.open(`https://planetterp.com/search?${new URLSearchParams({query: props.name})}`);
         })();
 
         e.preventDefault();

@@ -1,3 +1,21 @@
 html {
     font-size: 18px !important;
 }
+
+a {
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+
+a, a:visited {
+    color: #3366FF;
+}
+
+a:hover {
+    color: #4CB6E1;
+}
+
+a:active {
+    color: #0055AA;
+}

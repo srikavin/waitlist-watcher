@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import relativeTime from "dayjs/plugin/relativeTime";
 import {get, ref, update} from "firebase/database";
 import ProfessorNames from "../ProfessorName/ProfessorNames";
+import {Link} from "react-router-dom";
 
 dayjs.extend(relativeTime);
 
@@ -321,7 +322,10 @@ export function CourseListing(props: CourseListingProps) {
                 .sort((a, b) => a.course.localeCompare(b.course))
                 .map((e) => (
                     <Pane key={e.name} display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" gap={8}>
-                        <Heading size={700}><WatchCourseButton courseName={e.course}/> {e.course} - {e.name}</Heading>
+                        <Heading size={700}>
+                            <WatchCourseButton courseName={e.course}/>&nbsp;
+                            <Link to={`/history/${e.course}`}>{e.course} - {e.name}</Link>
+                        </Heading>
                         <Table minWidth="800px">
                             <Table.Head>
                                 <Table.TextHeaderCell flexBasis={100} flexShrink={0}
@@ -347,7 +351,10 @@ export function CourseListing(props: CourseListingProps) {
                                         .map(([_, section]) => (
                                             <Table.Row key={section.section}>
                                                 <Table.TextCell flexBasis={100} flexShrink={0}
-                                                                flexGrow={0}>{section.section}</Table.TextCell>
+                                                                flexGrow={0}>
+                                                    <Link
+                                                        to={`/history/${e.course}-${section.section}`}>{section.section}</Link>
+                                                </Table.TextCell>
                                                 <Table.TextCell flexBasis={150} flexShrink={0}
                                                                 flexGrow={0}><ProfessorNames name={section.instructor}/></Table.TextCell>
                                                 <Table.TextCell isNumber>{section.openSeats}</Table.TextCell>

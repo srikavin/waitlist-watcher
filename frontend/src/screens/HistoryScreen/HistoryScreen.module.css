@@ -1,0 +1,15 @@
+.old {
+    background: #ffb4b4;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    flex-shrink: 5;
+    flex-basis: 0;
+}
+
+.new {
+    background: #96f696;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

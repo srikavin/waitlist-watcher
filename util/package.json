@@ -2,13 +2,19 @@
   "name": "utils",
   "version": "1.0.0",
   "description": "",
-  "main": "generate_scraper_config.js",
+  "main": "populate_historical_events.ts",
   "scripts": {
+    "build": "tsc -b",
+    "populate_historical_events": "npm run build && node build/populate_historical_events.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.27.2"
+    "axios": "^0.27.2",
+    "fast-json-patch": "^3.1.1",
+    "firebase-admin": "^11.0.1",
+    "shared": "file:../shared",
+    "typescript": "^4.6.3"
   }
 }
