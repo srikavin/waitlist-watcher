@@ -28,6 +28,18 @@ resource "google_storage_bucket" "historical_bucket" {
   location = var.region
 }
 
+resource "google_project_iam_custom_role" "historical-data-reader" {
+  role_id     = "historicalDataReader"
+  title       = "Historical Data Reader"
+  permissions = ["storage.objects.get"]
+}
+
+resource "google_storage_bucket_iam_binding" "historical-data-policy" {
+  bucket  = google_storage_bucket.historical_bucket.name
+  role    = google_project_iam_custom_role.historical-data-reader.id
+  members = ["allUsers"]
+}
+
 module "scraper-launcher-function" {
   source               = "./modules/function"
   project              = var.project
