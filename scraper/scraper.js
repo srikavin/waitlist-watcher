@@ -130,7 +130,7 @@ exports.scraper = async (prefix, context) => {
 
     const diffRef = docRef.collection("historical").doc(context.timestamp);
 
-    if (newUpdateCount % 15 === 0 || previous.timestamp === -1 || diff.length > 20) {
+    if (true) {
         await diffRef.set({
             type: "full",
             contents: data
