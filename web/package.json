@@ -18,7 +18,8 @@
     "fast-xml-parser": "^4.0.7",
     "fastify": "^3.28.0",
     "fastify-raw-body": "^3.2.0",
-    "firebase-admin": "^10.1.0"
+    "firebase-admin": "^10.1.0",
+    "node-cache": "^5.1.2"
   },
   "devDependencies": {
     "pino-pretty": "^7.6.1",

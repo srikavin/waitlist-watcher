@@ -8,6 +8,7 @@ initializeApp({
 
 import {discordRoute} from "./routes/discord";
 import {authRoute} from "./routes/auth";
+import {rawDataRoute} from "./routes/rawdata";
 
 const PORT = Number(process.env.PORT) || 8080;
 
@@ -29,6 +30,7 @@ app.register(fastify_raw_body, {
 
 app.register(authRoute)
 app.register(discordRoute)
+app.register(rawDataRoute)
 
 app.listen({port: PORT}, (err, address) => {
     if (err) throw err;
