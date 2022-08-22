@@ -5,9 +5,16 @@ const {PubSub} = require("@google-cloud/pubsub");
 const jsdom = require("jsdom");
 const {JSDOM} = jsdom;
 
+const {Storage} = require("@google-cloud/storage");
+
+const storage = new Storage();
+const historical_bucket = storage.bucket('waitlist-watcher-historical-data')
+
 const SEMESTER_CODE = "202208";
 const COURSE_LIST_URL = (prefix) => `https://app.testudo.umd.edu/soc/${SEMESTER_CODE}/${prefix}`;
 const SECTIONS_URL = (prefix, courseList) => `https://app.testudo.umd.edu/soc/${SEMESTER_CODE}/sections?courseIds=${courseList}`;
+
+const BUCKET_SNAPSHOT_PREFIX = (department) => `snapshots/${department}/`
 
 const db = getFirestore();
 const pubsub = new PubSub({projectId: "waitlist-watcher"});
@@ -130,18 +137,12 @@ exports.scraper = async (prefix, context) => {
 
     const diffRef = docRef.collection("historical").doc(context.timestamp);
 
-    if (true) {
-        await diffRef.set({
-            type: "full",
-            contents: data
-        });
-    } else {
-        await diffRef.set({
-            type: "diff",
-            diff: diff,
-            basedOn: previous.timestamp
-        });
-    }
+    await diffRef.set({
+        type: "full",
+        contents: data
+    });
+
+    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(prefix) + context.timestamp + '.json').save(JSON.stringify(data));
 
     console.log("Updated historical state for ", prefix)
 }
