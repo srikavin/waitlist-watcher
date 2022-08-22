@@ -135,13 +135,6 @@ exports.scraper = async (prefix, context) => {
 
     console.log("Published notification topic after scraping ", prefix)
 
-    const diffRef = docRef.collection("historical").doc(context.timestamp);
-
-    await diffRef.set({
-        type: "full",
-        contents: data
-    });
-
     await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(prefix) + context.timestamp + '.json').save(JSON.stringify(data));
 
     console.log("Updated historical state for ", prefix)
