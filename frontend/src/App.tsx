@@ -12,6 +12,8 @@ import {LandingPageScreen} from "./screens/LandingPageScreen/LandingPageScreen";
 import {CourseListing} from "./components/CourseListing/CourseListing";
 import {ProfileScreen} from "./screens/ProfileScreen/ProfileScreen";
 import {HistoryScreen} from './screens/HistoryScreen/HistoryScreen';
+import {LoginScreen} from "./screens/LoginScreen/LoginScreen";
+import {DepartmentsScreen} from "./screens/DepartmentsScreen/DepartmentsScreen";
 
 function PrefixRenderer() {
     let {prefix} = useParams();
@@ -23,6 +25,21 @@ function HistoryRenderer() {
     let {name} = useParams();
 
     return <HistoryScreen name={name!}/>
+}
+
+function PageRenderer() {
+    return (
+        <Card marginTop={32} overflow="auto" maxWidth={1000} marginRight="auto" marginLeft="auto"
+              justifyContent="center">
+            <Routes>
+                <Route path="/department/:prefix" element={<PrefixRenderer/>}/>
+                <Route path="/departments" element={<DepartmentsScreen/>}/>
+                <Route path="/history/:name" element={<HistoryRenderer/>}/>
+                <Route path="/profile" element={<ProfileScreen/>}/>
+                <Route path="/login" element={<LoginScreen/>}/>
+            </Routes>
+        </Card>
+    );
 }
 
 function App() {
@@ -65,15 +82,10 @@ function App() {
         <BrowserRouter>
             <AuthContext.Provider value={authCtx}>
                 <Navigation/>
-                <Card marginTop={32} overflow="auto" maxWidth={1000} marginRight="auto" marginLeft="auto"
-                      justifyContent="center">
-                    <Routes>
-                        <Route path="/" element={<LandingPageScreen/>}/>
-                        <Route path="/department/:prefix" element={<PrefixRenderer/>}/>
-                        <Route path="/history/:name" element={<HistoryRenderer/>}/>
-                        <Route path="/profile" element={<ProfileScreen/>}/>
-                    </Routes>
-                </Card>
+                <Routes>
+                    <Route path="/" element={<LandingPageScreen/>}/>
+                    <Route path="*" element={<PageRenderer/>}/>
+                </Routes>
             </AuthContext.Provider>
         </BrowserRouter>
     )

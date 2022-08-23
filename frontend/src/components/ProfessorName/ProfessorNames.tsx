@@ -23,24 +23,22 @@ export function ProfessorName(props: ProfessorNameProps) {
 
                 if (result.ok) {
                     const data: PlanetTerpProfessorResponse = await result.json();
-                    window.open(`https://planetterp.com/professor/${data.slug}`);
+                    window.open(`https://planetterp.com/professor/${data.slug}`, '_blank');
+                    e.preventDefault();
                     return;
                 }
             } catch (e) {
                 console.error(e);
             }
-
-            window.open(`https://planetterp.com/search?${new URLSearchParams({query: props.name})}`);
         })();
-
-        e.preventDefault();
     }
 
     if (props.name === 'Instructor: TBA') {
         return <Text>TBA</Text>
     }
 
-    return <Link onClick={handleClick} href="#">{props.name}</Link>;
+    return <Link onClick={handleClick} target="_blank"
+                 href={`https://planetterp.com/search?${new URLSearchParams({query: props.name})}`}>{props.name}</Link>;
 }
 
 export default function ProfessorNames(props: ProfessorNameProps) {

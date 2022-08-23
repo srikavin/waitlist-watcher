@@ -42,7 +42,10 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
     return (
         <Pane display="flex" gap={10} alignItems="baseline">
             <small>{dayjs(event.timestamp).format("MM-DD-YYYY HH:mm")}</small>
-            <b>{nameMapping[event.type]}</b>
+            <b>{nameMapping[event.type]}
+                {event.type === 'section_added' || event.type === 'section_removed' ? <> ({event.section})</> : ''}
+                {event.type === 'course_added' && event.title ? <> ({event.course})</> : ''}
+            </b>
             {event.old !== undefined ? (
                 <>from
                     <s>

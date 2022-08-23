@@ -1,0 +1,11 @@
+.fullWidth:after {
+    position: absolute;
+    z-index: 10; /* behind parent */
+    top: 100px;
+    height: 100px;
+    width: 100vw;
+    /* subtract h2 padding (1.5rem) */
+    /*left: 598.5rem;*/
+    /*right: 598.5rem;*/
+    background: green;
+}

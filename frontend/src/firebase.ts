@@ -1,4 +1,4 @@
-import {getFirestore} from "firebase/firestore";
+import {enableIndexedDbPersistence, getFirestore} from "firebase/firestore";
 import {initializeApp} from "firebase/app";
 import {browserLocalPersistence, getAuth, setPersistence} from "firebase/auth";
 import {getDatabase} from "firebase/database";
@@ -20,3 +20,4 @@ export const db = getFirestore(firebaseApp);
 export const realtime_db = getDatabase(firebaseApp);
 
 setPersistence(auth, browserLocalPersistence);
+enableIndexedDbPersistence(db).catch(console.error);

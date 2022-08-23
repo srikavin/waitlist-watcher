@@ -1,7 +1,6 @@
 import {Button, Heading, Pane} from "evergreen-ui";
 import {useContext} from "react";
 import {AuthContext} from "../../context/AuthContext";
-import {LoginWithUMD} from "../LoginWithUMD/LoginWithUMD";
 import {useNavigate} from "react-router-dom";
 
 export function Navigation() {
@@ -9,15 +8,18 @@ export function Navigation() {
     const navigate = useNavigate();
 
     return (
-        <Pane display="flex" padding={16} background="tint2" borderRadius={3}>
+        <Pane display="flex" padding={16} background="white" borderRadius={3}>
             <Pane flex={1} alignItems="center" flexBasis="bottom" display="flex">
-                <Heading size={600}>Waitlist Watcher</Heading>
+                <Button marginLeft={20} appearance="minimal" onClick={() => navigate("/")}>
+                    <Heading size={600}>Waitlist Watcher</Heading>
+                </Button>
 
-                <Button marginLeft={20} appearance="minimal" onClick={() => navigate("/")}>Departments</Button>
+                <Button marginLeft={10} appearance="minimal"
+                        onClick={() => navigate("/departments")}>Departments</Button>
             </Pane>
             <Pane>
                 {!isAuthed ? (
-                    <LoginWithUMD/>
+                    <Button marginLeft={10} appearance="primary" onClick={() => navigate("/login")}>Get Started</Button>
                 ) : (
                     <>
                         <Button appearance="minimal" onClick={() => navigate("/profile")}>{getUser()!.email}</Button>
