@@ -3,7 +3,6 @@ const axios = require("axios");
 const webpush = require("web-push");
 const {getDatabase} = require("firebase-admin/database");
 const {getDiscordContent} = require("./discord");
-const {getFirestore} = require("firebase-admin/firestore");
 
 initializeApp({
     databaseURL: "https://waitlist-watcher-default-rtdb.firebaseio.com"
@@ -17,139 +16,14 @@ webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.en
 exports.notifier = async (message, context) => {
     const parsedData = JSON.parse(Buffer.from(message.data, 'base64').toString());
 
-    const {prefix, previousState, newState} = parsedData.data;
+    const {prefix, events} = parsedData.data;
 
-    console.log("Notifying users of changes in ", prefix);
-
-    if (!previousState || !newState) {
-        console.log("PreviousState or newState was invalid!");
+    if (events === undefined) {
+        console.log("Likely got old message. Skipping.")
         return;
     }
 
-    const previousCourses = previousState;
-    const newCourses = newState;
-
-    const events = [];
-
-    for (let course in newCourses) {
-        if (!previousCourses[course]) {
-            // course removed?
-            events.push({type: "course_added", course, title: newCourses[course].title});
-            continue;
-        }
-
-        const previousSections = previousCourses[course].sections;
-        const newSections = newCourses[course].sections;
-
-        for (let section in newSections) {
-            if (!previousSections[section]) {
-                events.push({type: "section_added", course, title: newCourses[course].title, section})
-            }
-        }
-    }
-
-    for (let course in previousCourses) {
-        if (!newCourses[course]) {
-            // course removed?
-            events.push({type: "course_removed", course, title: previousCourses[course].title});
-            continue;
-        }
-
-        const previousCourse = previousCourses[course];
-        const newCourse = newCourses[course];
-
-        if (previousCourse.name !== newCourse.name) {
-            events.push({
-                type: "course_name_changed",
-                course,
-                old: previousCourse.name,
-                new: newCourse.name
-            });
-        }
-
-        const title = newCourse.name;
-
-        const previousSections = previousCourses[course].sections;
-        const newSections = newCourses[course].sections;
-
-        for (let section in previousSections) {
-            if (!newSections[section]) {
-                events.push({type: "section_removed", course, title, section})
-                continue;
-            }
-
-            const previousSection = previousSections[section];
-            const newSection = newSections[section];
-
-            if (previousSection.instructor !== newSection.instructor) {
-                events.push({
-                    type: "instructor_changed",
-                    course,
-                    title,
-                    section,
-                    old: previousSection.instructor,
-                    new: newSection.instructor
-                });
-            }
-
-            if (previousSection.totalSeats !== newSection.totalSeats) {
-                events.push({
-                    type: "total_seats_changed",
-                    course,
-                    title,
-                    section,
-                    old: previousSection.totalSeats,
-                    new: newSection.totalSeats
-                });
-            }
-
-            if (previousSection.openSeats === 0 && newSection.openSeats > 0) {
-                events.push({
-                    type: "open_seat_available",
-                    course,
-                    title,
-                    section,
-                    old: previousSection.openSeats,
-                    new: newSection.openSeats
-                });
-            }
-
-            if (previousSection.openSeats !== newSection.openSeats) {
-                events.push({
-                    type: "open_seats_changed",
-                    course,
-                    title,
-                    section,
-                    old: previousSection.openSeats,
-                    new: newSection.openSeats
-                });
-            }
-
-            if (previousSection.waitlist !== newSection.waitlist) {
-                events.push({
-                    type: "waitlist_changed",
-                    course,
-                    title,
-                    section,
-                    old: previousSection.waitlist,
-                    new: newSection.waitlist
-                });
-            }
-
-            if (previousSection.holdfile !== newSection.holdfile) {
-                events.push({
-                    type: "holdfile_changed",
-                    course,
-                    title,
-                    section,
-                    old: previousSection.holdfile,
-                    new: newSection.holdfile
-                });
-            }
-        }
-    }
-
-    events.sort((a, b) => a.course.localeCompare(b.course));
+    console.log("Notifying users of changes in ", prefix, events.length);
 
     const courseSubscribersCache = {}
     const sectionSubscribersCache = {}
@@ -158,7 +32,6 @@ exports.notifier = async (message, context) => {
     const cacheSeen = new Set();
 
     for (const event of events) {
-
         let key = event.course;
         if (event.section) {
             key += '-' + event.section;
@@ -272,7 +145,7 @@ exports.notifier = async (message, context) => {
     for (const [discordHookUrl, batches] of Object.entries(discordBatch)) {
         console.log("Notifying discord webhook with ", batches.length, " batches")
         batches.forEach((events) => {
-            webhookPromises.push(axios.post(discordHookUrl, getDiscordContent(context.eventId, events), {
+            webhookPromises.push(axios.post(discordHookUrl, getDiscordContent(events), {
                 headers: {
                     "Authorization": `Bot ${process.env.DISCORD_CLIENT_SECRET}`
                 }

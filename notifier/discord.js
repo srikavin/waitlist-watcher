@@ -1,10 +1,10 @@
-const generateFooter = (execution, event) => {
+const generateFooter = (event) => {
     return {
-        "text": `Event ${execution} with category ${event.type} (version ${process.env.K_REVISION}).`
+        "text": `Event ${event.id} with category ${event.type} (version ${process.env.K_REVISION}) at (${event.timestamp}).`
     };
 }
 
-const seatAvailable = (execution, event) => {
+const seatAvailable = (event) => {
     return {
         "title": `Open Seat Available in ${event.course}-${event.section}`,
         "color": 5832650,
@@ -29,11 +29,11 @@ const seatAvailable = (execution, event) => {
                 "value": String(event.new)
             }
         ],
-        "footer": generateFooter(execution, event)
+        "footer": generateFooter(event)
     }
 }
 
-const sectionRemoved = (execution, event) => {
+const sectionRemoved = (event) => {
     return {
         "title": `Section ${event.course}-${event.section} Removed`,
         "color": 16734296,
@@ -54,12 +54,12 @@ const sectionRemoved = (execution, event) => {
                 "inline": true
             }
         ],
-        "footer": generateFooter(execution, event)
+        "footer": generateFooter(event)
     }
 }
 
 const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
-    return (execution, event) => (
+    return (event) => (
         {
             "title": title_fn(event),
             "color": color,
@@ -88,7 +88,7 @@ const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
                     "value": String(event.new)
                 }
             ],
-            "footer": generateFooter(execution, event)
+            "footer": generateFooter(event)
         }
     );
 }
@@ -135,7 +135,7 @@ const courseNameChanged = simpleChangeEvent(
     16734296
 );
 
-const unknownEvent = (execution, event) => {
+const unknownEvent = (event) => {
     return {
         "title": `Unknown event`,
         "color": 16734296,
@@ -143,11 +143,11 @@ const unknownEvent = (execution, event) => {
             "name": JSON.stringify(k),
             "value": JSON.stringify(v)
         })),
-        "footer": generateFooter(execution, event)
+        "footer": generateFooter(event)
     };
 }
 
-exports.getDiscordContent = (execution, events) => {
+exports.getDiscordContent = (events) => {
     const mapping = {
         "open_seat_available": seatAvailable,
         "open_seats_changed": openSeatsChanged,
@@ -163,9 +163,9 @@ exports.getDiscordContent = (execution, events) => {
         "content": null,
         "embeds": events.map((event) => {
             if (event.type in mapping) {
-                return mapping[event.type](execution, event)
+                return mapping[event.type](event)
             }
-            return unknownEvent(execution, event);
+            return unknownEvent(event);
         }),
         "username": "Waitlist Watcher",
         "attachments": []

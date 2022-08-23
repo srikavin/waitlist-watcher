@@ -6,6 +6,7 @@ const jsdom = require("jsdom");
 const {JSDOM} = jsdom;
 
 const {Storage} = require("@google-cloud/storage");
+const {generateEvents} = require("./generate_events");
 
 const storage = new Storage();
 const historical_bucket = storage.bucket('waitlist-watcher-historical-data')
@@ -15,9 +16,13 @@ const COURSE_LIST_URL = (prefix) => `https://app.testudo.umd.edu/soc/${SEMESTER_
 const SECTIONS_URL = (prefix, courseList) => `https://app.testudo.umd.edu/soc/${SEMESTER_CODE}/sections?courseIds=${courseList}`;
 
 const BUCKET_SNAPSHOT_PREFIX = (department) => `snapshots/${department}/`
+const BUCKET_EVENTS_PREFIX = (department) => `events/${department}/`
 
 const db = getFirestore();
+const events_collection = db.collection("events");
+
 const pubsub = new PubSub({projectId: "waitlist-watcher"});
+const updateTopic = pubsub.topic("prefix-update");
 
 const getCourseList = async (prefix) => {
     const data = (await axios.get(COURSE_LIST_URL(prefix))).data;
@@ -111,19 +116,7 @@ exports.scraper = async (prefix, context) => {
         return;
     }
 
-    if (previous.version >= 2) {
-        const messageBuffer = Buffer.from(JSON.stringify({
-            data: {
-                prefix: prefix,
-                previousState: previous.latest,
-                newState: data,
-                id: context.eventId
-            }
-        }), 'utf8');
-
-        const updateTopic = pubsub.topic("prefix-update");
-        await updateTopic.publish(messageBuffer);
-    }
+    const events = generateEvents(previous.latest, data, context.timestamp);
 
     await docRef.set({
         latest: data,
@@ -136,6 +129,45 @@ exports.scraper = async (prefix, context) => {
     console.log("Published notification topic after scraping ", prefix)
 
     await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(prefix) + context.timestamp + '.json').save(JSON.stringify(data));
+    await historical_bucket.file(BUCKET_EVENTS_PREFIX(prefix) + context.timestamp + '.json').save(JSON.stringify(events));
+
+    const messageBuffer = Buffer.from(JSON.stringify({
+        data: {
+            prefix: prefix,
+            events: events,
+            timestamp: context.timestamp,
+            id: context.eventId
+        }
+    }), 'utf8');
+
+    await updateTopic.publish(messageBuffer);
+
+    const updates = [];
+
+    for (let event of events) {
+        if (!event.course) {
+            console.log("Skipped over event", event);
+            continue;
+        }
+
+        let docname = event.course + (event.section ? '-' + event.section : '')
+
+        if (event.type === 'section_added' || event.type === 'section_removed') {
+            updates.push(events_collection.doc(event.course).set({
+                events: {
+                    [event.id]: event
+                }
+            }, {merge: true}));
+        }
+
+        updates.push(events_collection.doc(docname).set({
+            events: {
+                [event.id]: event
+            }
+        }, {merge: true}));
+    }
 
     console.log("Updated historical state for ", prefix)
+
+    await Promise.all(updates);
 }

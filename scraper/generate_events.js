@@ -1,9 +1,9 @@
-import {CourseEvent} from "./types";
+const crypto = require('crypto');
 
-export function generateEvents(crypto: any, previousCourses: any, newCourses: any, timestamp: string): Array<CourseEvent> {
+exports.generateEvents = (previousCourses, newCourses, timestamp) => {
     const events = [];
 
-    for (let course in newCourses) {
+    for (const course in newCourses) {
         if (!previousCourses[course]) {
             // course removed?
             events.push({type: "course_added", course, title: newCourses[course].title});
@@ -11,14 +11,14 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
 
         const newSections = newCourses[course].sections;
 
-        for (let section in newSections) {
+        for (const section in newSections) {
             if (!previousCourses[course] || !previousCourses[course].sections[section]) {
-                events.push({type: "section_added", course, title: newCourses[course].title, section})
+                events.push({type: "section_added", course, title: newCourses[course].title, section});
             }
         }
     }
 
-    for (let course in previousCourses) {
+    for (const course in previousCourses) {
         if (!newCourses[course]) {
             // course removed?
             events.push({type: "course_removed", course, title: previousCourses[course].title});
@@ -34,7 +34,7 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
                 course,
                 title: newCourse.name,
                 old: previousCourse.name,
-                new: newCourse.name
+                new: newCourse.name,
             });
         }
 
@@ -43,9 +43,9 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
         const previousSections = previousCourses[course].sections;
         const newSections = newCourses[course].sections;
 
-        for (let section in previousSections) {
+        for (const section in previousSections) {
             if (!newSections[section]) {
-                events.push({type: "section_removed", course, title, section})
+                events.push({type: "section_removed", course, title, section});
                 continue;
             }
 
@@ -59,7 +59,7 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
                     title,
                     section,
                     old: previousSection.instructor,
-                    new: newSection.instructor
+                    new: newSection.instructor,
                 });
             }
 
@@ -70,7 +70,7 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
                     title,
                     section,
                     old: previousSection.totalSeats,
-                    new: newSection.totalSeats
+                    new: newSection.totalSeats,
                 });
             }
 
@@ -81,7 +81,7 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
                     title,
                     section,
                     old: previousSection.openSeats,
-                    new: newSection.openSeats
+                    new: newSection.openSeats,
                 });
             }
 
@@ -92,7 +92,7 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
                     title,
                     section,
                     old: previousSection.openSeats,
-                    new: newSection.openSeats
+                    new: newSection.openSeats,
                 });
             }
 
@@ -103,7 +103,7 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
                     title,
                     section,
                     old: previousSection.waitlist,
-                    new: newSection.waitlist
+                    new: newSection.waitlist,
                 });
             }
 
@@ -114,7 +114,7 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
                     title,
                     section,
                     old: previousSection.holdfile,
-                    new: newSection.holdfile
+                    new: newSection.holdfile,
                 });
             }
         }
@@ -122,9 +122,9 @@ export function generateEvents(crypto: any, previousCourses: any, newCourses: an
 
     events.sort((a, b) => a.course.localeCompare(b.course));
 
-    return events.map(e => ({
+    return events.map((e) => ({
         ...e,
-        id: crypto.createHash('sha1').update(e.course + e.type + timestamp + e.section).digest('hex'),
-        timestamp: timestamp
-    })) as Array<CourseEvent>;
-}
+        id: crypto.createHash("sha1").update(e.course + e.type + timestamp + e.section).digest("hex"),
+        timestamp: timestamp,
+    }));
+};
