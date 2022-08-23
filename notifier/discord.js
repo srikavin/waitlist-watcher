@@ -4,9 +4,17 @@ const generateFooter = (event) => {
     };
 }
 
+const generateAuthor = (event) => {
+    return {
+        "name": "View more details on Waitlist Watcher",
+        "url": `https://waitlist-watcher.web.app/history/${event.course}${event.section ? '-' + event.section : ''}`
+    }
+}
+
 const seatAvailable = (event) => {
     return {
         "title": `Open Seat Available in ${event.course}-${event.section}`,
+        "author": generateAuthor(event),
         "color": 5832650,
         "fields": [
             {
@@ -36,6 +44,7 @@ const seatAvailable = (event) => {
 const sectionRemoved = (event) => {
     return {
         "title": `Section ${event.course}-${event.section} Removed`,
+        "author": generateAuthor(event),
         "color": 16734296,
         "fields": [
             {
@@ -62,6 +71,7 @@ const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
     return (event) => (
         {
             "title": title_fn(event),
+            "author": generateAuthor(event),
             "color": color,
             "fields": [
                 {
@@ -138,6 +148,7 @@ const courseNameChanged = simpleChangeEvent(
 const unknownEvent = (event) => {
     return {
         "title": `Unknown event`,
+        "author": generateAuthor(event),
         "color": 16734296,
         "fields": Object.entries(event).map(([k, v]) => ({
             "name": JSON.stringify(k),
