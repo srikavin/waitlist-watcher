@@ -1,7 +1,7 @@
 import {doc, onSnapshot} from "firebase/firestore";
 import {db} from "../../firebase";
 import {useEffect, useState} from "react";
-import {Card, Heading, Pane} from "evergreen-ui";
+import {Card, EmptyState, Heading, Pane, SearchTemplateIcon} from "evergreen-ui";
 import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
@@ -39,7 +39,7 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
     }
 
     return (
-        <Pane display="flex" gap={10} alignItems="baseline">
+        <Pane display="inline-flex" gap={6} alignItems="baseline">
             <small>{dayjs(event.timestamp).format("MM-DD-YYYY HH:mm")}</small>
             <b>{nameMapping[event.type]}
                 {event.type === 'section_added' || event.type === 'section_removed' ? <> ({event.section})</> : ''}
@@ -83,21 +83,29 @@ export function HistoryScreen(props: HistoryScreenProps) {
 
     return (
         <>
-            <Heading size={900} marginBottom={15}>
+            <Heading size={900} marginBottom={8}>
                 {name}{" "}
                 {isSection ?
                     <WatchButton courseName={name.split('-')[0]} sectionName={name.split('-')[1]}/> :
                     <WatchCourseButton courseName={name}/>}
             </Heading>
-            <Pane display="flex" gap={10} flexDirection="column" marginBottom={40}>
-                <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
-                    <Heading size={800}>Historical Events</Heading>
-
-                    <Pane marginY={20} display="flex" flexDirection="column" gap={5}>
-                        {events.map((e) => (
-                            <FormattedCourseEvent key={e.id} event={e}/>
-                        ))}
-                    </Pane>
+            <Pane display="flex" gap={10} flexDirection="column" marginBottom={28}>
+                <Card border="1px solid #c1c4d6" paddingY={12} paddingX={16}>
+                    {events.length === 0 ? (
+                        <EmptyState title="No Events Found" icon={<SearchTemplateIcon/>}
+                                    iconBgColor="#EDEFF5"
+                                    description="Try looking at another course or coming back later."
+                        >
+                        </EmptyState>
+                    ) : (
+                        <>
+                            <Heading size={800} marginBottom={8}>Historical Events</Heading>
+                            <Pane display="flex" flexDirection="column" gap={4}>
+                                {events.map((e) => (
+                                    <FormattedCourseEvent key={e.id} event={e}/>
+                                ))}
+                            </Pane>
+                        </>)}
                 </Card>
             </Pane>
             {isSection ? <HistoryScreen name={name.split('-')[0]}/> : ''}
