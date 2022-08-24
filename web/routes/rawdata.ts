@@ -90,6 +90,20 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
         return cache.getStats();
     });
 
+    fastify.get("/courses", async (request, reply) => {
+        const cached = cache.get('courses');
+        if (cached !== undefined) {
+            return cached;
+        }
+
+        const coursesAndSections = (await firestore.collection('events').listDocuments())
+            .map(e => e.id);
+
+        cache.set('courses', coursesAndSections, 60 * 60);
+
+        return coursesAndSections;
+    });
+
     fastify.get<{ Params: { dept: string } }>("/raw/:dept", async (request, reply) => {
         let {dept} = request.params;
         dept = dept.toUpperCase();

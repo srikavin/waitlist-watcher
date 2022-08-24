@@ -3,6 +3,7 @@ import {AuthContext} from "../../context/AuthContext";
 import {Button, Card, ChatIcon, CodeIcon, Heading, Icon, Link, NotificationsIcon, Pane, Text} from "evergreen-ui";
 import {CircleContainer} from "../../components/CircleContainer/CircleContainer";
 import {NavLink} from "react-router-dom";
+import {Search} from "../../components/Search/Search";
 
 function NotificationInfo(props: { icon: any, title: string, description: string }) {
     return (
@@ -21,10 +22,6 @@ function NotificationInfo(props: { icon: any, title: string, description: string
 export function LandingPageScreen() {
     const {isAuthed} = useContext(AuthContext);
 
-    // if (!isAuthed) {
-    //     return <LoginScreen/>
-    // }
-
     return (
         <Pane overflowX="hidden">
             <Pane width="100vw" background="tint1">
@@ -39,6 +36,12 @@ export function LandingPageScreen() {
                         <Button appearance="primary" width={100}>Get started</Button>
                     </NavLink>
                 </Card>
+            </Pane>
+
+            <Pane maxWidth={1000} marginRight="auto" marginLeft="auto" justifyContent="center"
+                  marginTop={32} display="flex" flexDirection="column">
+                <Heading size={800} marginBottom={12}>Search for a course or section</Heading>
+                <Search/>
             </Pane>
 
             <Pane width="100vw" marginY={64}>

@@ -2,6 +2,7 @@ import {Button, Heading, Pane} from "evergreen-ui";
 import {useContext} from "react";
 import {AuthContext} from "../../context/AuthContext";
 import {useNavigate} from "react-router-dom";
+import {Search} from "../Search/Search";
 
 export function Navigation() {
     const {isAuthed, getUser, logout} = useContext(AuthContext);
@@ -16,6 +17,9 @@ export function Navigation() {
 
                 <Button marginLeft={10} appearance="minimal"
                         onClick={() => navigate("/departments")}>Departments</Button>
+                <Pane paddingLeft={28}>
+                    <Search/>
+                </Pane>
             </Pane>
             <Pane>
                 {!isAuthed ? (

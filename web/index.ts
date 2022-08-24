@@ -1,6 +1,7 @@
 import {initializeApp} from 'firebase-admin/app';
 import fastify from "fastify";
 import fastify_raw_body from "fastify-raw-body";
+import cors from '@fastify/cors'
 
 initializeApp({
     databaseURL: "https://waitlist-watcher-default-rtdb.firebaseio.com"
@@ -27,6 +28,8 @@ app.register(fastify_raw_body, {
     runFirst: true, // get the body before any preParsing hook change/uncompress it. **Default false**
     routes: [] // array of routes, **`global`** will be ignored, wildcard routes not supported
 })
+
+app.register(cors, {})
 
 app.register(authRoute)
 app.register(discordRoute)
