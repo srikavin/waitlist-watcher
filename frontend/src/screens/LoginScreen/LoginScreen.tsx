@@ -1,8 +1,10 @@
-import {useCallback, useState} from "react";
+import {useCallback, useContext, useState} from "react";
 import {Alert, Button, Card, Heading, Pane, Tab, Tablist, Text, TextInputField} from "evergreen-ui";
 import {auth} from "../../firebase";
 import {LoginWithUMD} from "../../components/LoginWithUMD/LoginWithUMD";
 import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
+import {useNavigate} from "react-router-dom";
+import {AuthContext} from "../../context/AuthContext";
 
 
 export function LoginScreen() {
@@ -14,6 +16,14 @@ export function LoginScreen() {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
+    const navigate = useNavigate();
+
+    const {isAuthed} = useContext(AuthContext);
+
+    if (isAuthed) {
+        navigate('/profile');
+    }
 
     const loginCallback = useCallback(() => {
         setLoading(true);
@@ -78,6 +88,7 @@ export function LoginScreen() {
                 <Pane marginY={20}>
                     <TextInputField
                         label="Email"
+                        placeholder="person@email.com"
                         value={email}
                         required
                         onChange={(e: any) => setEmail(e.target.value)}

@@ -13,8 +13,8 @@ import {
     TextInput,
     TextInputField
 } from "evergreen-ui";
-import {realtime_db} from "../../firebase";
-import {get, onValue, ref, set} from "firebase/database";
+import {auth, realtime_db} from "../../firebase";
+import {get, onValue, ref, remove, set} from "firebase/database";
 import {notifWorker} from "../../main";
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 
@@ -151,34 +151,136 @@ function CurrentSubscriptions() {
     )
 }
 
-export function ProfileScreen() {
+function NotificationSettings() {
     const {isAuthed, getUser} = useContext(AuthContext);
 
     const [discordUrl, setDiscordUrl] = useState('');
     const [webhookUrl, setWebhookUrl] = useState('');
 
-    const discordUrlRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/discord");
-    const webhookUrlRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_hook");
+    const [storedDiscordUrl, setStoredDiscordUrl] = useState('');
+    const [storedWebhookUrl, setStoredWebhookUrl] = useState('');
 
-    useEffect(() => {
-        get(discordUrlRef).then((e) => {
-            if (e.exists()) {
-                setDiscordUrl(e.val());
-            }
-        })
-        get(webhookUrlRef).then((e) => {
-            if (e.exists()) {
-                setWebhookUrl(e.val());
-            }
-        })
-    }, []);
+    const discordUrlRef = ref(realtime_db, "user_settings/" + getUser()!.uid + "/discord");
+    const webhookUrlRef = ref(realtime_db, "user_settings/" + getUser()!.uid + "/web_hook");
+
+    const [statusText, setStatusText] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+
+    const isModified = storedDiscordUrl !== discordUrl || storedWebhookUrl !== webhookUrl;
 
     const save = useCallback(() => {
         if (!isAuthed) return;
 
-        set(discordUrlRef, discordUrl);
-        set(webhookUrlRef, webhookUrl);
+        (async () => {
+            setIsLoading(true);
+            try {
+                await set(discordUrlRef, discordUrl);
+                await set(webhookUrlRef, webhookUrl);
+                setStatusText('Saved!');
+            } catch (e) {
+                console.error(e);
+                setStatusText('Failed to save!');
+            } finally {
+                setIsLoading(false);
+            }
+            setTimeout(() => setStatusText(''), 5000);
+        })();
+
     }, [isAuthed, discordUrl, webhookUrl])
+
+    useEffect(() => {
+        return onValue(discordUrlRef, e => {
+            if (e.exists()) {
+                setDiscordUrl(e.val());
+                setStoredDiscordUrl(e.val());
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        return onValue(webhookUrlRef, e => {
+            if (e.exists()) {
+                setWebhookUrl(e.val());
+                setStoredWebhookUrl(e.val());
+            }
+        });
+    }, []);
+
+
+    return (
+        <>
+            <Heading size={800}>Notification Settings</Heading>
+            <Text>Course notifications will be sent to all configured channels below.</Text>
+
+            <Pane>
+                {"Notification" in window ? (
+                    <Pane marginY={20}>
+                        <FormField
+                            label="Web Push Notifications"
+                            description="Receive notifications through your browser">
+                            <Pane display="flex" flexDirection="column">
+                                <EnableNotificationsButton/>
+                            </Pane>
+                        </FormField>
+                    </Pane>
+                ) : null}
+                <TextInputField
+                    label="Discord Webhook URL"
+                    description="Receive notifications on a Discord server"
+                    placeholder="https://discord.com/api/webhooks/<...>/<...>"
+                    value={discordUrl}
+                    onChange={(e: any) => setDiscordUrl(e.target.value)}
+                />
+                <TextInputField
+                    label="Webhook URL"
+                    description="Receive notifications at a custom Webhook URL"
+                    placeholder="https://example.com/course_changed"
+                    value={webhookUrl}
+                    onChange={(e: any) => setWebhookUrl(e.target.value)}
+                />
+            </Pane>
+            <Button onClick={save} isLoading={isLoading} appearance={isModified ? "primary" : "default"}>Save</Button>
+            <Pane marginLeft={20} display="inline"><Text>{statusText}</Text></Pane>
+        </>
+    );
+}
+
+function DeleteAccount() {
+    const {getUser} = useContext(AuthContext);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const deleteAccount = () => {
+        if (!confirm("Are you sure you want to delete your account?")) {
+            return;
+        }
+        setIsLoading(true);
+        (async () => {
+            const userSettingsRef = ref(realtime_db, "user_settings/" + getUser()!.uid + "/");
+            try {
+                console.log(auth.currentUser)
+                await remove(userSettingsRef);
+                await auth.currentUser!.delete();
+            } catch (e) {
+                alert("Deletion failed. Try again after signing out and signing back in. Check console for more details.");
+                console.error(e);
+            }
+        })();
+    };
+
+    return (
+        <>
+            <Heading size={800}>Delete Account</Heading>
+            <Text>Permanently delete your account and all associated subscriptions.</Text>
+
+            <Pane marginTop={10}>
+                <Button isLoading={isLoading} intent="danger" onClick={deleteAccount}>Delete account</Button>
+            </Pane>
+        </>
+    );
+}
+
+export function ProfileScreen() {
+    const {isAuthed, getUser} = useContext(AuthContext);
 
     if (!isAuthed) {
         return <Text>Need to be logged in.</Text>;
@@ -209,38 +311,7 @@ export function ProfileScreen() {
                 </Card>
 
                 <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
-                    <Heading size={800}>Notification Settings</Heading>
-                    <Text>Course notifications will be sent to all configured channels below.</Text>
-
-                    <Pane>
-                        {"Notification" in window ? (
-                            <Pane marginY={20}>
-                                <FormField
-                                    label="Web Push Notifications"
-                                    description="Receive notifications through your browser">
-                                    <Pane display="flex" flexDirection="column">
-                                        <EnableNotificationsButton/>
-                                    </Pane>
-                                </FormField>
-                            </Pane>
-                        ) : null}
-                        <TextInputField
-                            label="Discord Webhook URL"
-                            description="Receive notifications on a Discord server"
-                            placeholder="https://discord.com/api/webhooks/<...>/<...>"
-                            value={discordUrl}
-                            onChange={(e: any) => setDiscordUrl(e.target.value)}
-                        />
-                        <TextInputField
-                            label="Webhook URL"
-                            description="Receive notifications at a custom Webhook URL"
-                            placeholder="https://example.com/course_changed"
-                            value={webhookUrl}
-                            onChange={(e: any) => setWebhookUrl(e.target.value)}
-                        />
-                    </Pane>
-
-                    <Button onClick={save}>Save</Button>
+                    <NotificationSettings/>
                 </Card>
 
                 <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
@@ -255,12 +326,7 @@ export function ProfileScreen() {
 
 
                 <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
-                    <Heading size={800}>Delete Account</Heading>
-                    <Text>Permanently delete your account and all associated subscriptions.</Text>
-
-                    <Pane marginTop={10}>
-                        <Button intent="danger">Delete account</Button>
-                    </Pane>
+                    <DeleteAccount/>
                 </Card>
             </Pane>
         </>

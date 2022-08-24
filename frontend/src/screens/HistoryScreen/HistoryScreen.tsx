@@ -1,14 +1,13 @@
 import {doc, onSnapshot} from "firebase/firestore";
 import {db} from "../../firebase";
 import {useEffect, useState} from "react";
-import {CourseEvent} from "shared/types";
 import {Card, Heading, Pane} from "evergreen-ui";
 import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 
 interface FormattedCourseEventProps {
-    event: CourseEvent
+    event: object
 }
 
 export function FormattedCourseEvent(props: FormattedCourseEventProps) {
@@ -69,11 +68,11 @@ export function HistoryScreen(props: HistoryScreenProps) {
 
     const isSection = name.includes('-');
 
-    const [events, setEvents] = useState<Array<CourseEvent>>([])
+    const [events, setEvents] = useState<Array<any>>([])
 
     useEffect(() => {
         return onSnapshot(doc(db, "events", name), (doc) => {
-            const eventMap: Record<string, CourseEvent> = doc.get("events");
+            const eventMap: Record<string, any> = doc.get("events");
             setEvents(Object.values(eventMap)
                 .sort((a, b) => {
                     if (a.timestamp === b.timestamp) return a.type.localeCompare(b.type);
@@ -90,21 +89,18 @@ export function HistoryScreen(props: HistoryScreenProps) {
                     <WatchButton courseName={name.split('-')[0]} sectionName={name.split('-')[1]}/> :
                     <WatchCourseButton courseName={name}/>}
             </Heading>
-            <Pane display="flex" gap={10} flexDirection="column" marginBottom={80}>
-                {/*<Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>*/}
-                {/*    <Heading size={800}>Current Status</Heading>*/}
-                {/**/}
-                {/*</Card>*/}
+            <Pane display="flex" gap={10} flexDirection="column" marginBottom={40}>
                 <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
                     <Heading size={800}>Historical Events</Heading>
 
                     <Pane marginY={20} display="flex" flexDirection="column" gap={5}>
-                        {events.map((e: CourseEvent) => (
-                            <FormattedCourseEvent event={e}/>
+                        {events.map((e) => (
+                            <FormattedCourseEvent key={e.id} event={e}/>
                         ))}
                     </Pane>
                 </Card>
             </Pane>
+            {isSection ? <HistoryScreen name={name.split('-')[0]}/> : ''}
         </>
     );
 }
