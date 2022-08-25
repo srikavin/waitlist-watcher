@@ -4,7 +4,8 @@ import {getFirestore} from "firebase-admin/firestore";
 import {generateEvents} from "../scraper/generate_events";
 import {CourseDataCourses} from "./types";
 
-import {Storage} from "@google-cloud/storage";
+import {Storage, CRC32C} from "@google-cloud/storage";
+import axios from "axios";
 
 const storage = new Storage();
 const historical_bucket = storage.bucket('waitlist-watcher-historical-data')
@@ -22,6 +23,8 @@ const events_collection = db.collection("events");
 const runForDepartment = async (department: string) => {
     const uploads = [];
 
+    const existing: { events: any[] } = (await axios.get(`https://waitlist-watcher.uk.r.appspot.com/raw/${department}/events`)).data;
+
     const [files] = await historical_bucket.getFiles({
         prefix: `${BUCKET_SNAPSHOT_PREFIX(department)}`
     });
@@ -38,6 +41,17 @@ const runForDepartment = async (department: string) => {
 
         if (prev !== null) {
             const events = generateEvents(prev, cur, date);
+
+            let expected = existing.events.find(e => e.data_time === date);
+            if (expected) {
+                let crc32c = new CRC32C();
+                crc32c.update(Buffer.from(JSON.stringify(events)));
+
+                if (expected.meta.crc32c === crc32c.toString()) {
+                    console.log("skipped", date, "matching hashes")
+                    continue;
+                }
+            }
             uploads.push(historical_bucket.file(BUCKET_EVENTS_PREFIX(department) + date + '.json').save(JSON.stringify(events)));
 
             for (let event of events) {
