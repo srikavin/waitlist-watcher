@@ -2,9 +2,9 @@ import {Autocomplete, TextInput} from "evergreen-ui"
 import {useNavigate} from "react-router-dom";
 import {useEffect, useState} from "react";
 
-let courses: string[] = [];
+export const remoteData = {courses: []};
 fetch("https://waitlist-watcher.uk.r.appspot.com/courses").then(e => e.json()).then((e) => {
-    courses = e;
+    remoteData.courses = e;
 });
 
 export function Search() {
@@ -13,8 +13,8 @@ export function Search() {
     const [items, setItems] = useState<string[]>([]);
 
     useEffect(() => {
-        setItems(courses);
-    }, [courses])
+        setItems(remoteData.courses);
+    }, [remoteData.courses])
 
     return (
         <Autocomplete

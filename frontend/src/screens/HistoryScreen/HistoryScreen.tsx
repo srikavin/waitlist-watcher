@@ -6,6 +6,8 @@ import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 import {Label, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts";
+import {remoteData} from "../../components/Search/Search";
+import {Link} from "react-router-dom";
 
 interface FormattedCourseEventProps {
     event: object
@@ -61,6 +63,7 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
 
 interface HistoryScreenProps {
     name: string
+    minimal?: boolean
 }
 
 const numericalChangeEventTypes = [
@@ -109,11 +112,16 @@ function transformEventsToChart(events: Array<any>) {
 
 
 export function HistoryScreen(props: HistoryScreenProps) {
-    const {name} = props;
+    const {name, minimal = false} = props;
 
     const isSection = name.includes('-');
 
+    const [items, setItems] = useState<string[]>([]);
     const [events, setEvents] = useState<Array<any>>([])
+
+    useEffect(() => {
+        setItems(remoteData.courses);
+    }, [remoteData.courses])
 
     useEffect(() => {
         return onSnapshot(doc(db, "events", name), (doc) => {
@@ -131,7 +139,7 @@ export function HistoryScreen(props: HistoryScreenProps) {
     return (
         <>
             <Heading size={900} marginBottom={8}>
-                {name}{" "}
+                {minimal ? <Link to={`/history/${name}`}>{name}</Link> : name}{" "}
                 {isSection ?
                     <WatchButton courseName={name.split('-')[0]} sectionName={name.split('-')[1]}/> :
                     <WatchCourseButton courseName={name}/>}
@@ -189,16 +197,30 @@ export function HistoryScreen(props: HistoryScreenProps) {
                                     </Pane>
                                 </Pane>
                             )}
-                            <Heading size={800} marginBottom={8}>Historical Events</Heading>
-                            <Pane display="flex" flexDirection="column" gap={4}>
-                                {events.map((e) => (
-                                    <FormattedCourseEvent key={e.id} event={e}/>
-                                ))}
-                            </Pane>
+                            {!minimal && (
+                                <>
+                                    <Heading size={800} marginBottom={8}>Historical Events</Heading>
+                                    <Pane display="flex" flexDirection="column" gap={4}>
+                                        {events.map((e) => (
+                                            <FormattedCourseEvent key={e.id} event={e}/>
+                                        ))}
+                                    </Pane>
+                                </>
+                            )}
                         </>)}
                 </Card>
             </Pane>
-            {isSection ? <HistoryScreen name={name.split('-')[0]}/> : ''}
+            {!isSection && (
+                <>
+                    {(() => {
+                        const filtered = items.filter(e => e.startsWith(name + '-'));
+                        if (filtered.length < 5) {
+                            return filtered.map(e => <HistoryScreen name={e} minimal/>)
+                        }
+                        return null;
+                    })()}
+                </>
+            )}
         </>
     );
 }
