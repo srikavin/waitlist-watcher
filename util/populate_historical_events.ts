@@ -41,6 +41,7 @@ const runForDepartment = async (department: string) => {
 
         if (prev !== null) {
             const events = generateEvents(prev, cur, date);
+            prev = cur;
 
             let expected = existing.events.find(e => e.data_time === date);
             if (expected) {
@@ -79,8 +80,6 @@ const runForDepartment = async (department: string) => {
             }
             console.log("Uploaded events", i, date, events.length);
         }
-
-        prev = cur;
     }
 
     await Promise.all(uploads);
