@@ -5,6 +5,7 @@ import {Card, EmptyState, Heading, Pane, SearchTemplateIcon} from "evergreen-ui"
 import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
+import {Label, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts";
 
 interface FormattedCourseEventProps {
     event: object
@@ -62,6 +63,50 @@ interface HistoryScreenProps {
     name: string
 }
 
+const numericalChangeEventTypes = [
+    'total_seats_changed',
+    'open_seats_changed',
+    'waitlist_changed',
+    'holdfile_changed'
+]
+
+function transformEventsToChart(events: Array<any>) {
+    const times: Record<string, { time: number, [key: string]: number }> = {};
+    const vals: Record<string, Array<number>> = {};
+
+    events.sort((a, b) => -new Date(b.timestamp) + +new Date(a.timestamp));
+
+    events.forEach(e => {
+        if (!numericalChangeEventTypes.includes(e.type)) {
+            return;
+        }
+
+        if (!(e.timestamp in times)) {
+            times[e.timestamp] = {time: new Date(e.timestamp).getTime()}
+        }
+        times[e.timestamp][e.type] = e.new;
+
+        if (!(e.type in vals)) {
+            vals[e.type] = [];
+        }
+
+        vals[e.type].push(e.new);
+    });
+
+    const ret = Object.values(times);
+    if (ret.length === 0) return ret;
+
+    ret.sort((a, b) => -new Date(b.time) + +new Date(a.time));
+
+    // fill in gaps
+    for (let type of numericalChangeEventTypes) {
+        ret[0][type] = vals[type]?.[0] ?? undefined;
+        ret[ret.length - 1][type] = vals[type]?.[vals[type].length - 1] ?? undefined;
+    }
+
+    return ret;
+}
+
 
 export function HistoryScreen(props: HistoryScreenProps) {
     const {name} = props;
@@ -81,6 +126,8 @@ export function HistoryScreen(props: HistoryScreenProps) {
         });
     }, [name]);
 
+    const timeseriesData = transformEventsToChart([...events]);
+
     return (
         <>
             <Heading size={900} marginBottom={8}>
@@ -99,6 +146,49 @@ export function HistoryScreen(props: HistoryScreenProps) {
                         </EmptyState>
                     ) : (
                         <>
+                            {isSection && timeseriesData.length > 0 && (
+                                <Pane marginBottom={12}>
+                                    <Heading size={800} marginBottom={8}>Registration Changes</Heading>
+                                    <Pane marginLeft={-40} marginTop={32}>
+                                        <ResponsiveContainer height={400}>
+                                            <LineChart data={timeseriesData}>
+                                                <XAxis dataKey="time" type="number"
+                                                       domain={[timeseriesData[0].time, timeseriesData[timeseriesData.length - 1].time]}
+                                                       tickFormatter={val => new Date(val).toLocaleDateString()}
+                                                       fontSize={14}
+                                                />
+                                                <YAxis name="Count" fontSize={14}/>
+                                                <Tooltip
+                                                    labelFormatter={(label, payload) => new Date((payload?.[0]?.payload?.time ?? 0)).toLocaleString()}/>
+                                                <Legend/>
+                                                <Line connectNulls name="Total Seats"
+                                                      dataKey="total_seats_changed"
+                                                      stroke="#003f5c"/>
+                                                <Line connectNulls name="Open Seats"
+                                                      dataKey="open_seats_changed"
+                                                      stroke="#7a5195"/>
+                                                <Line connectNulls name="Waitlist Count"
+                                                      dataKey="waitlist_changed"
+                                                      stroke="#ef5675"/>
+                                                <Line connectNulls name="Holdfile Count"
+                                                      dataKey="holdfile_changed"
+                                                      stroke="#ffa600"/>
+
+                                                {events.map(e => {
+                                                    if (e.type !== 'instructor_changed') return null;
+                                                    return <ReferenceLine key={e.id} x={new Date(e.timestamp).getTime()}
+                                                                          strokeDasharray="3 3"
+                                                                          isFront={true}
+                                                                          label={<Label fontSize={12} angle={300}
+                                                                                        position={"middle"}
+                                                                                        value={e.new}></Label>}
+                                                                          stroke="green"/>
+                                                })}
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </Pane>
+                                </Pane>
+                            )}
                             <Heading size={800} marginBottom={8}>Historical Events</Heading>
                             <Pane display="flex" flexDirection="column" gap={4}>
                                 {events.map((e) => (
