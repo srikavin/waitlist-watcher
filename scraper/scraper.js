@@ -19,6 +19,8 @@ const BUCKET_SNAPSHOT_PREFIX = (department) => `snapshots/${department}/`
 const BUCKET_EVENTS_PREFIX = (department) => `events/${department}/`
 
 const db = getFirestore();
+db.settings({ignoreUndefinedProperties: true})
+
 const events_collection = db.collection("events");
 
 const pubsub = new PubSub({projectId: "waitlist-watcher"});
