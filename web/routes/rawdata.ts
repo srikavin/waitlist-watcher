@@ -22,6 +22,7 @@ function constructFileResponse(file: File) {
             created_date: file.metadata.timeCreated,
             file_size: file.metadata.size,
             md5: file.metadata.md5Hash,
+            crc32c: file.metadata.crc32c,
         },
         data_time: date,
         url: file.publicUrl()
