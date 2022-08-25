@@ -21,8 +21,6 @@ db.settings({ignoreUndefinedProperties: true})
 const events_collection = db.collection("events");
 
 const runForDepartment = async (department: string) => {
-    const uploads = [];
-
     const existing: { events: any[] } = (await axios.get(`https://waitlist-watcher.uk.r.appspot.com/raw/${department}/events`)).data;
 
     const [files] = await historical_bucket.getFiles({
@@ -53,8 +51,8 @@ const runForDepartment = async (department: string) => {
                     continue;
                 }
             }
-            uploads.push(historical_bucket.file(BUCKET_EVENTS_PREFIX(department) + date + '.json').save(JSON.stringify(events)));
 
+            const firestoreSets = [];
             for (let event of events) {
                 if (!event.course) {
                     console.log("Skipped over event", event);
@@ -65,30 +63,41 @@ const runForDepartment = async (department: string) => {
                 let docname = event.course + (event.section ? '-' + event.section : '')
 
                 if (event.type === 'section_added' || event.type === 'section_removed') {
-                    uploads.push(events_collection.doc(event.course).set({
+                    firestoreSets.push(events_collection.doc(event.course).set({
                         events: {
                             [event.id]: event
                         }
                     }, {merge: true}));
                 }
 
-                uploads.push(events_collection.doc(docname).set({
+                firestoreSets.push(events_collection.doc(docname).set({
                     events: {
                         [event.id]: event
                     }
                 }, {merge: true}));
             }
+            await Promise.all(firestoreSets);
+            await historical_bucket.file(BUCKET_EVENTS_PREFIX(department) + date + '.json').save(JSON.stringify(events));
             console.log("Uploaded events", i, date, events.length);
         }
     }
+}
 
-    await Promise.all(uploads);
+async function runForDepartmentWithRetries(dept: string) {
+    for (let i = 0; i < 5; ++i) {
+        try {
+            await runForDepartment(dept);
+            return;
+        } catch (e) {
+            console.error(e);
+        }
+    }
 }
 
 (async () => {
     let departments = ["AASP", "AAST", "AGNR", "AGST", "AMSC", "AMST", "ANSC", "ANTH", "AOSC", "ARAB", "ARCH", "AREC", "ARHU", "ARMY", "ARSC", "ARTH", "ARTT", "ASTR", "BCHM", "BIOE", "BIOI", "BIOL", "BIOM", "BIPH", "BISI", "BMGT", "BMSO", "BSCI", "BSCV", "BSGC", "BSOS", "BSST", "BUAC", "BUDT", "BUFN", "BULM", "BUMK", "BUSI", "BUSM", "BUSO", "CBMG", "CCJS", "CHBE", "CHEM", "CHIN", "CHPH", "CHSE", "CINE", "CLAS", "CLFS", "CMLT", "CMSC", "COMM", "CPBE", "CPET", "CPGH", "CPJT", "CPMS", "CPPL", "CPSA", "CPSD", "CPSF", "CPSG", "CPSN", "CPSP", "CPSS", "DANC", "DATA", "ECON", "EDCP", "EDHD", "EDHI", "EDMS", "EDSP", "EDUC", "ENAE", "ENBC", "ENCE", "ENCO", "ENEB", "ENEE", "ENES", "ENFP", "ENGL", "ENMA", "ENME", "ENPM", "ENRE", "ENSE", "ENSP", "ENST", "ENTM", "ENTS", "EPIB", "FGSM", "FIRE", "FMSC", "FREN", "GEMS", "GEOG", "GEOL", "GERM", "GREK", "GVPT", "HACS", "HDCC", "HEBR", "HESI", "HESP", "HGLO", "HHUM", "HISP", "HIST", "HLSA", "HLSC", "HLTH", "HNUH", "HONR", "IDEA", "IMDM", "IMMR", "INAG", "INFM", "INST", "ISRL", "ITAL", "JAPN", "JOUR", "JWST", "KNES", "KORA", "LACS", "LARC", "LATN", "LBSC", "LGBT", "LING", "MATH", "MEES", "MIEH", "MITH", "MLAW", "MLSC", "MOCB", "MSML", "MUED", "MUSC", "NACS", "NAVY", "NEUR", "NFSC", "NIAS", "PEER", "PERS", "PHIL", "PHPE", "PHSC", "PHYS", "PLCY", "PLSC", "PORT", "PSYC", "RDEV", "RELS", "RUSS", "SLAA", "SLLC", "SMLP", "SOCY", "SPAN", "SPHL", "STAT", "SURV", "TDPS", "THET", "TLPL", "TLTC", "UMEI", "UNIV", "URSP", "USLT", "VMSC", "WGSS", "WMST"];
     while (departments.length > 0) {
-        await Promise.all(departments.splice(0, 5).map(runForDepartment))
+        await Promise.all(departments.splice(0, 20).map(runForDepartmentWithRetries))
         console.log(departments.length)
     }
 })();
