@@ -92,6 +92,7 @@ async function runForDepartmentWithRetries(dept: string) {
             console.error(e);
         }
     }
+    throw Error("failed after 5 retries");
 }
 
 (async () => {
