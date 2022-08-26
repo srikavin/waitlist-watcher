@@ -120,29 +120,8 @@ exports.scraper = async (prefix, context) => {
 
     const events = generateEvents(previous.latest, data, context.timestamp);
 
-    await docRef.set({
-        latest: data,
-        timestamp: context.timestamp,
-        lastRun: context.timestamp,
-        updateCount: newUpdateCount,
-        version: 2
-    });
-
-    console.log("Published notification topic after scraping ", prefix)
-
-    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(prefix) + context.timestamp + '.json').save(JSON.stringify(data));
-    await historical_bucket.file(BUCKET_EVENTS_PREFIX(prefix) + context.timestamp + '.json').save(JSON.stringify(events));
-
-    const messageBuffer = Buffer.from(JSON.stringify({
-        data: {
-            prefix: prefix,
-            events: events,
-            timestamp: context.timestamp,
-            id: context.eventId
-        }
-    }), 'utf8');
-
-    await updateTopic.publish(messageBuffer);
+    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(prefix) + context.timestamp + '.json').save(JSON.stringify(data), {resumable: false});
+    await historical_bucket.file(BUCKET_EVENTS_PREFIX(prefix) + context.timestamp + '.json').save(JSON.stringify(events), {resumable: false});
 
     const updates = [];
 
@@ -172,4 +151,24 @@ exports.scraper = async (prefix, context) => {
     console.log("Updated historical state for ", prefix)
 
     await Promise.all(updates);
+
+    await docRef.set({
+        latest: data,
+        timestamp: context.timestamp,
+        lastRun: context.timestamp,
+        updateCount: newUpdateCount,
+        version: 2
+    });
+
+    console.log("Published notification topic after scraping ", prefix)
+
+    const messageBuffer = Buffer.from(JSON.stringify({
+        data: {
+            prefix: prefix,
+            events: events,
+            timestamp: context.timestamp,
+            id: context.eventId
+        }
+    }), 'utf8');
+    await updateTopic.publish(messageBuffer);
 }
