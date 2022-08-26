@@ -112,9 +112,11 @@ exports.scraper = async (prefix, context) => {
     console.log("Scraped ", prefix, " and found ", Object.entries(data).length, " courses with ", diff.length, " changes");
 
     if (diff.length === 0) {
-        await docRef.update({
-            lastRun: context.timestamp
-        });
+        if (currentDoc.exists) {
+            await docRef.update({
+                lastRun: context.timestamp
+            });
+        }
         return;
     }
 
