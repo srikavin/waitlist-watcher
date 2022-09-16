@@ -122,8 +122,8 @@ exports.scraper = async (semester, prefix, context) => {
 
     const events = generateEvents(previous.latest, data, context.timestamp, semester);
 
-    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester_code, prefix) + context.timestamp + '.json').save(JSON.stringify(data), {resumable: false});
-    await historical_bucket.file(BUCKET_EVENTS_PREFIX(semester_code, prefix) + context.timestamp + '.json').save(JSON.stringify(events), {resumable: false});
+    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester, prefix) + context.timestamp + '.json').save(JSON.stringify(data), {resumable: false});
+    await historical_bucket.file(BUCKET_EVENTS_PREFIX(semester, prefix) + context.timestamp + '.json').save(JSON.stringify(events), {resumable: false});
 
     const updates = [];
 
