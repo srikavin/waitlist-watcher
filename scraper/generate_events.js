@@ -85,23 +85,23 @@ exports.generateEvents = (previousCourses, newCourses, timestamp, semester) => {
 
     for (const course in newCourses) {
         if (!previousCourses[course]) {
-            events.push({type: "course_added", course, title: newCourses[course].title});
-            emitCourseEvents(events, course, newCourses[course].title, {}, newCourses[course]);
+            events.push({type: "course_added", course, title: newCourses[course].name});
+            emitCourseEvents(events, course, newCourses[course].name, {}, newCourses[course]);
         }
 
         const newSections = newCourses[course].sections;
 
         for (const section in newSections) {
             if (!previousCourses[course] || !previousCourses[course].sections[section]) {
-                events.push({type: "section_added", course, title: newCourses[course].title, section});
-                emitSectionEvents(events, course, newCourses[course].title, section, {}, newSections[section]);
+                events.push({type: "section_added", course, title: newCourses[course].name, section});
+                emitSectionEvents(events, course, newCourses[course].name, section, {}, newSections[section]);
             }
         }
     }
 
     for (const course in previousCourses) {
         if (!newCourses[course]) {
-            events.push({type: "course_removed", course, title: previousCourses[course].title});
+            events.push({type: "course_removed", course, title: previousCourses[course].name});
             continue;
         }
 
