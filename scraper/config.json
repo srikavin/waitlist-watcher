@@ -1,4 +1,8 @@
 {
+  "semesters": [
+    "202208",
+    "202301"
+  ],
   "prefixes": [
     "AAPS",
     "AASP",

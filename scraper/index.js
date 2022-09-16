@@ -25,10 +25,12 @@ exports.launcher = async (message, context) => {
     console.log("Scraping batch of size ", BATCH_SIZE, " at index ", state.prefixIndex);
 
     const prefixPromises = [];
-    for (let i = 0; i < BATCH_SIZE; ++i) {
-        const prefix = config.prefixes[(state.prefixIndex + i) % config.prefixes.length];
-        prefixPromises.push(scraper(prefix, context))
-        console.log("Started scraper for ", prefix);
+    for (let semester of config.semesters) {
+        for (let i = 0; i < BATCH_SIZE; ++i) {
+            const prefix = config.prefixes[(state.prefixIndex + i) % config.prefixes.length];
+            prefixPromises.push(scraper(semester, prefix, context))
+            console.log("Started scraper for ", prefix);
+        }
     }
 
     state.prefixIndex = state.prefixIndex + BATCH_SIZE;

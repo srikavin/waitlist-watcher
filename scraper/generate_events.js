@@ -80,7 +80,7 @@ function emitSectionEvents(events, course, title, section, previousSection, newS
     }
 }
 
-exports.generateEvents = (previousCourses, newCourses, timestamp) => {
+exports.generateEvents = (previousCourses, newCourses, timestamp, semester) => {
     const events = [];
 
     for (const course in newCourses) {
@@ -132,7 +132,8 @@ exports.generateEvents = (previousCourses, newCourses, timestamp) => {
 
     return events.map((e) => ({
         ...e,
-        id: crypto.createHash("sha1").update(e.course + e.type + timestamp + e.section).digest("hex"),
+        id: crypto.createHash("sha1").update(e.course + e.type + timestamp + e.section + semester).digest("hex"),
         timestamp: timestamp,
+        semester
     }));
 };
