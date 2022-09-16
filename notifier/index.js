@@ -71,9 +71,6 @@ exports.notifier = async (message, context) => {
     for (const event of events) {
         const {type} = event;
 
-        console.log(event);
-
-
         let sectionSubscribers = {};
         if (event.section) {
             sectionSubscribers = sectionSubscribersCache[event.course + '-' + event.section];
