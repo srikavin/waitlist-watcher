@@ -8,6 +8,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import {get, ref, update} from "firebase/database";
 import ProfessorNames from "../ProfessorName/ProfessorNames";
 import {Link} from "react-router-dom";
+import {SemesterContext} from "../../context/SemesterContext";
 
 dayjs.extend(relativeTime);
 
@@ -284,12 +285,18 @@ export function CourseListing(props: CourseListingProps) {
     const {prefix} = props;
 
     const [courses, setCourses] = useState<CourseData>();
+    const {semester, semesters} = useContext(SemesterContext);
 
     useEffect(() => {
-        return onSnapshot(doc(db, "course_data", prefix), (doc) => {
+        const removeListener = onSnapshot(doc(db, "course_data" + semesters[semester].suffix, prefix), (doc) => {
             setCourses(doc.data() as CourseData);
         });
-    }, [setCourses]);
+
+        return () => {
+            removeListener();
+            setCourses(undefined);
+        }
+    }, [setCourses, semester, semesters]);
 
     const headingPane = (
         <Pane display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" width="fit-content">
@@ -321,7 +328,7 @@ export function CourseListing(props: CourseListingProps) {
             {Object.values(courses.latest)
                 .sort((a, b) => a.course.localeCompare(b.course))
                 .map((e) => (
-                    <Pane key={e.name} display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" gap={8}>
+                    <Pane key={e.course} display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" gap={8}>
                         <Heading size={700}>
                             <WatchCourseButton courseName={e.course}/>&nbsp;
                             <Link to={`/history/${e.course}`}>{e.course} - {e.name}</Link>

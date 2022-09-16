@@ -1,11 +1,13 @@
-import {Button, Heading, Pane} from "evergreen-ui";
+import {Button, Heading, Pane, Select} from "evergreen-ui";
 import {useContext} from "react";
 import {AuthContext} from "../../context/AuthContext";
 import {useNavigate} from "react-router-dom";
 import {Search} from "../Search/Search";
+import {SemesterContext} from "../../context/SemesterContext";
 
 export function Navigation() {
     const {isAuthed, getUser, logout} = useContext(AuthContext);
+    const {semester, semesters, setSemester} = useContext(SemesterContext);
     const navigate = useNavigate();
 
     return (
@@ -22,6 +24,11 @@ export function Navigation() {
                 </Pane>
             </Pane>
             <Pane>
+                <Select value={semester} onChange={event => setSemester(event.target.value)}>
+                    {Object.entries(semesters).map(([key, val]) => (
+                        <option value={key} key={key}>{val.name}</option>
+                    ))}
+                </Select>
                 {!isAuthed ? (
                     <Button marginLeft={10} appearance="primary" onClick={() => navigate("/login")}>Get Started</Button>
                 ) : (

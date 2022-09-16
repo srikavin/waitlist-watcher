@@ -5,6 +5,7 @@ import {auth} from "./firebase";
 import type {User} from "firebase/auth";
 import {signInWithCustomToken} from 'firebase/auth';
 import {AuthContext} from './context/AuthContext';
+import {SemesterContext} from "./context/SemesterContext";
 import {Card} from 'evergreen-ui'
 import {Navigation} from "./components/Navigation/Navigation";
 import {BrowserRouter, Route, Routes, useParams} from "react-router-dom";
@@ -44,7 +45,7 @@ function PageRenderer() {
 
 function App() {
     const [user, setUser] = useState<User>();
-    const [isAuthed, setAuthed] = useState(false);
+    const [semester, setSemester] = useState("202301");
 
     useEffect(() => {
         if (!localStorage.customToken) return;
@@ -65,12 +66,11 @@ function App() {
             } else {
                 setUser(undefined);
             }
-            setAuthed(!!auth.currentUser);
         });
-    }, [setAuthed, setUser])
+    }, [setUser])
 
     const authCtx = {
-        isAuthed: isAuthed,
+        isAuthed: !!auth.currentUser,
         getUser: () => user as User,
         logout: () => {
             auth.signOut();
@@ -78,14 +78,31 @@ function App() {
         }
     };
 
+    const semesterCtx = {
+        semester: semester,
+        semesters: {
+            "202208": {
+                name: "Fall 2022",
+                suffix: ''
+            },
+            "202301": {
+                name: "Spring 2023",
+                suffix: "202301"
+            }
+        },
+        setSemester: setSemester,
+    }
+
     return (
         <BrowserRouter>
             <AuthContext.Provider value={authCtx}>
-                <Navigation/>
-                <Routes>
-                    <Route path="/" element={<LandingPageScreen/>}/>
-                    <Route path="*" element={<PageRenderer/>}/>
-                </Routes>
+                <SemesterContext.Provider value={semesterCtx}>
+                    <Navigation/>
+                    <Routes>
+                        <Route path="/" element={<LandingPageScreen/>}/>
+                        <Route path="*" element={<PageRenderer/>}/>
+                    </Routes>
+                </SemesterContext.Provider>
             </AuthContext.Provider>
         </BrowserRouter>
     )

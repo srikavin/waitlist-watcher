@@ -1,6 +1,6 @@
 import {doc, onSnapshot} from "firebase/firestore";
 import {db} from "../../firebase";
-import {useEffect, useState} from "react";
+import {useContext, useEffect, useState} from "react";
 import {Card, EmptyState, Heading, Pane, SearchTemplateIcon} from "evergreen-ui";
 import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
@@ -8,6 +8,7 @@ import {WatchButton, WatchCourseButton} from "../../components/CourseListing/Cou
 import {Label, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts";
 import {remoteData} from "../../components/Search/Search";
 import {Link} from "react-router-dom";
+import {SemesterContext} from "../../context/SemesterContext";
 
 interface FormattedCourseEventProps {
     event: object
@@ -113,6 +114,7 @@ function transformEventsToChart(events: Array<any>) {
 
 export function HistoryScreen(props: HistoryScreenProps) {
     const {name, minimal = false} = props;
+    const {semester, semesters} = useContext(SemesterContext);
 
     const isSection = name.includes('-');
 
@@ -124,7 +126,7 @@ export function HistoryScreen(props: HistoryScreenProps) {
     }, [remoteData.courses])
 
     useEffect(() => {
-        return onSnapshot(doc(db, "events", name), (doc) => {
+        const removeListener = onSnapshot(doc(db, "events" + semesters[semester].suffix, name), (doc) => {
             const eventMap: Record<string, any> = doc.get("events");
             setEvents(Object.values(eventMap)
                 .sort((a, b) => {
@@ -132,7 +134,11 @@ export function HistoryScreen(props: HistoryScreenProps) {
                     return -new Date(a.timestamp) + +new Date(b.timestamp);
                 }));
         });
-    }, [name]);
+        return () => {
+            removeListener();
+            setEvents([]);
+        }
+    }, [name, semesters, semester]);
 
     const timeseriesData = transformEventsToChart([...events]);
 
@@ -214,7 +220,7 @@ export function HistoryScreen(props: HistoryScreenProps) {
                 <>
                     {(() => {
                         const filtered = items.filter(e => e.startsWith(name + '-'));
-                        if (filtered.length < 5) {
+                        if (filtered.length < 10) {
                             return filtered.map(e => <HistoryScreen name={e} minimal/>)
                         }
                         return null;
