@@ -30,6 +30,11 @@ const seatAvailable = (event) => {
                 "inline": true
             },
             {
+                "name": "Semester",
+                "value": event.semester,
+                "inline": true
+            },
+            {
                 "name": "Seats Available",
                 "value": String(event.new)
             }
@@ -58,7 +63,12 @@ const sectionRemoved = (event) => {
                 "name": "Section",
                 "value": event.section,
                 "inline": true
-            }
+            },
+            {
+                "name": "Semester",
+                "value": event.semester,
+                "inline": true
+            },
         ],
         "footer": generateFooter(event)
     }
@@ -86,6 +96,11 @@ const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
                     "value": event.section,
                     "inline": true
                 }] : []),
+                {
+                    "name": "Semester",
+                    "value": event.semester,
+                    "inline": true
+                },
                 {
                     "name": old_title,
                     "value": String(event.old)
