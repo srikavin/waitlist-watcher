@@ -3,6 +3,10 @@ const axios = require("axios");
 const webpush = require("web-push");
 const {getDatabase} = require("firebase-admin/database");
 const {getDiscordContent} = require("./discord");
+const {CloudTasksClient} = require('@google-cloud/tasks');
+
+// Instantiates a client.
+const tasksClient = new CloudTasksClient();
 
 initializeApp({
     databaseURL: "https://waitlist-watcher-default-rtdb.firebaseio.com"
@@ -12,6 +16,8 @@ const db = getDatabase();
 
 const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
 webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY)
+
+const queue_parent = tasksClient.queuePath("waitlist-watcher", "us-east4", "discord-webhook-queue");
 
 exports.notifier = async (message, context) => {
     const parsedData = JSON.parse(Buffer.from(message.data, 'base64').toString());
@@ -144,13 +150,24 @@ exports.notifier = async (message, context) => {
 
     for (const [discordHookUrl, batches] of Object.entries(discordBatch)) {
         console.log("Notifying discord webhook with ", batches.length, " batches")
-        batches.forEach((events) => {
-            webhookPromises.push(axios.post(discordHookUrl, getDiscordContent(events), {
-                headers: {
-                    "Authorization": `Bot ${process.env.DISCORD_CLIENT_SECRET}`
+
+        for (const batchEvents of batches) {
+            const task = {
+                httpRequest: {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bot ${process.env.DISCORD_CLIENT_SECRET}`
+                    },
+                    httpMethod: 'POST',
+                    url: discordHookUrl,
+                    body: Buffer.from(JSON.stringify(getDiscordContent(batchEvents))).toString('base64')
                 }
-            }));
-        });
+            };
+
+            const request = {parent: queue_parent, task: task};
+            const [response] = await tasksClient.createTask(request);
+            console.log(`Created task ${response.name}`);
+        }
     }
 
     const webhookResults = await Promise.allSettled(webhookPromises);

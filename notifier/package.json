@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@google-cloud/pubsub": "^2.19.3",
+    "@google-cloud/tasks": "^3.0.2",
     "axios": "^0.27.2",
     "firebase-admin": "^10.1.0",
     "web-push": "^3.4.5"
