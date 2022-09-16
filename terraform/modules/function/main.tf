@@ -55,6 +55,7 @@ resource "google_cloudfunctions_function" "function" {
     event_type = "google.pubsub.topic.publish"
     resource   = var.pubsub_name
   }
+  timeout               = 9*60
   environment_variables = var.env_vars
   entry_point           = var.function_entry_point
 }
