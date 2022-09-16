@@ -8,6 +8,12 @@ const generateUrl = (event) => {
     return `https://waitlist-watcher.web.app/history/${event.course}${event.section ? '-' + event.section : ''}`;
 }
 
+const mapSemester = (semester) => {
+    if (semester === "202208") return "Fall 2022";
+    if (semester === "202301") return "Spring 2023";
+    return semester;
+}
+
 const seatAvailable = (event) => {
     return {
         "title": `Open Seat Available in ${event.course}-${event.section}`,
@@ -31,7 +37,7 @@ const seatAvailable = (event) => {
             },
             {
                 "name": "Semester",
-                "value": event.semester,
+                "value": mapSemester(event.semester),
                 "inline": true
             },
             {
@@ -66,7 +72,7 @@ const sectionRemoved = (event) => {
             },
             {
                 "name": "Semester",
-                "value": event.semester,
+                "value": mapSemester(event.semester),
                 "inline": true
             },
         ],
@@ -98,7 +104,7 @@ const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
                 }] : []),
                 {
                     "name": "Semester",
-                    "value": event.semester,
+                    "value": mapSemester(event.semester),
                     "inline": true
                 },
                 {
