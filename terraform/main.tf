@@ -82,3 +82,26 @@ module "appengine" {
     DISCORD_CLIENT_SECRET = var.DISCORD_CLIENT_SECRET
   }
 }
+
+resource "google_cloud_tasks_queue" "advanced_configuration" {
+  name = "discord-webhook-queue"
+  location = var.region
+
+  rate_limits {
+    max_concurrent_dispatches = 1
+    max_dispatches_per_second = 1
+    max_burst_size = 1
+  }
+
+  retry_config {
+    max_attempts = 3
+    max_retry_duration = "1000s"
+    max_backoff = "3600s"
+    min_backoff = "15s"
+    max_doublings = 16
+  }
+
+  stackdriver_logging_config {
+    sampling_ratio = 1.0
+  }
+}
