@@ -90,7 +90,6 @@ resource "google_cloud_tasks_queue" "advanced_configuration" {
   rate_limits {
     max_concurrent_dispatches = 1
     max_dispatches_per_second = 1
-    max_burst_size = 1
   }
 
   retry_config {
