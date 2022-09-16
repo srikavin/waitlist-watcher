@@ -49,35 +49,37 @@ const seatAvailable = (event) => {
     }
 }
 
-const sectionRemoved = (event) => {
-    return {
-        "title": `Section ${event.course}-${event.section} Removed`,
-        "url": generateUrl(event),
-        "color": 16734296,
-        "fields": [
-            {
-                "name": "Course Title",
-                "value": String(event.title),
-                "inline": true
-            },
-            {
-                "name": "Course Code",
-                "value": event.course,
-                "inline": true
-            },
-            {
-                "name": "Section",
-                "value": event.section,
-                "inline": true
-            },
-            {
-                "name": "Semester",
-                "value": mapSemester(event.semester),
-                "inline": true
-            },
-        ],
-        "footer": generateFooter(event)
-    }
+const addRemoveEvent = (title_fn) => {
+    return (event) => (
+        {
+            "title": title_fn(event),
+            "url": generateUrl(event),
+            "color": 16734296,
+            "fields": [
+                {
+                    "name": "Course Title",
+                    "value": String(event.title),
+                    "inline": true
+                },
+                {
+                    "name": "Course Code",
+                    "value": event.course,
+                    "inline": true
+                },
+                ...(event.section ? [{
+                    "name": "Section",
+                    "value": event.section,
+                    "inline": true
+                }] : []),
+                {
+                    "name": "Semester",
+                    "value": mapSemester(event.semester),
+                    "inline": true
+                },
+            ],
+            "footer": generateFooter(event)
+        }
+    );
 }
 
 const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
@@ -163,6 +165,12 @@ const courseNameChanged = simpleChangeEvent(
     16734296
 );
 
+
+const sectionRemoved = addRemoveEvent((event) => `Section ${event.course}-${event.section} Removed`);
+const sectionAdded = addRemoveEvent((event) => `Section ${event.course}-${event.section} Added`);
+const courseRemoved = addRemoveEvent((event) => `Section ${event.course} Removed`);
+const courseAdded = addRemoveEvent((event) => `Section ${event.course} Added`);
+
 const unknownEvent = (event) => {
     return {
         "title": `Unknown event`,
@@ -184,8 +192,11 @@ exports.getDiscordContent = (events) => {
         "instructor_changed": instructorChanged,
         "waitlist_changed": waitlistChanged,
         "holdfile_changed": holdfileChanged,
+        "course_name_changed": courseNameChanged,
+        "section_added": sectionAdded,
         "section_removed": sectionRemoved,
-        "course_name_changed": courseNameChanged
+        "course_added": courseAdded,
+        "course_removed": courseRemoved
     }
 
     return {
