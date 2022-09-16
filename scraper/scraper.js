@@ -35,7 +35,7 @@ const getCourseList = async (semester, prefix) => {
             }
             return [
                 e.id, {
-                    name: courseTitle ? courseTitle.textContent : "<unknown>"
+                    name: (courseTitle && courseTitle.textContent) ? courseTitle.textContent : "<unknown>"
                 }
             ]
         }));
