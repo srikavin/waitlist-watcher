@@ -113,7 +113,10 @@ export const discordRoute = async (fastify: FastifyInstance, options: FastifyPlu
             };
         } else if (interaction.type === InteractionType.ApplicationCommand) {
             const interactionData = interaction.data as APIChatInputApplicationCommandInteractionData;
-            const discordUserId = `${interaction.guild_id}@guild@discord`;
+            let discordUserId = `${interaction.guild_id}@guild@discord`;
+            if (interaction.user) {
+                discordUserId = `${interaction.user.id}@user@DM@discord`;
+            }
 
             if (interactionData.options![0].name === "list") {
                 const subscriptions = await realtime_db.ref(`user_settings/${discordUserId}/subscriptions`).get();
