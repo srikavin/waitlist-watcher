@@ -1,7 +1,7 @@
 import {initializeApp} from "firebase-admin/app";
 import {getFirestore} from "firebase-admin/firestore";
 import {applyPatch} from "fast-json-patch/commonjs/core";
-import {CourseDataCourses} from "./types";
+import {CourseDataCourses} from "../functions/src/types";
 
 import {Storage} from "@google-cloud/storage";
 
@@ -103,4 +103,3 @@ const runForDepartment = async (department: string) => {
 })();
 
 export default {};
-

@@ -1,20 +1,31 @@
-const generateFooter = (event) => {
+import {
+    AddRemoveEvents,
+    BaseEvent,
+    CourseEvent,
+    CourseEventOpenSeatAvailable,
+    EventTypes,
+    IChangeEvent,
+    ICourseEvent,
+    ICourseSectionEvent
+} from "../types";
+
+const generateFooter = (event: CourseEvent) => {
     return {
         "text": `Event ${event.id} with category ${event.type} (version ${process.env.K_REVISION}) at (${event.timestamp}).`
     };
 }
 
-const generateUrl = (event) => {
+const generateUrl = (event: ICourseEvent<any> | ICourseSectionEvent<any>) => {
     return `https://waitlist-watcher.web.app/history/${event.course}${event.section ? '-' + event.section : ''}`;
 }
 
-const mapSemester = (semester) => {
+const mapSemester = (semester: string) => {
     if (semester === "202208") return "Fall 2022";
     if (semester === "202301") return "Spring 2023";
     return semester;
 }
 
-const seatAvailable = (event) => {
+const seatAvailable = (event: CourseEventOpenSeatAvailable) => {
     return {
         "title": `Open Seat Available in ${event.course}-${event.section}`,
         "url": generateUrl(event),
@@ -49,8 +60,8 @@ const seatAvailable = (event) => {
     }
 }
 
-const addRemoveEvent = (title_fn) => {
-    return (event) => (
+const addRemoveEvent = (title_fn: (event: AddRemoveEvents) => string) => {
+    return (event: AddRemoveEvents) => (
         {
             "title": title_fn(event),
             "url": generateUrl(event),
@@ -82,8 +93,8 @@ const addRemoveEvent = (title_fn) => {
     );
 }
 
-const simpleChangeEvent = (title_fn, old_title, new_title, color) => {
-    return (event) => (
+const simpleChangeEvent = (title_fn: (event: IChangeEvent<any, any>) => string, old_title: string, new_title: string, color: number) => {
+    return (event: IChangeEvent<any, any>) => (
         {
             "title": title_fn(event),
             "url": generateUrl(event),
@@ -171,7 +182,7 @@ const sectionAdded = addRemoveEvent((event) => `Section ${event.course}-${event.
 const courseRemoved = addRemoveEvent((event) => `Course ${event.course} Removed`);
 const courseAdded = addRemoveEvent((event) => `Course ${event.course} Added`);
 
-const unknownEvent = (event) => {
+const unknownEvent = (event: any) => {
     return {
         "title": `Unknown event`,
         "url": generateUrl(event),
@@ -184,8 +195,8 @@ const unknownEvent = (event) => {
     };
 }
 
-exports.getDiscordContent = (events) => {
-    const mapping = {
+export const getDiscordContent = (events: Array<BaseEvent>) => {
+    const mapping: Record<EventTypes, (event: any) => object> = {
         "open_seat_available": seatAvailable,
         "open_seats_changed": openSeatsChanged,
         "total_seats_changed": totalSeatsChanged,

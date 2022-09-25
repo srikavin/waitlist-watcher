@@ -1,6 +1,9 @@
-const crypto = require('crypto');
+import * as crypto from "crypto";
+import {CourseEvent} from "../types";
+import {ScrapedCourse, ScrapedOutput, ScrapedSection} from "./scraper";
 
-function emitCourseEvents(events, course, title, previousCourse, newCourse) {
+function emitCourseEvents(events: Array<Partial<CourseEvent>>, course: string, title: string,
+                          previousCourse: Partial<ScrapedCourse>, newCourse: ScrapedCourse) {
     if (previousCourse.name !== newCourse.name) {
         events.push({
             type: "course_name_changed",
@@ -12,7 +15,8 @@ function emitCourseEvents(events, course, title, previousCourse, newCourse) {
     }
 }
 
-function emitSectionEvents(events, course, title, section, previousSection, newSection) {
+function emitSectionEvents(events: Array<Partial<CourseEvent>>, course: string, title: string, section: string,
+                           previousSection: Partial<ScrapedSection>, newSection: ScrapedSection) {
     if (previousSection.instructor !== newSection.instructor) {
         events.push({
             type: "instructor_changed",
@@ -80,8 +84,8 @@ function emitSectionEvents(events, course, title, section, previousSection, newS
     }
 }
 
-exports.generateEvents = (previousCourses, newCourses, timestamp, semester) => {
-    const events = [];
+export const generateEvents = (previousCourses: ScrapedOutput, newCourses: ScrapedOutput, timestamp: string, semester: string) => {
+    const events: Array<Partial<CourseEvent>> = [];
 
     for (const course in newCourses) {
         if (!previousCourses[course]) {
@@ -128,11 +132,11 @@ exports.generateEvents = (previousCourses, newCourses, timestamp, semester) => {
         }
     }
 
-    events.sort((a, b) => a.course.localeCompare(b.course));
+    events.sort((a, b) => a.course!.localeCompare(b.course!));
 
     return events.map((e) => ({
         ...e,
-        id: crypto.createHash("sha1").update(e.course + e.type + timestamp + e.section + semester).digest("hex"),
+        id: crypto.createHash("sha1").update(e.course! + e.type + timestamp + e.section + semester).digest("hex"),
         timestamp: timestamp,
         semester
     }));

@@ -1,20 +1,17 @@
-const {initializeApp} = require('firebase-admin/app');
-const {getFirestore} = require('firebase-admin/firestore');
-const config = require("./config.json");
+import * as config from "../config.json";
+import {fsdb} from "../common";
+import {scraper} from "./scraper";
 
-initializeApp();
-const db = getFirestore();
-
-const {scraper} = require("./scraper");
+import type {CloudEvent} from "firebase-functions/v2";
+import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 
 const BATCH_SIZE = 8;
 
-
-exports.launcher = async (message, context) => {
+export const scraperLauncher = async (event: CloudEvent<MessagePublishedData>) => {
     console.log("Scraper triggered");
-    const triggerDataRef = db.collection("trigger_data").doc("state");
+    const triggerDataRef = fsdb.collection("trigger_data").doc("state");
 
-    let state = {
+    let state: any = {
         prefixIndex: 0
     };
     const currentStateDoc = await triggerDataRef.get();
@@ -28,7 +25,7 @@ exports.launcher = async (message, context) => {
     for (let semester of config.semesters) {
         for (let i = 0; i < BATCH_SIZE; ++i) {
             const prefix = config.prefixes[(state.prefixIndex + i) % config.prefixes.length];
-            prefixPromises.push(scraper(semester, prefix, context))
+            prefixPromises.push(scraper(semester, prefix, event.time, event.id))
             console.log("Started scraper for ", prefix);
         }
     }

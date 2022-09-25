@@ -2,7 +2,7 @@ import {initializeApp} from "firebase-admin/app";
 import {getFirestore} from "firebase-admin/firestore";
 // @ts-ignore
 import {generateEvents} from "../scraper/generate_events";
-import {CourseDataCourses} from "./types";
+import {CourseDataCourses} from "../functions/src/types";
 
 import {Storage, CRC32C} from "@google-cloud/storage";
 import axios from "axios";
@@ -104,4 +104,3 @@ async function runForDepartmentWithRetries(dept: string) {
 })();
 
 export default {};
-

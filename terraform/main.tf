@@ -68,37 +68,6 @@ resource "google_secret_manager_secret_version" "notifier-vapid-priv-key" {
   secret_data = var.NOTIFIER_VAPID_PRIV_KEY
 }
 
-module "scraper-launcher-function" {
-  source               = "./modules/function"
-  project              = var.project
-  region               = var.region
-  function_name        = "waitlist-scraper-launcher"
-  source_dir           = abspath("../scraper")
-  function_entry_point = "launcher"
-  runtime              = "nodejs16"
-  available_memory_mb  = 256
-  pubsub_name          = google_pubsub_topic.scrape-launcher-topic.name
-  env_vars             = {}
-  max-instances        = 5
-}
-
-module "notifier-function" {
-  source               = "./modules/function"
-  project              = var.project
-  region               = var.region
-  function_name        = "notifier"
-  source_dir           = abspath("../notifier")
-  function_entry_point = "notifier"
-  runtime              = "nodejs16"
-  available_memory_mb  = 128
-  pubsub_name          = google_pubsub_topic.prefix-update-topic.name
-  env_vars             = {
-    VAPID_PRIV_KEY        = var.NOTIFIER_VAPID_PRIV_KEY
-    DISCORD_CLIENT_SECRET = var.DISCORD_CLIENT_SECRET
-  }
-  max-instances = 100
-}
-
 module "appengine" {
   source     = "./modules/appengine"
   project    = var.project

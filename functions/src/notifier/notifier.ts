@@ -1,26 +1,17 @@
-const {initializeApp} = require('firebase-admin/app');
-const axios = require("axios");
-const webpush = require("web-push");
-const {getDatabase} = require("firebase-admin/database");
-const {getDiscordContent} = require("./discord");
-const {CloudTasksClient} = require('@google-cloud/tasks');
+import axios from "axios";
+import * as webpush from "web-push";
 
-// Instantiates a client.
-const tasksClient = new CloudTasksClient();
+import type {CloudEvent} from "firebase-functions/v2";
+import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
+import type {BaseEvent} from "../types";
 
-initializeApp({
-    databaseURL: "https://waitlist-watcher-default-rtdb.firebaseio.com"
-});
-
-const db = getDatabase();
+import {discordWebhookQueue, rtdb, tasksClient} from "../common";
+import {getDiscordContent} from "./discord";
 
 const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
-webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY)
 
-const queue_parent = tasksClient.queuePath("waitlist-watcher", "us-east4", "discord-webhook-queue");
-
-exports.notifier = async (message, context) => {
-    const parsedData = JSON.parse(Buffer.from(message.data, 'base64').toString());
+export const sendNotifications = async (event: CloudEvent<MessagePublishedData>) => {
+    const parsedData = JSON.parse(Buffer.from(event.data.message.data, 'base64').toString());
 
     const {prefix, events} = parsedData.data;
 
@@ -29,10 +20,13 @@ exports.notifier = async (message, context) => {
         return;
     }
 
+    webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY!)
+    console.log(process.env.VAPID_PRIV_KEY);
+
     console.log("Notifying users of changes in ", prefix, events.length);
 
-    const courseSubscribersCache = {}
-    const sectionSubscribersCache = {}
+    const courseSubscribersCache: Record<string, any> = {}
+    const sectionSubscribersCache: Record<string, any> = {}
 
     const cachePromises = [];
     const cacheSeen = new Set();
@@ -45,33 +39,33 @@ exports.notifier = async (message, context) => {
 
         if (!cacheSeen.has(key) && event.section) {
             cachePromises.push((async () => {
-                sectionSubscribersCache[key] = await db.ref(`section_subscriptions/${event.course}/${event.section}`).once('value');
+                sectionSubscribersCache[key] = await rtdb.ref(`section_subscriptions/${event.course}/${event.section}`).once('value');
             })())
             cacheSeen.add(key);
         }
 
         if (!cacheSeen.has(event.course)) {
             cachePromises.push((async () => {
-                courseSubscribersCache[event.course] = await db.ref(`course_subscriptions/${event.course}/`).once('value');
+                courseSubscribersCache[event.course] = await rtdb.ref(`course_subscriptions/${event.course}/`).once('value');
             })());
             cacheSeen.add(key);
         }
     }
 
-    const departmentSubscribers = (await db.ref(`department_subscriptions/${prefix}`).once('value')).val() || {};
-    const everythingSubscribers = (await db.ref(`everything_subscriptions/`).once('value')).val() || {};
+    const departmentSubscribers = (await rtdb.ref(`department_subscriptions/${prefix}`).once('value')).val() || {};
+    const everythingSubscribers = (await rtdb.ref(`everything_subscriptions/`).once('value')).val() || {};
 
     await Promise.all(cachePromises);
 
-    const promises = [];
+    const promises: Promise<any>[] = [];
     const webhookPromises = [];
-    const discordBatch = {}
+    const discordBatch: Record<string, Array<Array<BaseEvent>>> = {}
 
 
     for (const event of events) {
         const {type} = event;
 
-        let sectionSubscribers = {};
+        let sectionSubscribers: any = {};
         if (event.section) {
             sectionSubscribers = sectionSubscribersCache[event.course + '-' + event.section];
             sectionSubscribers = sectionSubscribers.val() || {};
@@ -80,7 +74,7 @@ exports.notifier = async (message, context) => {
         let courseSubscribers = courseSubscribersCache[event.course];
         courseSubscribers = courseSubscribers.val() || {};
 
-        let subscribers = [];
+        let subscribers: any = [];
         subscribers = subscribers.concat(Object.keys(sectionSubscribers));
         subscribers = subscribers.concat(Object.keys(courseSubscribers));
         subscribers = subscribers.concat(Object.keys(departmentSubscribers));
@@ -114,7 +108,7 @@ exports.notifier = async (message, context) => {
                 continue;
             }
 
-            const subscription_methods = await db.ref("user_settings/" + key).once('value');
+            const subscription_methods = await rtdb.ref("user_settings/" + key).once('value');
             if (!subscription_methods.exists()) continue;
 
             const sub_methods = subscription_methods.val();
@@ -143,31 +137,32 @@ exports.notifier = async (message, context) => {
         }
     }
 
-    const results = await Promise.allSettled(promises);
+    const taskPromises: Array<Promise<any>> = [];
 
     for (const [discordHookUrl, batches] of Object.entries(discordBatch)) {
         console.log("Notifying discord webhook with ", batches.length, " batches")
 
         for (const batchEvents of batches) {
-            const task = {
-                httpRequest: {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bot ${process.env.DISCORD_CLIENT_SECRET}`
-                    },
-                    httpMethod: 'POST',
-                    url: discordHookUrl,
-                    body: Buffer.from(JSON.stringify(getDiscordContent(batchEvents))).toString('base64')
+            taskPromises.push(tasksClient.createTask({
+                parent: discordWebhookQueue,
+                task: {
+                    httpRequest: {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bot ${process.env.DISCORD_CLIENT_SECRET}`
+                        },
+                        httpMethod: 'POST',
+                        url: discordHookUrl,
+                        body: Buffer.from(JSON.stringify(getDiscordContent(batchEvents))).toString('base64')
+                    }
                 }
-            };
-
-            const request = {parent: queue_parent, task: task};
-            const [response] = await tasksClient.createTask(request);
-            console.log(`Created task ${response.name}`);
+            }));
         }
     }
 
+    const results = await Promise.allSettled(promises);
     const webhookResults = await Promise.allSettled(webhookPromises);
+    const taskResults = await Promise.allSettled(taskPromises);
 
     results.forEach((e) => {
         if (e.status === 'rejected') {
@@ -178,6 +173,12 @@ exports.notifier = async (message, context) => {
     webhookResults.forEach((e) => {
         if (e.status === 'rejected') {
             console.error("webhookResults", "rejected", e.reason.message)
+        }
+    });
+
+    taskResults.forEach((e) => {
+        if (e.status === 'rejected') {
+            console.error("taskResults", "rejected", e.reason)
         }
     });
 }

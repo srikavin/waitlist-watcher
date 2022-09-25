@@ -1,29 +1,36 @@
-const {getFirestore} = require('firebase-admin/firestore');
-const axios = require("axios");
-const {compare} = require("fast-json-patch");
-const {PubSub} = require("@google-cloud/pubsub");
-const jsdom = require("jsdom");
-const {JSDOM} = jsdom;
+import axios from "axios";
+import {compare} from "fast-json-patch";
+import {JSDOM} from "jsdom";
 
-const {Storage} = require("@google-cloud/storage");
-const {generateEvents} = require("./generate_events");
+import {fsdb, historical_bucket, updateTopic} from "../common";
+import {generateEvents} from "./generate_events";
 
-const storage = new Storage();
-const historical_bucket = storage.bucket('waitlist-watcher-historical-data')
+const COURSE_LIST_URL = (semester: string, prefix: string) => `https://app.testudo.umd.edu/soc/${semester}/${prefix}`;
+const SECTIONS_URL = (semester: string, prefix: string, courseList: string) => `https://app.testudo.umd.edu/soc/${semester}/sections?courseIds=${courseList}`;
 
-const COURSE_LIST_URL = (semester, prefix) => `https://app.testudo.umd.edu/soc/${semester}/${prefix}`;
-const SECTIONS_URL = (semester, prefix, courseList) => `https://app.testudo.umd.edu/soc/${semester}/sections?courseIds=${courseList}`;
+const BUCKET_SNAPSHOT_PREFIX = (semester: string, department: string) => `${semester}/snapshots/${department}/`
+const BUCKET_EVENTS_PREFIX = (semester: string, department: string) => `${semester}/events/${department}/`
 
-const BUCKET_SNAPSHOT_PREFIX = (semester, department) => `${semester}/snapshots/${department}/`
-const BUCKET_EVENTS_PREFIX = (semester, department) => `${semester}/events/${department}/`
+fsdb.settings({ignoreUndefinedProperties: true})
 
-const db = getFirestore();
-db.settings({ignoreUndefinedProperties: true})
+export interface ScrapedSection {
+    section: string,
+    openSeats: number,
+    totalSeats: number,
+    instructor: string,
+    waitlist: number,
+    holdfile: number
+}
 
-const pubsub = new PubSub({projectId: "waitlist-watcher"});
-const updateTopic = pubsub.topic("prefix-update");
+export interface ScrapedCourse {
+    course: string,
+    name: string,
+    sections: Record<string, ScrapedSection>
+}
 
-const getCourseList = async (semester, prefix) => {
+export type ScrapedOutput = Record<string, ScrapedCourse>;
+
+const getCourseList = async (semester: string, prefix: string) => {
     const data = (await axios.get(COURSE_LIST_URL(semester, prefix))).data;
 
     return Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course")]
@@ -31,7 +38,7 @@ const getCourseList = async (semester, prefix) => {
             let courseTitle = e.querySelector(".course-title");
             if (!courseTitle) {
                 // workaround for some course pages
-                courseTitle = e.parentNode.querySelectorAll(`.course-title`)[i]
+                courseTitle = e.parentNode!.querySelectorAll(`.course-title`)[i]
             }
             return [
                 e.id, {
@@ -41,7 +48,7 @@ const getCourseList = async (semester, prefix) => {
         }));
 }
 
-const parseNumber = (val) => {
+const parseNumber = (val: string) => {
     val = val.trim();
 
     const isNumber = /^\d+$/.test(val);
@@ -53,7 +60,7 @@ const parseNumber = (val) => {
     return Number(val);
 }
 
-const getWaitlisted = async (semester, prefix) => {
+const getSectionInformation = async (semester: string, prefix: string): Promise<ScrapedOutput> => {
     const courseData = await getCourseList(semester, prefix);
     const courseList = Object.keys(courseData).join(",");
     const data = (await axios.get(SECTIONS_URL(semester, prefix, courseList))).data;
@@ -65,14 +72,14 @@ const getWaitlisted = async (semester, prefix) => {
                 name: courseData[course.id] ? courseData[course.id].name : "<unknown>",
                 sections: Object.fromEntries([...course.querySelectorAll(".section")].map(section => {
                     const waitlistField = [...section.querySelectorAll(".waitlist-count")];
-                    let holdfile = waitlistField.length === 2 ? parseNumber(waitlistField[1].textContent) : 0;
-                    let sectionName = section.querySelector(".section-id").textContent.trim();
+                    let holdfile = waitlistField.length === 2 ? parseNumber(waitlistField[1].textContent!) : 0;
+                    let sectionName = section.querySelector(".section-id")!.textContent!.trim();
                     return [sectionName, {
                         section: sectionName,
-                        openSeats: parseNumber(section.querySelector(".open-seats-count").textContent),
-                        totalSeats: parseNumber(section.querySelector(".total-seats-count").textContent),
+                        openSeats: parseNumber(section.querySelector(".open-seats-count")!.textContent!),
+                        totalSeats: parseNumber(section.querySelector(".total-seats-count")!.textContent!),
                         instructor: [...section.querySelectorAll(".section-instructor")].map(e => e.textContent).sort().join(', '),
-                        waitlist: parseNumber(waitlistField[0].textContent),
+                        waitlist: parseNumber(waitlistField[0].textContent!),
                         holdfile: holdfile
                     }];
                 }))
@@ -81,30 +88,30 @@ const getWaitlisted = async (semester, prefix) => {
 }
 
 
-exports.scraper = async (semester, prefix, context) => {
+export const scraper = async (semester: string, prefix: string, timestamp: string, eventId: string) => {
     const semester_code = semester === "202208" ? "" : semester;
 
-    const events_collection = db.collection("events" + semester_code);
-    const docRef = db.collection("course_data" + semester_code).doc(prefix)
+    const events_collection = fsdb.collection("events" + semester_code);
+    const docRef = fsdb.collection("course_data" + semester_code).doc(prefix)
     const currentDoc = await docRef.get();
 
-    let previous = {
+    let previous: any = {
         latest: [],
         timestamp: -1,
-        lastRun: -1,
+        lastRun: '',
         updateCount: 0,
         version: 0
     };
     if (currentDoc.exists) {
-        previous = currentDoc.data();
+        previous = currentDoc.data() as any;
     }
 
-    if (previous.lastRun === context.timestamp) {
-        console.log("Skipping ", semester, prefix, " since lastRun is same as current timestamp: ", context.timestamp);
+    if (previous.lastRun === timestamp) {
+        console.log("Skipping ", semester, prefix, " since lastRun is same as current timestamp: ", timestamp);
         return;
     }
 
-    const data = await getWaitlisted(semester, prefix);
+    const data = await getSectionInformation(semester, prefix);
 
     const diff = compare(previous.latest, data, true);
     const newUpdateCount = previous.updateCount + 1;
@@ -114,16 +121,16 @@ exports.scraper = async (semester, prefix, context) => {
     if (diff.length === 0) {
         if (currentDoc.exists) {
             await docRef.update({
-                lastRun: context.timestamp
+                lastRun: timestamp
             });
         }
         return;
     }
 
-    const events = generateEvents(previous.latest, data, context.timestamp, semester);
+    const events = generateEvents(previous.latest, data, timestamp, semester);
 
-    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester, prefix) + context.timestamp + '.json').save(JSON.stringify(data), {resumable: false});
-    await historical_bucket.file(BUCKET_EVENTS_PREFIX(semester, prefix) + context.timestamp + '.json').save(JSON.stringify(events), {resumable: false});
+    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(data), {resumable: false});
+    await historical_bucket.file(BUCKET_EVENTS_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(events), {resumable: false});
 
     const updates = [];
 
@@ -156,8 +163,8 @@ exports.scraper = async (semester, prefix, context) => {
 
     await docRef.set({
         latest: data,
-        timestamp: context.timestamp,
-        lastRun: context.timestamp,
+        timestamp: timestamp,
+        lastRun: timestamp,
         updateCount: newUpdateCount,
         version: 2
     });
@@ -168,9 +175,9 @@ exports.scraper = async (semester, prefix, context) => {
         data: {
             prefix: prefix,
             events: events,
-            timestamp: context.timestamp,
-            id: context.eventId
+            timestamp: timestamp,
+            id: eventId
         }
     }), 'utf8');
-    await updateTopic.publish(messageBuffer);
+    await updateTopic.publishMessage({data: messageBuffer});
 }
