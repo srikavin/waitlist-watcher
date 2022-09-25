@@ -168,8 +168,8 @@ const courseNameChanged = simpleChangeEvent(
 
 const sectionRemoved = addRemoveEvent((event) => `Section ${event.course}-${event.section} Removed`);
 const sectionAdded = addRemoveEvent((event) => `Section ${event.course}-${event.section} Added`);
-const courseRemoved = addRemoveEvent((event) => `Section ${event.course} Removed`);
-const courseAdded = addRemoveEvent((event) => `Section ${event.course} Added`);
+const courseRemoved = addRemoveEvent((event) => `Course ${event.course} Removed`);
+const courseAdded = addRemoveEvent((event) => `Course ${event.course} Added`);
 
 const unknownEvent = (event) => {
     return {
