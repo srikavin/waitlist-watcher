@@ -40,6 +40,34 @@ resource "google_storage_bucket_iam_binding" "historical-data-policy" {
   members = ["allUsers"]
 }
 
+resource "google_secret_manager_secret" "discord-client-secret" {
+  secret_id = "DISCORD_CLIENT_SECRET"
+
+  replication {
+    automatic = true
+  }
+}
+
+resource "google_secret_manager_secret_version" "discord-client-secret" {
+  secret = google_secret_manager_secret.discord-client-secret.id
+
+  secret_data = var.DISCORD_CLIENT_SECRET
+}
+
+resource "google_secret_manager_secret" "notifier-vapid-priv-key" {
+  secret_id = "VAPID_PRIV_KEY"
+
+  replication {
+    automatic = true
+  }
+}
+
+resource "google_secret_manager_secret_version" "notifier-vapid-priv-key" {
+  secret = google_secret_manager_secret.notifier-vapid-priv-key.id
+
+  secret_data = var.NOTIFIER_VAPID_PRIV_KEY
+}
+
 module "scraper-launcher-function" {
   source               = "./modules/function"
   project              = var.project
@@ -84,7 +112,7 @@ module "appengine" {
 }
 
 resource "google_cloud_tasks_queue" "advanced_configuration" {
-  name = "discord-webhook-queue"
+  name     = "discord-webhook-queue"
   location = var.region
 
   rate_limits {
@@ -93,11 +121,11 @@ resource "google_cloud_tasks_queue" "advanced_configuration" {
   }
 
   retry_config {
-    max_attempts = 15
+    max_attempts       = 15
     max_retry_duration = "1000s"
-    max_backoff = "3600s"
-    min_backoff = "15s"
-    max_doublings = 16
+    max_backoff        = "3600s"
+    min_backoff        = "15s"
+    max_doublings      = 16
   }
 
   stackdriver_logging_config {
