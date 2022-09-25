@@ -1,6 +1,5 @@
 import {
     AddRemoveEvents,
-    BaseEvent,
     CourseEvent,
     CourseEventOpenSeatAvailable,
     EventTypes,
@@ -195,7 +194,7 @@ const unknownEvent = (event: any) => {
     };
 }
 
-export const getDiscordContent = (events: Array<BaseEvent>) => {
+export const getDiscordContent = (events: Array<CourseEvent>) => {
     const mapping: Record<EventTypes, (event: any) => object> = {
         "open_seat_available": seatAvailable,
         "open_seats_changed": openSeatsChanged,

@@ -4,12 +4,22 @@ import {JSDOM} from "jsdom";
 
 import {fsdb, historical_bucket, updateTopic} from "../common";
 import {generateEvents} from "./generate_events";
+import * as http from "http";
+import * as https from "https";
 
 const COURSE_LIST_URL = (semester: string, prefix: string) => `https://app.testudo.umd.edu/soc/${semester}/${prefix}`;
 const SECTIONS_URL = (semester: string, prefix: string, courseList: string) => `https://app.testudo.umd.edu/soc/${semester}/sections?courseIds=${courseList}`;
 
 const BUCKET_SNAPSHOT_PREFIX = (semester: string, department: string) => `${semester}/snapshots/${department}/`
 const BUCKET_EVENTS_PREFIX = (semester: string, department: string) => `${semester}/events/${department}/`
+
+const httpAgent = new http.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true });
+
+const axiosInstance = axios.create({
+    httpAgent,
+    httpsAgent,
+});
 
 fsdb.settings({ignoreUndefinedProperties: true})
 
@@ -31,7 +41,7 @@ export interface ScrapedCourse {
 export type ScrapedOutput = Record<string, ScrapedCourse>;
 
 const getCourseList = async (semester: string, prefix: string) => {
-    const data = (await axios.get(COURSE_LIST_URL(semester, prefix))).data;
+    const data = (await axiosInstance.get(COURSE_LIST_URL(semester, prefix))).data;
 
     return Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course")]
         .map((e, i) => {
@@ -63,7 +73,7 @@ const parseNumber = (val: string) => {
 const getSectionInformation = async (semester: string, prefix: string): Promise<ScrapedOutput> => {
     const courseData = await getCourseList(semester, prefix);
     const courseList = Object.keys(courseData).join(",");
-    const data = (await axios.get(SECTIONS_URL(semester, prefix, courseList))).data;
+    const data = (await axiosInstance.get(SECTIONS_URL(semester, prefix, courseList))).data;
 
     return Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course-sections")]
         .map(course => {
