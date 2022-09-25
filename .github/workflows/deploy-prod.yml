@@ -6,6 +6,8 @@ on:
     paths:
       - "frontend/**"
       - "functions/**"
+      - "firebase.json"
+      - ".firebaserc"
 jobs:
   build_and_preview:
     runs-on: ubuntu-latest
