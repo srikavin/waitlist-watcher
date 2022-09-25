@@ -13,7 +13,7 @@ export const rtdb = getDatabase();
 export const fsdb = getFirestore();
 export const tasksClient = new CloudTasksClient();
 export const pubsub = new PubSub({projectId: "waitlist-watcher"});
-export const storage = new Storage();
+export const storage = new Storage({retryOptions: {autoRetry: true}});
 
 export const updateTopic = pubsub.topic("prefix-update");
 export const historical_bucket = storage.bucket('waitlist-watcher-historical-data')

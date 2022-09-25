@@ -3,7 +3,7 @@ import * as webpush from "web-push";
 
 import type {CloudEvent} from "firebase-functions/v2";
 import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
-import type {BaseEvent} from "../types";
+import {CourseEvent} from "../types";
 
 import {discordWebhookQueue, rtdb, tasksClient} from "../common";
 import {getDiscordContent} from "./discord";
@@ -59,7 +59,7 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
 
     const promises: Promise<any>[] = [];
     const webhookPromises = [];
-    const discordBatch: Record<string, Array<Array<BaseEvent>>> = {}
+    const discordBatch: Record<string, Array<Array<CourseEvent>>> = {}
 
 
     for (const event of events) {
