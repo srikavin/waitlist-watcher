@@ -13,8 +13,8 @@ const SECTIONS_URL = (semester: string, prefix: string, courseList: string) => `
 const BUCKET_SNAPSHOT_PREFIX = (semester: string, department: string) => `${semester}/snapshots/${department}/`
 const BUCKET_EVENTS_PREFIX = (semester: string, department: string) => `${semester}/events/${department}/`
 
-const httpAgent = new http.Agent({ keepAlive: true });
-const httpsAgent = new https.Agent({ keepAlive: true });
+const httpAgent = new http.Agent({keepAlive: true});
+const httpsAgent = new https.Agent({keepAlive: true});
 
 const axiosInstance = axios.create({
     httpAgent,
@@ -139,8 +139,16 @@ export const scraper = async (semester: string, prefix: string, timestamp: strin
 
     const events = generateEvents(previous.latest, data, timestamp, semester);
 
-    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(data), {resumable: false});
-    await historical_bucket.file(BUCKET_EVENTS_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(events), {resumable: false});
+    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(data), {
+        contentType: "application/json",
+        resumable: false,
+        gzip: true
+    });
+    await historical_bucket.file(BUCKET_EVENTS_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(events), {
+        contentType: "application/json",
+        resumable: false,
+        gzip: true
+    });
 
     const updates = [];
 
