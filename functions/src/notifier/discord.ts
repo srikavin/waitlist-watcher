@@ -121,11 +121,11 @@ const simpleChangeEvent = (title_fn: (event: IChangeEvent<any, any>) => string, 
                 },
                 {
                     "name": old_title,
-                    "value": String(event.old)
+                    "value": String(event.old).substring(0, 1023)
                 },
                 {
                     "name": new_title,
-                    "value": String(event.new)
+                    "value": String(event.new).substring(0, 1023)
                 }
             ],
             "footer": generateFooter(event)
