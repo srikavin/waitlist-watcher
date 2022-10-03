@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import './App.css'
 
-import {auth} from "./firebase";
+import {auth, db} from "./firebase";
 import type {User} from "firebase/auth";
 import {signInWithCustomToken} from 'firebase/auth';
 import {AuthContext} from './context/AuthContext';
@@ -15,6 +15,8 @@ import {ProfileScreen} from "./screens/ProfileScreen/ProfileScreen";
 import {HistoryScreen} from './screens/HistoryScreen/HistoryScreen';
 import {LoginScreen} from "./screens/LoginScreen/LoginScreen";
 import {DepartmentsScreen} from "./screens/DepartmentsScreen/DepartmentsScreen";
+import {doc, getDocFromServer} from "firebase/firestore";
+import {getDocFromCache} from "@firebase/firestore";
 
 function PrefixRenderer() {
     let {prefix} = useParams();
@@ -46,6 +48,7 @@ function PageRenderer() {
 function App() {
     const [user, setUser] = useState<User>();
     const [semester, setSemester] = useState("202301");
+    const [courseListing, setCourseListing] = useState([]);
 
     useEffect(() => {
         if (!localStorage.customToken) return;
@@ -67,7 +70,14 @@ function App() {
                 setUser(undefined);
             }
         });
-    }, [setUser])
+    }, [setUser]);
+
+    useEffect(() => {
+        const semesterDoc = doc(db, `course_listing/${semester}`);
+        getDocFromCache(semesterDoc).catch(() => getDocFromServer(semesterDoc)).then((e) => {
+            setCourseListing(e.get("courses"));
+        });
+    }, [semester])
 
     const authCtx = {
         isAuthed: !!auth.currentUser,
@@ -91,6 +101,7 @@ function App() {
             }
         },
         setSemester: setSemester,
+        courseListing
     }
 
     return (

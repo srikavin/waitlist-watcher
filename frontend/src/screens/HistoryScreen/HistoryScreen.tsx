@@ -6,7 +6,6 @@ import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 import {Label, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts";
-import {remoteData} from "../../components/Search/Search";
 import {Link} from "react-router-dom";
 import {SemesterContext} from "../../context/SemesterContext";
 
@@ -114,16 +113,11 @@ function transformEventsToChart(events: Array<any>) {
 
 export function HistoryScreen(props: HistoryScreenProps) {
     const {name, minimal = false} = props;
-    const {semester, semesters} = useContext(SemesterContext);
+    const {semester, semesters, courseListing} = useContext(SemesterContext);
 
     const isSection = name.includes('-');
 
-    const [items, setItems] = useState<string[]>([]);
     const [events, setEvents] = useState<Array<any>>([])
-
-    useEffect(() => {
-        setItems(remoteData.courses);
-    }, [remoteData.courses])
 
     useEffect(() => {
         const removeListener = onSnapshot(doc(db, "events" + semesters[semester].suffix, name), (doc) => {
@@ -219,9 +213,9 @@ export function HistoryScreen(props: HistoryScreenProps) {
             {!isSection && (
                 <>
                     {(() => {
-                        const filtered = items.filter(e => e.startsWith(name + '-'));
+                        const filtered = courseListing.filter(e => e.startsWith(name + '-'));
                         if (filtered.length < 10) {
-                            return filtered.map(e => <HistoryScreen name={e} minimal/>)
+                            return filtered.map(e => <HistoryScreen key={e} name={e} minimal/>)
                         }
                         return null;
                     })()}

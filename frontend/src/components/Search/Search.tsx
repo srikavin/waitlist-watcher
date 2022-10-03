@@ -1,29 +1,26 @@
 import {Autocomplete, TextInput} from "evergreen-ui"
 import {useNavigate} from "react-router-dom";
-import {useEffect, useState} from "react";
-
-export const remoteData = {courses: []};
-fetch("https://waitlist-watcher.uk.r.appspot.com/courses").then(e => e.json()).then((e) => {
-    remoteData.courses = e;
-});
+import {useContext, useState} from "react";
+import {SemesterContext} from "../../context/SemesterContext";
 
 export function Search() {
     const navigate = useNavigate();
-
-    const [items, setItems] = useState<string[]>([]);
-
-    useEffect(() => {
-        setItems(remoteData.courses);
-    }, [remoteData.courses])
+    const {courseListing} = useContext(SemesterContext);
+    const [inputValue, setInputValue] = useState("");
 
     return (
         <Autocomplete
             title="Courses"
             onChange={changedItem => {
-                if (changedItem)
+                if (changedItem) {
                     navigate('/history/' + changedItem)
+                    setInputValue("");
+                }
             }}
-            items={items}
+            onInputValueChange={(val) => setInputValue(val)}
+            inputValue={inputValue}
+            items={courseListing}
+            selectedItem={null}
         >
             {subProps => {
                 const {getInputProps, getRef} = subProps

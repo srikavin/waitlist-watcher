@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -b",
     "populate_historical_events": "npm run build && node populate_historical_events.js",
+    "populate_historical_course_listing": "npm run build && node populate_historical_course_listing.js",
     "move_to_cloud_storage": "npm run build && node move_to_cloud_storage.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

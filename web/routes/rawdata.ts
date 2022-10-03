@@ -91,14 +91,15 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
         return cache.getStats();
     });
 
-    fastify.get("/courses", async (request, reply) => {
-        const cached = cache.get('courses');
+    fastify.get<{ Params: { semester: string } }>("/courses/:semester", async (request, reply) => {
+        let {semester} = request.params;
+
+        const cached = cache.get('courses' + semester);
         if (cached !== undefined) {
             return cached;
         }
 
-        const coursesAndSections = (await firestore.collection('events').listDocuments())
-            .map(e => e.id);
+        const coursesAndSections = (await (await firestore.doc('course_listing/' + semester)).get()).get("courses");
 
         cache.set('courses', coursesAndSections, 60 * 60);
 
