@@ -31,7 +31,7 @@ export const onCourseRemove202301 =
 
 export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,
-    memory: "256MiB",
+    memory: "128MiB",
     cpu: 'gcf_gen1',
     secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY"],
     region: "us-east1"
@@ -39,7 +39,7 @@ export const notifierfunction = onMessagePublished({
 
 export const scraperfunction = onMessagePublished({
     topic: "scrape-launcher",
-    memory: "256MiB",
+    memory: "512MiB",
     cpu: 'gcf_gen1',
     secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY"],
     region: "us-east1",
