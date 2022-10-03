@@ -63,7 +63,8 @@ const getCourseList = async (semester: string, prefix: string) => {
             return [
                 e.id, {
                     name: (courseTitle && courseTitle.textContent) ? courseTitle.textContent : "<unknown>",
-                    description: e.querySelector(".approved-course-texts-container")?.textContent!.trim().replace(/\t/g, "") ?? "<none>"
+                    description: e.querySelector(".approved-course-texts-container")?.textContent!.trim()
+                        .replace(/\t/g, "").replace(/\n\s*\n/g, '\n') ?? "<none>"
                 }
             ]
         }));
