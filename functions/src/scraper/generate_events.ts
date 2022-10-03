@@ -2,6 +2,16 @@ import * as crypto from "crypto";
 import {CourseEvent} from "../types";
 import {ScrapedCourse, ScrapedOutput, ScrapedSection} from "./scraper";
 
+function toOrderedString(obj: any) {
+    const allKeys = new Set();
+    JSON.stringify(obj, (key, value) => {
+        allKeys.add(key);
+        return value
+    });
+    // @ts-ignore
+    return JSON.stringify(obj, Array.from(allKeys).sort());
+}
+
 function emitCourseEvents(events: Array<Partial<CourseEvent>>, course: string, title: string,
                           previousCourse: Partial<ScrapedCourse>, newCourse: ScrapedCourse) {
     if (previousCourse.name !== newCourse.name) {
@@ -92,14 +102,14 @@ function emitSectionEvents(events: Array<Partial<CourseEvent>>, course: string, 
         });
     }
 
-    if (JSON.stringify(previousSection.meetings) !== JSON.stringify(newSection.meetings)) {
+    if (toOrderedString(previousSection.meetings) !== toOrderedString(newSection.meetings)) {
         events.push({
             type: "meeting_times_changed",
             course,
             title,
             section,
-            old: JSON.stringify(previousSection.meetings),
-            new: JSON.stringify(newSection.meetings),
+            old: toOrderedString(previousSection.meetings),
+            new: toOrderedString(newSection.meetings),
         });
     }
 }
