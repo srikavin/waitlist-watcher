@@ -3,7 +3,6 @@ import * as webpush from "web-push";
 
 import type {CloudEvent} from "firebase-functions/v2";
 import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
-import {CourseEvent} from "../types";
 
 import {discordWebhookQueue, rtdb, tasksClient} from "../common";
 import {getDiscordContent} from "./discord";
@@ -59,7 +58,7 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
 
     const promises: Promise<any>[] = [];
     const webhookPromises = [];
-    const discordBatch: Record<string, Array<Array<CourseEvent>>> = {}
+    const taskPromises: Array<Promise<any>> = [];
 
 
     for (const event of events) {
@@ -124,41 +123,22 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
                 webhookPromises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
             }
             if (sub_methods.discord) {
-                if (discordBatch[sub_methods.discord] === undefined) {
-                    discordBatch[sub_methods.discord] = [[]]
-                }
-
-                let batches = discordBatch[sub_methods.discord];
-
-                if (batches[batches.length - 1].length === 10) {
-                    batches.push([])
-                }
-
-                batches[batches.length - 1].push(event);
-            }
-        }
-    }
-
-    const taskPromises: Array<Promise<any>> = [];
-
-    for (const [discordHookUrl, batches] of Object.entries(discordBatch)) {
-        console.log("Notifying discord webhook with ", batches.length, " batches")
-
-        for (const batchEvents of batches) {
-            taskPromises.push(tasksClient.createTask({
-                parent: discordWebhookQueue,
-                task: {
-                    httpRequest: {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bot ${process.env.DISCORD_CLIENT_SECRET}`
-                        },
-                        httpMethod: 'POST',
-                        url: discordHookUrl,
-                        body: Buffer.from(JSON.stringify(getDiscordContent(batchEvents))).toString('base64')
+                console.log("Notifying", key, "through a discord web hook")
+                taskPromises.push(tasksClient.createTask({
+                    parent: discordWebhookQueue,
+                    task: {
+                        httpRequest: {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bot ${process.env.DISCORD_CLIENT_SECRET}`
+                            },
+                            httpMethod: 'POST',
+                            url: sub_methods.discord,
+                            body: Buffer.from(JSON.stringify(getDiscordContent([event]))).toString('base64')
+                        }
                     }
-                }
-            }));
+                }));
+            }
         }
     }
 
