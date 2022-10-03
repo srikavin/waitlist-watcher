@@ -20,12 +20,14 @@ export type EventTypes = 'course_added' |
     'course_removed' |
     'section_removed' |
     'course_name_changed' |
+    'course_description_changed' |
     'instructor_changed' |
     'total_seats_changed' |
     'open_seat_available' |
     'open_seats_changed' |
     'waitlist_changed' |
-    'holdfile_changed';
+    'holdfile_changed' |
+    'meeting_times_changed';
 
 export interface BaseEvent<T extends EventTypes = EventTypes> {
     id: string
@@ -61,12 +63,14 @@ export type CourseEventSectionAdded = ICourseSectionEvent<'section_added'>;
 export type CourseEventCourseRemoved = ICourseEvent<'course_removed'>;
 export type CourseEventSectionRemoved = ICourseSectionEvent<'section_removed'>;
 export type CourseEventCourseNameChanged = ICourseChangeEvent<'course_name_changed', string>;
+export type CourseEventCourseDescriptionChanged = ICourseChangeEvent<'course_description_changed', string>;
 export type CourseEventInstructorChanged = ICourseSectionChangeEvent<'instructor_changed', string>;
 export type CourseEventTotalSeatsChanged = ICourseSectionChangeEvent<'total_seats_changed', number>;
 export type CourseEventOpenSeatAvailable = ICourseSectionChangeEvent<'open_seat_available', number>;
 export type CourseEventOpenSeatsChanged = ICourseSectionChangeEvent<'open_seats_changed', number>;
 export type CourseEventWaitlistChanged = ICourseSectionChangeEvent<'waitlist_changed', number>;
 export type CourseEventHoldfileChanged = ICourseSectionChangeEvent<'holdfile_changed', number>;
+export type CourseEventMeetingTimesChanged = ICourseSectionChangeEvent<'meeting_times_changed', string>;
 
 export type AddRemoveEvents = CourseEventCourseAdded |
     CourseEventSectionAdded |
@@ -77,10 +81,12 @@ export type CourseEvent = CourseEventCourseAdded |
     CourseEventSectionAdded |
     CourseEventCourseRemoved |
     CourseEventCourseNameChanged |
+    CourseEventCourseDescriptionChanged |
     CourseEventSectionRemoved |
     CourseEventInstructorChanged |
     CourseEventTotalSeatsChanged |
     CourseEventOpenSeatAvailable |
     CourseEventOpenSeatsChanged |
     CourseEventWaitlistChanged |
-    CourseEventHoldfileChanged;
+    CourseEventHoldfileChanged |
+    CourseEventMeetingTimesChanged;

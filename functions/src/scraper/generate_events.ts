@@ -13,6 +13,15 @@ function emitCourseEvents(events: Array<Partial<CourseEvent>>, course: string, t
             new: newCourse.name,
         });
     }
+    if (previousCourse.description !== newCourse.description) {
+        events.push({
+            type: "course_description_changed",
+            course,
+            title: newCourse.name,
+            old: previousCourse.description,
+            new: newCourse.description
+        })
+    }
 }
 
 function emitSectionEvents(events: Array<Partial<CourseEvent>>, course: string, title: string, section: string,
@@ -80,6 +89,17 @@ function emitSectionEvents(events: Array<Partial<CourseEvent>>, course: string, 
             section,
             old: previousSection.holdfile,
             new: newSection.holdfile,
+        });
+    }
+
+    if (JSON.stringify(previousSection.meetings) !== JSON.stringify(newSection.meetings)) {
+        events.push({
+            type: "meeting_times_changed",
+            course,
+            title,
+            section,
+            old: JSON.stringify(previousSection.meetings),
+            new: JSON.stringify(newSection.meetings),
         });
     }
 }

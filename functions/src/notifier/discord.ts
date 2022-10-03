@@ -175,6 +175,19 @@ const courseNameChanged = simpleChangeEvent(
     16734296
 );
 
+const courseDescriptionChanged = simpleChangeEvent(
+    (event) => `Course Description changed for ${event.course}`,
+    "Previous Course Description",
+    "New Course Description",
+    5814783
+);
+
+const meetingTimesChanged = simpleChangeEvent(
+    (event) => `Meeting Times changed for ${event.course}-${event.section}`,
+    "Previous Meeting Times",
+    "New Meeting Times",
+    16734296
+);
 
 const sectionRemoved = addRemoveEvent((event) => `Section ${event.course}-${event.section} Removed`);
 const sectionAdded = addRemoveEvent((event) => `Section ${event.course}-${event.section} Added`);
@@ -203,10 +216,12 @@ export const getDiscordContent = (events: Array<CourseEvent>) => {
         "waitlist_changed": waitlistChanged,
         "holdfile_changed": holdfileChanged,
         "course_name_changed": courseNameChanged,
+        "course_description_changed": courseDescriptionChanged,
+        "meeting_times_changed": meetingTimesChanged,
         "section_added": sectionAdded,
         "section_removed": sectionRemoved,
         "course_added": courseAdded,
-        "course_removed": courseRemoved
+        "course_removed": courseRemoved,
     }
 
     return {
