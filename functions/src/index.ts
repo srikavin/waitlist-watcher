@@ -8,7 +8,7 @@ import {scraperLauncher} from "./scraper";
 export const onCourseAddition202208 =
     functions
         .region('us-east4')
-        .runWith({memory: "128MB"})
+        .runWith({memory: "256MB"})
         .firestore.document("events/{course_name}").onWrite(onNewCourse("202208"));
 
 export const onCourseAddition202301 =
@@ -20,18 +20,18 @@ export const onCourseAddition202301 =
 export const onCourseRemove202208 =
     functions
         .region('us-east4')
-        .runWith({memory: "128MB"})
+        .runWith({memory: "256MB"})
         .firestore.document("events/{course_name}").onDelete(onRemoveCourse("202208"));
 
 export const onCourseRemove202301 =
     functions
         .region('us-east4')
-        .runWith({memory: "128MB"})
+        .runWith({memory: "256MB"})
         .firestore.document("events202301/{course_name}").onDelete(onRemoveCourse("202301"));
 
 export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 'gcf_gen1',
     secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY"],
     region: "us-east1"
