@@ -89,9 +89,11 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
                 "course_removed": true,
                 "course_added": true,
                 "course_name_changed": true,
+                "course_description_changed": true,
+                "meeting_times_changed": true,
                 "section_removed": true,
                 "section_added": true,
-                "instructor_changed": true
+                "instructor_changed": true,
             };
 
             const merged = {
