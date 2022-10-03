@@ -135,6 +135,3 @@ export const getSectionInformation = async (semester: string, prefix: string): P
             }]
         }));
 }
-
-
-getSectionInformation("202301", "CMSC").then(e => console.log(JSON.stringify(e)));
