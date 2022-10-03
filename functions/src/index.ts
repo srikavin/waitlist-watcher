@@ -9,13 +9,13 @@ export const onCourseAddition202208 =
     functions
         .region('us-east4')
         .runWith({memory: "256MB"})
-        .firestore.document("events/{course_name}").onWrite(onNewCourse("202208"));
+        .firestore.document("events/{course_name}").onCreate(onNewCourse("202208"));
 
 export const onCourseAddition202301 =
     functions
         .region('us-east4')
         .runWith({memory: "128MB"})
-        .firestore.document("events202301/{course_name}").onWrite(onNewCourse("202301"));
+        .firestore.document("events202301/{course_name}").onCreate(onNewCourse("202301"));
 
 export const onCourseRemove202208 =
     functions

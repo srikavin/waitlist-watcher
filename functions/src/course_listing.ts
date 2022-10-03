@@ -1,12 +1,12 @@
-import type {EventContext, Change} from "firebase-functions";
-import type {QueryDocumentSnapshot, DocumentSnapshot} from "firebase-admin/firestore";
-import {getFirestore, FieldValue} from "firebase-admin/firestore";
+import type {EventContext} from "firebase-functions";
+import type {QueryDocumentSnapshot} from "firebase-admin/firestore";
+import {FieldValue, getFirestore} from "firebase-admin/firestore";
 
-export const onNewCourse = (semester: string) => async (change: Change<DocumentSnapshot>, context: EventContext) => {
+export const onNewCourse = (semester: string) => async (snapshot: QueryDocumentSnapshot, context: EventContext) => {
     const db = getFirestore();
 
     await db.doc(`course_listing/${semester}`).set({
-        courses: FieldValue.arrayUnion(change.after.id)
+        courses: FieldValue.arrayUnion(snapshot.id)
     }, {merge: true});
 }
 
