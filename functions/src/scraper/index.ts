@@ -55,12 +55,10 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
 
     await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(data), {
         contentType: "application/json",
-        resumable: false,
         gzip: true
     });
     await historical_bucket.file(BUCKET_EVENTS_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(events), {
         contentType: "application/json",
-        resumable: false,
         gzip: true
     });
 
