@@ -81,7 +81,9 @@ module "appengine" {
 }
 
 resource "google_cloud_tasks_queue" "advanced_configuration" {
-  name     = "discord-webhook-queue"
+  count = 10
+
+  name     = "discord-webhook-queue-shard-${count.index}"
   location = var.region
 
   rate_limits {
@@ -90,7 +92,7 @@ resource "google_cloud_tasks_queue" "advanced_configuration" {
   }
 
   retry_config {
-    max_attempts       = 15
+    max_attempts       = 6
     max_retry_duration = "1000s"
     max_backoff        = "3600s"
     min_backoff        = "15s"
@@ -98,6 +100,6 @@ resource "google_cloud_tasks_queue" "advanced_configuration" {
   }
 
   stackdriver_logging_config {
-    sampling_ratio = 1.0
+    sampling_ratio = 0.1
   }
 }

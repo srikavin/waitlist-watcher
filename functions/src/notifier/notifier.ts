@@ -4,7 +4,7 @@ import * as webpush from "web-push";
 import type {CloudEvent} from "firebase-functions/v2";
 import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 
-import {discordWebhookQueue, rtdb, tasksClient} from "../common";
+import {discordWebhookQueue, discordWebhookQueueShard, rtdb, tasksClient} from "../common";
 import {getDiscordContent} from "./discord";
 
 const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
@@ -125,7 +125,7 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
             if (sub_methods.discord) {
                 console.log("Notifying", key, "through a discord web hook")
                 taskPromises.push(tasksClient.createTask({
-                    parent: discordWebhookQueue,
+                    parent: discordWebhookQueue(discordWebhookQueueShard(sub_methods.discord as string)),
                     task: {
                         httpRequest: {
                             headers: {
