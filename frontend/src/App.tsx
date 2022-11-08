@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import './App.css'
 
-import {auth, db} from "./firebase";
+import {auth, db, realtime_db} from "./firebase";
 import type {User} from "firebase/auth";
 import {signInWithCustomToken} from 'firebase/auth';
 import {AuthContext} from './context/AuthContext';
@@ -18,6 +18,8 @@ import {DepartmentsScreen} from "./screens/DepartmentsScreen/DepartmentsScreen";
 import {doc, getDocFromServer} from "firebase/firestore";
 import {getDocFromCache} from "@firebase/firestore";
 import {useTitle} from "./util/useTitle";
+import {onValue, ref} from "firebase/database";
+import {UserSubscriptionsContext} from "./context/UserSubscriptions";
 
 const semesters = {
     "202208": {
@@ -65,6 +67,7 @@ function App() {
     const navigate = useNavigate();
     let [searchParams, _] = useSearchParams({semester: "202301"});
     const [semester, setSemester] = useState(searchParams.get("semester")!);
+    const [userSubscriptions, setUserSubscriptions] = useState({});
 
     useEffect(() => {
         if (!localStorage.customToken) return;
@@ -106,6 +109,17 @@ function App() {
         });
     }, [semester])
 
+    useEffect(() => {
+        if (!user) return;
+        return onValue(ref(realtime_db, "user_settings/" + user!.uid + "/subscriptions"), e => {
+            if (e.exists()) {
+                setUserSubscriptions(e.val())
+            } else {
+                setUserSubscriptions({})
+            }
+        });
+    }, [user]);
+
     const authCtx = {
         isAuthed: !!auth.currentUser,
         getUser: () => user as User,
@@ -129,11 +143,13 @@ function App() {
     return (
         <AuthContext.Provider value={authCtx}>
             <SemesterContext.Provider value={semesterCtx}>
-                <Navigation/>
-                <Routes>
-                    <Route path="/" element={<LandingPageScreen/>}/>
-                    <Route path="*" element={<PageRenderer/>}/>
-                </Routes>
+                <UserSubscriptionsContext.Provider value={{userSubscriptions}}>
+                    <Navigation/>
+                    <Routes>
+                        <Route path="/" element={<LandingPageScreen/>}/>
+                        <Route path="*" element={<PageRenderer/>}/>
+                    </Routes>
+                </UserSubscriptionsContext.Provider>
             </SemesterContext.Provider>
         </AuthContext.Provider>
     )

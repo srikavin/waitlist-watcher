@@ -18,6 +18,7 @@ import {get, onValue, ref, remove, set} from "firebase/database";
 import {notifWorker} from "../../main";
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 import {useTitle} from "../../util/useTitle";
+import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
 
 function EnableNotificationsButton() {
     const [isLoading, setIsLoading] = useState(false);
@@ -111,20 +112,9 @@ function EnableNotificationsButton() {
 
 function CurrentSubscriptions() {
     const {isAuthed, getUser} = useContext(AuthContext);
+    const {userSubscriptions} = useContext(UserSubscriptionsContext);
 
-    const [subscriptions, setSubscriptions] = useState({});
-
-    useEffect(() => {
-        return onValue(ref(realtime_db, "user_settings/" + getUser()!.uid + "/subscriptions"), e => {
-            if (e.exists()) {
-                setSubscriptions(e.val())
-            } else {
-                setSubscriptions({})
-            }
-        });
-    }, [isAuthed, getUser(), setSubscriptions]);
-
-    if (Object.keys(subscriptions).length === 0) {
+    if (Object.keys(userSubscriptions).length === 0) {
         return (
             <EmptyState
                 title="You have no subscriptions"
@@ -138,7 +128,7 @@ function CurrentSubscriptions() {
     return (
         <Pane display="flex" flexDirection="column">
             {
-                Object.entries(subscriptions).map(([k, v]) => (
+                Object.entries(userSubscriptions).map(([k, v]) => (
                     <Pane key={k} display="flex" gap={10} marginY={5}>
                         <Text>{k}</Text>
                         {k.includes('-') ? (

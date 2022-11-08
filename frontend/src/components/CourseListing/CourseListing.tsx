@@ -9,6 +9,7 @@ import {get, ref, update} from "firebase/database";
 import ProfessorNames from "../ProfessorName/ProfessorNames";
 import {Link} from "react-router-dom";
 import {SemesterContext} from "../../context/SemesterContext";
+import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
 
 dayjs.extend(relativeTime);
 
@@ -39,6 +40,7 @@ interface CourseData {
 }
 
 interface WatchButtonBaseProps {
+    id: string,
     subscriptionState: Record<string, boolean>;
     updateSubscriptionState: (newState: any) => any;
     subscriptionLabels: Record<string, string>;
@@ -53,6 +55,7 @@ interface WatchButtonBaseProps {
 
 export function WatchButtonBase(props: WatchButtonBaseProps) {
     const {
+        id,
         subscriptionState,
         updateSubscriptionState,
         subscriptionLabels,
@@ -61,10 +64,11 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
         isLoading,
         title,
         label,
-        onSave
+        onSave,
     } = props;
 
     const {isAuthed} = useContext(AuthContext);
+    const {userSubscriptions} = useContext(UserSubscriptionsContext);
 
     return (
         <Popover
@@ -110,11 +114,11 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
                                 All</Button>
                         </Pane>
                     </Pane>
-                    <Button isLoading={isLoading} onClick={() => onSave(() => setTimeout(close, 2000))}>Save</Button>
+                    <Button isLoading={isLoading} onClick={() => onSave(close)}>Save</Button>
                 </Pane>
             )}
         >
-            <Button>{label}</Button>
+            <Button appearance={(id in userSubscriptions) ? "primary" : "default"}>{label}</Button>
         </Popover>
     );
 }
@@ -130,6 +134,11 @@ interface WatchCourseButtonProps {
     label?: string;
 }
 
+interface WatchDepartmentButtonProps {
+    departmentName: string,
+    label?: string;
+}
+
 export function WatchButton(props: WatchButtonProps) {
     const {courseName, sectionName} = props;
 
@@ -139,23 +148,27 @@ export function WatchButton(props: WatchButtonProps) {
     const [isErrored, setIsErrored] = useState(false);
 
     const subscriptionDefaults = {
-        instructor_changed: true,
-        open_seat_available: true,
+        section_added: true,
         section_removed: true,
+        instructor_changed: true,
+        total_seats_changed: true,
+        open_seat_available: true,
+        open_seats_changed: true,
         waitlist_changed: true,
-        holdfile_changed: false,
-        open_seats_changed: false,
-        total_seats_changed: false
+        holdfile_changed: true,
+        meeting_times_changed: true
     };
 
     const subscriptionLabels = {
-        instructor_changed: "Instructor changed",
-        open_seat_available: "Open seat available",
+        section_added: "Section added",
         section_removed: "Section removed",
-        waitlist_changed: "Waitlist changed",
-        holdfile_changed: "Holdfile changed",
-        open_seats_changed: "Open seats changed",
-        total_seats_changed: "Total seats changed"
+        instructor_changed: "Section instructor changed",
+        total_seats_changed: "Section total seats changed",
+        open_seat_available: "Open seat available",
+        open_seats_changed: "Section open seats changed",
+        waitlist_changed: "Section waitlist changed",
+        holdfile_changed: "Section holdfile changed",
+        meeting_times_changed: "Section meeting times changed",
     };
 
     const [subscriptions, setSubscriptions] = useState(subscriptionDefaults);
@@ -190,6 +203,7 @@ export function WatchButton(props: WatchButtonProps) {
         update(ref(realtime_db), updates)
             .then(() => {
                 setIsSaving(false);
+                closePopover();
             })
             .catch((e) => {
                 setIsSaving(false);
@@ -199,9 +213,10 @@ export function WatchButton(props: WatchButtonProps) {
     }, [courseName, sectionName, subscriptions])
 
     return (
-        <WatchButtonBase subscriptionState={subscriptions} updateSubscriptionState={setSubscriptions}
-                         subscriptionLabels={subscriptionLabels} onOpen={onPopoverOpen} isLoading={isSaving}
-                         isErrored={isErrored} title={`Watch ${courseName}-${sectionName}`} onSave={onSave}
+        <WatchButtonBase id={`${courseName}-${sectionName}`} subscriptionState={subscriptions}
+                         updateSubscriptionState={setSubscriptions} subscriptionLabels={subscriptionLabels}
+                         onOpen={onPopoverOpen} isLoading={isSaving} isErrored={isErrored}
+                         title={`Watch ${courseName}-${sectionName}`} onSave={onSave}
                          label={props.label || 'Watch'}/>
     )
 }
@@ -215,27 +230,35 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
     const [isErrored, setIsErrored] = useState(false);
 
     const subscriptionDefaults = {
-        course_removed: true,
+        course_added: true,
         section_added: true,
-        instructor_changed: true,
-        open_seat_available: true,
+        course_removed: true,
         section_removed: true,
+        course_name_changed: true,
+        course_description_changed: true,
+        instructor_changed: true,
+        total_seats_changed: true,
+        open_seat_available: true,
+        open_seats_changed: false,
         waitlist_changed: true,
         holdfile_changed: false,
-        open_seats_changed: false,
-        total_seats_changed: false
+        meeting_times_changed: true
     };
 
     const subscriptionLabels = {
-        course_removed: "Course removed",
+        course_added: "Course added",
         section_added: "Section added",
-        instructor_changed: "Section instructor changed",
-        open_seat_available: "Open seat available",
+        course_removed: "Course removed",
         section_removed: "Section removed",
+        course_name_changed: "Course name changed",
+        course_description_changed: "Course description changed",
+        instructor_changed: "Section instructor changed",
+        total_seats_changed: "Section total seats changed",
+        open_seat_available: "Open seat available",
+        open_seats_changed: "Section open seats changed",
         waitlist_changed: "Section waitlist changed",
         holdfile_changed: "Section holdfile changed",
-        open_seats_changed: "Section open seats changed",
-        total_seats_changed: "Section total seats changed"
+        meeting_times_changed: "Section meeting times changed",
     };
 
     const [subscriptions, setSubscriptions] = useState(subscriptionDefaults);
@@ -280,10 +303,100 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
     }, [courseName, subscriptions])
 
     return (
-        <WatchButtonBase subscriptionState={subscriptions} updateSubscriptionState={setSubscriptions}
+        <WatchButtonBase id={courseName} subscriptionState={subscriptions} updateSubscriptionState={setSubscriptions}
                          subscriptionLabels={subscriptionLabels} onOpen={onPopoverOpen} isLoading={isSaving}
                          isErrored={isErrored} title={`Watch ${courseName}`} onSave={onSave}
                          label={props.label || 'Watch'}/>
+    )
+}
+
+export function WatchDepartmentButton(props: WatchDepartmentButtonProps) {
+    const {departmentName} = props;
+
+    const {isAuthed, getUser} = useContext(AuthContext);
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [isErrored, setIsErrored] = useState(false);
+
+    const subscriptionDefaults = {
+        course_added: true,
+        section_added: true,
+        course_removed: true,
+        section_removed: true,
+        course_name_changed: true,
+        course_description_changed: true,
+        instructor_changed: true,
+        total_seats_changed: true,
+        open_seat_available: true,
+        open_seats_changed: false,
+        waitlist_changed: false,
+        holdfile_changed: false,
+        meeting_times_changed: false
+    };
+
+    const subscriptionLabels = {
+        course_added: "Course added",
+        section_added: "Section added",
+        course_removed: "Course removed",
+        section_removed: "Section removed",
+        course_name_changed: "Course name changed",
+        course_description_changed: "Course description changed",
+        instructor_changed: "Section instructor changed",
+        total_seats_changed: "Section total seats changed",
+        open_seat_available: "Open seat available",
+        open_seats_changed: "Section open seats changed",
+        waitlist_changed: "Section waitlist changed",
+        holdfile_changed: "Section holdfile changed",
+        meeting_times_changed: "Section meeting times changed",
+    };
+
+    const [subscriptions, setSubscriptions] = useState(subscriptionDefaults);
+
+    const onPopoverOpen = useCallback(() => {
+        if (!isAuthed) return;
+
+        const subscriptionsRef = ref(realtime_db, `department_subscriptions/${departmentName}/${getUser()?.uid}`);
+
+        get(subscriptionsRef).then((snapshot) => {
+            if (!snapshot.exists()) {
+                return;
+            }
+
+            setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
+        });
+    }, [isAuthed, departmentName, getUser, setSubscriptions]);
+
+    const onSave = useCallback((closePopover: () => void) => {
+        if (!isAuthed) return;
+
+        const updates: any = {};
+
+        const filteredEntries = Object.fromEntries(Object.entries(subscriptions).filter(([_, val]) => val));
+
+        updates[`department_subscriptions/${departmentName}/${getUser()!.uid}`] = filteredEntries;
+        updates[`user_settings/${getUser()!.uid}/subscriptions/${departmentName}`] = filteredEntries;
+
+        setIsSaving(true);
+        setIsErrored(false);
+
+        update(ref(realtime_db), updates)
+            .then(() => {
+                setIsSaving(false);
+                closePopover();
+            })
+            .catch((e) => {
+                setIsSaving(false);
+                setIsErrored(true);
+                console.error(e);
+            })
+    }, [departmentName, subscriptions])
+
+    return (
+        <WatchButtonBase id={departmentName} subscriptionState={subscriptions}
+                         updateSubscriptionState={setSubscriptions}
+                         subscriptionLabels={subscriptionLabels} onOpen={onPopoverOpen} isLoading={isSaving}
+                         isErrored={isErrored} title={`Watch ${departmentName}`} onSave={onSave}
+                         label={props.label || 'Watch Department'}/>
     )
 }
 
@@ -307,7 +420,10 @@ export function CourseListing(props: CourseListingProps) {
 
     const headingPane = (
         <Pane display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" width="fit-content">
-            <Heading size={900}>{prefix}</Heading>
+            <Pane display="flex" flexDirection="row" gap={8}>
+                <Heading size={900}>{prefix}</Heading>
+                <WatchDepartmentButton departmentName={prefix}/>
+            </Pane>
             <Tooltip content={`${courses?.lastRun}\nUpdated a total of ${courses?.updateCount} times`}>
                 <Text>Last updated {dayjs().to(courses?.lastRun ?? -1)}</Text>
             </Tooltip>
