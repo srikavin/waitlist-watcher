@@ -13,7 +13,7 @@ import {
     TextInput,
     TextInputField
 } from "evergreen-ui";
-import {auth, realtime_db} from "../../firebase";
+import {auth, realtime_db, testNotifyFunction} from "../../firebase";
 import {get, onValue, ref, remove, set} from "firebase/database";
 import {notifWorker} from "../../main";
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
@@ -169,9 +169,9 @@ function NotificationSettings() {
     const isModified = storedDiscordUrl !== discordUrl || storedWebhookUrl !== webhookUrl;
 
     const save = useCallback(() => {
-        if (!isAuthed) return;
+        if (!isAuthed) return Promise.resolve();
 
-        (async () => {
+        return (async () => {
             setIsLoading(true);
             try {
                 await set(discordUrlRef, discordUrl);
@@ -185,7 +185,6 @@ function NotificationSettings() {
             }
             setTimeout(() => setStatusText(''), 5000);
         })();
-
     }, [isAuthed, discordUrl, webhookUrl])
 
     useEffect(() => {
@@ -239,7 +238,18 @@ function NotificationSettings() {
                     onChange={(e: any) => setWebhookUrl(e.target.value)}
                 />
             </Pane>
-            <Button onClick={save} isLoading={isLoading} appearance={isModified ? "primary" : "default"}>Save</Button>
+            <Pane marginRight={12} display={"inline"}>
+                <Button onClick={save} isLoading={isLoading}
+                        appearance={isModified ? "primary" : "default"}>Save</Button>
+            </Pane>
+                <Button onClick={() => {
+                    setIsLoading(true);
+                    save().then(() => {
+                        testNotifyFunction()
+                            .then(() => setStatusText("Sent test notification!"))
+                            .finally(() => setIsLoading(false));
+                    })
+                }} appearance={isModified ? "primary" : "default"}>Save and Send Test Notification</Button>
             <Pane marginLeft={20} display="inline"><Text>{statusText}</Text></Pane>
         </>
     );
