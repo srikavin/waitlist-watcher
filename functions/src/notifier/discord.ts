@@ -24,6 +24,18 @@ const mapSemester = (semester: string) => {
     return semester;
 }
 
+const discordFieldValue = (x: string) => {
+    if (x.trim().length == 0) {
+        return "<empty>";
+    }
+
+    if (x.length > 1000) {
+        return x.substring(0, 1000) + "..."
+    }
+
+    return x;
+}
+
 const seatAvailable = (event: CourseEventOpenSeatAvailable) => {
     return {
         "title": `Open Seat Available in ${event.course}-${event.section}`,
@@ -37,22 +49,22 @@ const seatAvailable = (event: CourseEventOpenSeatAvailable) => {
             },
             {
                 "name": "Course Code",
-                "value": event.course,
+                "value": discordFieldValue(event.course),
                 "inline": true
             },
             {
                 "name": "Section",
-                "value": event.section,
+                "value": discordFieldValue(event.section),
                 "inline": true
             },
             {
                 "name": "Semester",
-                "value": mapSemester(event.semester),
+                "value": discordFieldValue(mapSemester(event.semester)),
                 "inline": true
             },
             {
                 "name": "Seats Available",
-                "value": String(event.new)
+                "value": discordFieldValue(String(event.new))
             }
         ],
         "footer": generateFooter(event)
@@ -68,22 +80,22 @@ const addRemoveEvent = (title_fn: (event: AddRemoveEvents) => string) => {
             "fields": [
                 {
                     "name": "Course Title",
-                    "value": String(event.title),
+                    "value": discordFieldValue(String(event.title)),
                     "inline": true
                 },
                 {
                     "name": "Course Code",
-                    "value": event.course,
+                    "value": discordFieldValue(event.course),
                     "inline": true
                 },
                 ...(event.section ? [{
                     "name": "Section",
-                    "value": event.section,
+                    "value": discordFieldValue(event.section),
                     "inline": true
                 }] : []),
                 {
                     "name": "Semester",
-                    "value": mapSemester(event.semester),
+                    "value": discordFieldValue(mapSemester(event.semester)),
                     "inline": true
                 },
             ],
@@ -101,31 +113,31 @@ const simpleChangeEvent = (title_fn: (event: IChangeEvent<any, any>) => string, 
             "fields": [
                 {
                     "name": "Course Title",
-                    "value": String(event.title),
+                    "value": discordFieldValue(String(event.title)),
                     "inline": true
                 },
                 {
                     "name": "Course Code",
-                    "value": String(event.course),
+                    "value": discordFieldValue(String(event.course)),
                     "inline": true
                 },
                 ...(event.section ? [{
                     "name": "Section",
-                    "value": event.section,
+                    "value": discordFieldValue(event.section),
                     "inline": true
                 }] : []),
                 {
                     "name": "Semester",
-                    "value": mapSemester(event.semester),
+                    "value": discordFieldValue(mapSemester(event.semester)),
                     "inline": true
                 },
                 {
                     "name": old_title,
-                    "value": String(event.old).substring(0, 1023)
+                    "value": discordFieldValue(String(event.old))
                 },
                 {
                     "name": new_title,
-                    "value": String(event.new).substring(0, 1023)
+                    "value": discordFieldValue(String(event.new))
                 }
             ],
             "footer": generateFooter(event)
@@ -200,8 +212,8 @@ const unknownEvent = (event: any) => {
         "url": generateUrl(event),
         "color": 16734296,
         "fields": Object.entries(event).map(([k, v]) => ({
-            "name": JSON.stringify(k),
-            "value": JSON.stringify(v)
+            "name": discordFieldValue(JSON.stringify(k)),
+            "value": discordFieldValue(JSON.stringify(v))
         })),
         "footer": generateFooter(event)
     };
