@@ -1,7 +1,7 @@
 import {doc, onSnapshot} from "firebase/firestore";
 import {db} from "../../firebase";
 import {useContext, useEffect, useState} from "react";
-import {Card, EmptyState, Heading, Pane, SearchTemplateIcon} from "evergreen-ui";
+import {Card, EmptyState, Heading, Pane, SearchTemplateIcon, Text} from "evergreen-ui";
 import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
@@ -9,6 +9,8 @@ import {Label, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tool
 import {Link} from "react-router-dom";
 import {SemesterContext} from "../../context/SemesterContext";
 import {useTitle} from "../../util/useTitle";
+import {ViewOnTestudo} from "../../components/ViewOnTestudo/ViewOnTestudo";
+import {AddToSchedule} from "../../components/AddToSchedule/AddToSchedule";
 
 interface FormattedCourseEventProps {
     event: object
@@ -167,12 +169,20 @@ export function HistoryScreen(props: HistoryScreenProps) {
 
     return (
         <>
-            <Heading size={900} marginBottom={8}>
-                {minimal ? <Link to={`/history/${name}`}>{name}</Link> : name}{" "}
-                {isSection ?
-                    <WatchButton courseName={courseName} sectionName={sectionName}/> :
-                    <WatchCourseButton courseName={name}/>}
-            </Heading>
+            <Pane display="flex" flexDirection="column" marginBottom={12}>
+                <Heading size={900}>
+                    {minimal ? <Link to={`/history/${name}`}>{name}</Link> : (
+                        isSection ? <><Link to={`/history/${courseName}`}>{courseName}</Link> {sectionName}</> : name
+                    )}{" "}
+                    {isSection ?
+                        <WatchButton courseName={courseName} sectionName={sectionName}/> :
+                        <WatchCourseButton courseName={name}/>}
+                </Heading>
+                <Pane display={"flex"} gap={16}>
+                    <Text size={500}><ViewOnTestudo course={courseName} section={sectionName}/></Text>
+                    <Text size={500}>{isSection && <AddToSchedule course={courseName} section={sectionName}/>}</Text>
+                </Pane>
+            </Pane>
             <Pane display="flex" gap={10} flexDirection="column" marginBottom={28}>
                 <Card border="1px solid #c1c4d6" paddingY={12} paddingX={16}>
                     {events.length === 0 ? (
