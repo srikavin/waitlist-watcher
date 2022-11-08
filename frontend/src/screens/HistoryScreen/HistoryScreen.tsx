@@ -13,6 +13,14 @@ interface FormattedCourseEventProps {
     event: object
 }
 
+function MeetingTimeChanged(props: { event_data: any }) {
+    const {event_data} = props;
+
+    return JSON.parse(event_data).map((e: any, idx: number) => (
+        <div key={idx}>{e.days} {e.start} - {e.end} {e.location.buildingCode} {e.location.classRoom} </div>
+    ));
+}
+
 export function FormattedCourseEvent(props: FormattedCourseEventProps) {
     const {event} = props as any;
 
@@ -27,7 +35,9 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
         'open_seat_available': 'Open Seat Became Available',
         'open_seats_changed': 'Open Seats Changed',
         'waitlist_changed': 'Waitlist Changed',
-        'holdfile_changed': 'Holdfile Changed'
+        'holdfile_changed': 'Holdfile Changed',
+        'course_description_changed': 'Course Description Changed',
+        'meeting_times_changed': 'Meeting Times Changed'
     }
 
     if (event.type === 'open_seat_available') return null;
@@ -36,7 +46,7 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
         return (
             <>
                 <b>Unknown Event</b>
-                <pre>{JSON.stringify(event)}</pre>
+                <pre className={styles.nowrap}>{JSON.stringify(event)}</pre>
             </>
         )
     }
@@ -49,13 +59,27 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
                 {event.type === 'course_added' && event.title ? <> ({event.course})</> : ''}
             </b>
             {event.old !== undefined ? (
-                <>from
-                    <s>
-                        <pre className={styles.old}>'{event.old}'</pre>
-                    </s>
+                <>from <s>
+                        <pre className={styles.old}>
+                        {event.type === 'meeting_times_changed' ? (
+                            <MeetingTimeChanged event_data={event.old}/>
+                        ) : (
+                            <>'{event.old}'</>
+                        )}
+                    </pre>
+                </s>
                 </>
             ) : ''}
-            {event.new !== undefined ? <>to <pre className={styles.new}>'{event.new}'</pre></> : ''}
+            {event.new !== undefined ? (
+                <>to <pre className={styles.new}>
+                    {event.type === 'meeting_times_changed' ? (
+                        <MeetingTimeChanged event_data={event.new}/>
+                    ) : (
+                        <>'{event.new}'</>
+                    )}
+                    </pre>
+                </>
+            ) : ''}
         </Pane>
     );
 }
@@ -116,6 +140,8 @@ export function HistoryScreen(props: HistoryScreenProps) {
     const {semester, semesters, courseListing} = useContext(SemesterContext);
 
     const isSection = name.includes('-');
+    const courseName = name.split('-')[0];
+    const sectionName = isSection ? name.split('-')[1] : '';
 
     const [events, setEvents] = useState<Array<any>>([])
 
@@ -141,7 +167,7 @@ export function HistoryScreen(props: HistoryScreenProps) {
             <Heading size={900} marginBottom={8}>
                 {minimal ? <Link to={`/history/${name}`}>{name}</Link> : name}{" "}
                 {isSection ?
-                    <WatchButton courseName={name.split('-')[0]} sectionName={name.split('-')[1]}/> :
+                    <WatchButton courseName={courseName} sectionName={sectionName}/> :
                     <WatchCourseButton courseName={name}/>}
             </Heading>
             <Pane display="flex" gap={10} flexDirection="column" marginBottom={28}>

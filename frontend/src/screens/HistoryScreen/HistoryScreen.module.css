@@ -13,3 +13,9 @@
     white-space: pre-wrap;
     word-wrap: break-word;
 }
+
+.nowrap {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

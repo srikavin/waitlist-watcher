@@ -44,10 +44,10 @@ export function ProfessorName(props: ProfessorNameProps) {
 export default function ProfessorNames(props: ProfessorNameProps) {
     return (
         <>
-            {props.name.split(",").map((name) => (
-                <>
+            {props.name.split(",").map((name, index) => (
+                <div key={index}>
                     <ProfessorName name={name.trim()}/><br/>
-                </>
+                </div>
             ))}
         </>
     )

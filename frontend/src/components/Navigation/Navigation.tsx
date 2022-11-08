@@ -33,7 +33,7 @@ export function Navigation() {
                     <Button marginLeft={10} appearance="primary" onClick={() => navigate("/login")}>Get Started</Button>
                 ) : (
                     <>
-                        <Button appearance="minimal" onClick={() => navigate("/profile")}>{getUser()!.email}</Button>
+                        <Button appearance="minimal" onClick={() => navigate("/profile")}>{getUser()?.email ?? '<loading>'}</Button>
                         <Button marginRight={8} intent="danger" appearance="minimal" onClick={logout}>Logout</Button>
                     </>
                 )}

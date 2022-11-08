@@ -8,7 +8,7 @@ import {AuthContext} from './context/AuthContext';
 import {SemesterContext} from "./context/SemesterContext";
 import {Card} from 'evergreen-ui'
 import {Navigation} from "./components/Navigation/Navigation";
-import {BrowserRouter, Route, Routes, useParams} from "react-router-dom";
+import {Route, Routes, useLocation, useParams, useSearchParams} from "react-router-dom";
 import {LandingPageScreen} from "./screens/LandingPageScreen/LandingPageScreen";
 import {CourseListing} from "./components/CourseListing/CourseListing";
 import {ProfileScreen} from "./screens/ProfileScreen/ProfileScreen";
@@ -47,8 +47,10 @@ function PageRenderer() {
 
 function App() {
     const [user, setUser] = useState<User>();
-    const [semester, setSemester] = useState("202301");
     const [courseListing, setCourseListing] = useState([]);
+    const location = useLocation();
+    let [searchParams, setSearchParams] = useSearchParams({semester: "202301"});
+    const [semester, setSemester] = useState(searchParams.get("semester")!);
 
     useEffect(() => {
         if (!localStorage.customToken) return;
@@ -71,6 +73,11 @@ function App() {
             }
         });
     }, [setUser]);
+
+    useEffect(() => {
+        if (new URLSearchParams(location.search).get("semester") !== semester)
+            setSearchParams({semester: semester!});
+    }, [semester, location, setSearchParams])
 
     useEffect(() => {
         const semesterDoc = doc(db, `course_listing/${semester}`);
@@ -105,17 +112,15 @@ function App() {
     }
 
     return (
-        <BrowserRouter>
-            <AuthContext.Provider value={authCtx}>
-                <SemesterContext.Provider value={semesterCtx}>
-                    <Navigation/>
-                    <Routes>
-                        <Route path="/" element={<LandingPageScreen/>}/>
-                        <Route path="*" element={<PageRenderer/>}/>
-                    </Routes>
-                </SemesterContext.Provider>
-            </AuthContext.Provider>
-        </BrowserRouter>
+        <AuthContext.Provider value={authCtx}>
+            <SemesterContext.Provider value={semesterCtx}>
+                <Navigation/>
+                <Routes>
+                    <Route path="/" element={<LandingPageScreen/>}/>
+                    <Route path="*" element={<PageRenderer/>}/>
+                </Routes>
+            </SemesterContext.Provider>
+        </AuthContext.Provider>
     )
 }
 
