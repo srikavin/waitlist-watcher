@@ -5,6 +5,7 @@ import {LoginWithUMD} from "../../components/LoginWithUMD/LoginWithUMD";
 import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
 import {useNavigate} from "react-router-dom";
 import {AuthContext} from "../../context/AuthContext";
+import {useTitle} from "../../util/useTitle";
 
 
 export function LoginScreen() {
@@ -18,6 +19,7 @@ export function LoginScreen() {
     const [password, setPassword] = useState('');
 
     const navigate = useNavigate();
+    useTitle(`Login/Sign up`);
 
     const {isAuthed} = useContext(AuthContext);
 

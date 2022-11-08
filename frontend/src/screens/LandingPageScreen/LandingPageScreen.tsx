@@ -17,6 +17,7 @@ import {
 import {CircleContainer} from "../../components/CircleContainer/CircleContainer";
 import {NavLink} from "react-router-dom";
 import {Search} from "../../components/Search/Search";
+import {useTitle} from "../../util/useTitle";
 
 function NotificationInfo(props: { icon: any, title: string, description: string }) {
     return (
@@ -34,6 +35,7 @@ function NotificationInfo(props: { icon: any, title: string, description: string
 
 export function LandingPageScreen() {
     const {isAuthed} = useContext(AuthContext);
+    useTitle("Waitlist Watcher");
 
     return (
         <Pane overflowX="hidden">

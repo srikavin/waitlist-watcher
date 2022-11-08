@@ -17,6 +17,7 @@ import {auth, realtime_db, testNotifyFunction} from "../../firebase";
 import {get, onValue, ref, remove, set} from "firebase/database";
 import {notifWorker} from "../../main";
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
+import {useTitle} from "../../util/useTitle";
 
 function EnableNotificationsButton() {
     const [isLoading, setIsLoading] = useState(false);
@@ -291,6 +292,7 @@ function DeleteAccount() {
 
 export function ProfileScreen() {
     const {isAuthed, getUser} = useContext(AuthContext);
+    useTitle("User Settings");
 
     if (!isAuthed) {
         return <Text>Need to be logged in.</Text>;

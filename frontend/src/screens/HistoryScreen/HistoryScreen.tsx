@@ -8,6 +8,7 @@ import {WatchButton, WatchCourseButton} from "../../components/CourseListing/Cou
 import {Label, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts";
 import {Link} from "react-router-dom";
 import {SemesterContext} from "../../context/SemesterContext";
+import {useTitle} from "../../util/useTitle";
 
 interface FormattedCourseEventProps {
     event: object
@@ -144,6 +145,8 @@ export function HistoryScreen(props: HistoryScreenProps) {
     const sectionName = isSection ? name.split('-')[1] : '';
 
     const [events, setEvents] = useState<Array<any>>([])
+
+    useTitle(`${name} Course History`);
 
     useEffect(() => {
         const removeListener = onSnapshot(doc(db, "events" + semesters[semester].suffix, name), (doc) => {

@@ -17,6 +17,7 @@ import {LoginScreen} from "./screens/LoginScreen/LoginScreen";
 import {DepartmentsScreen} from "./screens/DepartmentsScreen/DepartmentsScreen";
 import {doc, getDocFromServer} from "firebase/firestore";
 import {getDocFromCache} from "@firebase/firestore";
+import {useTitle} from "./util/useTitle";
 
 const semesters = {
     "202208": {
@@ -31,6 +32,7 @@ const semesters = {
 
 function PrefixRenderer() {
     let {prefix} = useParams();
+    useTitle(`${prefix} Courses`);
 
     return <CourseListing prefix={prefix!}/>
 }
