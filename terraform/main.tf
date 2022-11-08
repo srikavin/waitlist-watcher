@@ -92,7 +92,7 @@ resource "google_cloud_tasks_queue" "advanced_configuration" {
   }
 
   retry_config {
-    max_attempts       = 6
+    max_attempts       = 4
     max_retry_duration = "1000s"
     max_backoff        = "3600s"
     min_backoff        = "15s"
@@ -116,7 +116,7 @@ resource "google_cloud_tasks_queue" "webhook-queue" {
   }
 
   retry_config {
-    max_attempts       = 6
+    max_attempts       = 3
     max_retry_duration = "1000s"
     max_backoff        = "3600s"
     min_backoff        = "15s"
