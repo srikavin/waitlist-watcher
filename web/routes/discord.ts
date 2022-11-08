@@ -113,7 +113,7 @@ export const discordRoute = async (fastify: FastifyInstance, options: FastifyPlu
             };
         } else if (interaction.type === InteractionType.ApplicationCommand) {
             const interactionData = interaction.data as APIChatInputApplicationCommandInteractionData;
-            let discordUserId = `${interaction.guild_id}@guild@discord`;
+            let discordUserId = `${interaction.guild_id}@${interaction.channel_id}@guild@discord`;
             if (interaction.user) {
                 discordUserId = `${interaction.user.id}@user@DM@discord`;
             }
