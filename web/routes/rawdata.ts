@@ -12,6 +12,23 @@ const historical_bucket = storage.bucket('waitlist-watcher-historical-data')
 
 const firestore = getFirestore();
 
+const semesters = {
+    "202208": {
+        suffix: ''
+    },
+    "202301": {
+        suffix: "202301"
+    }
+}
+
+const validateSemester = (semester: string): semester is keyof typeof semesters => {
+    return semester in semesters;
+}
+
+const fs_course_data_path = (semester: keyof typeof semesters) => {
+    return 'course_data' + semesters[semester].suffix;
+}
+
 function constructFileResponse(file: File) {
     const parts = file.name.split('/');
     const date = parts[parts.length - 1].substring(0, parts[parts.length - 1].length - ".json".length);
@@ -29,13 +46,13 @@ function constructFileResponse(file: File) {
     }
 }
 
-async function getDepartments(): Promise<Array<string>> {
-    const cachedDepts = cache.get('departments');
+async function getDepartments(semester: keyof typeof semesters): Promise<Array<string>> {
+    const cachedDepts = cache.get('departments' + semester);
     if (cachedDepts !== undefined) {
         return cachedDepts as Array<string>;
     }
 
-    const documents = await firestore.collection('course_data').listDocuments();
+    const documents = await firestore.collection(fs_course_data_path(semester)).listDocuments();
 
     const depts = documents.map(d => d.id);
 
@@ -61,27 +78,28 @@ type FileListingResponse = {
     events: FileListingItem[]
 };
 
-async function getFileListing(dept: string): Promise<FileListingResponse> {
-    const cachedResponse = cache.get(dept);
+async function getFileListing(dept: string, semester: keyof typeof semesters): Promise<FileListingResponse> {
+    const cachedResponse = cache.get(dept + semester);
     if (cachedResponse !== undefined) {
         return cachedResponse as FileListingResponse;
     }
 
     const [snapshotFiles] = await historical_bucket.getFiles({
-        prefix: `snapshots/${dept}/`,
+        prefix: `${semester}/snapshots/${dept}/`,
     });
 
     const [eventFiles] = await historical_bucket.getFiles({
-        prefix: `events/${dept}/`,
+        prefix: `${semester}/events/${dept}/`,
     });
 
     const response = {
+        semester: semester,
         department: dept,
         snapshots: snapshotFiles.map(constructFileResponse),
         events: eventFiles.map(constructFileResponse)
     };
 
-    cache.set(dept, response, 60 * 60 * 30);
+    cache.set(dept + semester, response, 60 * 60 * 30);
 
     return response;
 }
@@ -101,16 +119,23 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
 
         const coursesAndSections = (await (await firestore.doc('course_listing/' + semester)).get()).get("courses");
 
-        cache.set('courses', coursesAndSections, 60 * 60);
+        cache.set('courses' + semester, coursesAndSections, 60 * 60);
 
         return coursesAndSections;
     });
 
-    fastify.get<{ Params: { dept: string } }>("/raw/:dept", async (request, reply) => {
-        let {dept} = request.params;
+    fastify.get<{ Params: { dept: string, semester: string } }>("/raw/:semester/:dept", async (request, reply) => {
+        let {dept, semester} = request.params;
         dept = dept.toUpperCase();
 
-        const departments = await getDepartments();
+        if (!validateSemester(semester)) {
+            return {
+                error: `Unknown semester: '${semester}'`,
+                known_semesters: Object.keys(semesters)
+            };
+        }
+
+        const departments = await getDepartments(semester);
 
         if (!departments.includes(dept)) {
             return {
@@ -119,14 +144,21 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
             };
         }
 
-        return await getFileListing(dept);
+        return await getFileListing(dept, semester);
     });
 
-    fastify.get<{ Params: { dept: string } }>("/raw/:dept/snapshots", async (request, reply) => {
-        let {dept} = request.params;
+    fastify.get<{ Params: { dept: string, semester: string } }>("/raw/:semester/:dept/snapshots", async (request, reply) => {
+        let {dept, semester} = request.params;
         dept = dept.toUpperCase();
 
-        const departments = await getDepartments();
+        if (!validateSemester(semester)) {
+            return {
+                error: `Unknown semester: '${semester}'`,
+                known_semesters: Object.keys(semesters)
+            };
+        }
+
+        const departments = await getDepartments(semester);
 
         if (!departments.includes(dept)) {
             return {
@@ -135,7 +167,7 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
             };
         }
 
-        const snapshots = (await getFileListing(dept)).snapshots;
+        const snapshots = (await getFileListing(dept, semester)).snapshots;
 
         return {
             'department': dept,
@@ -143,11 +175,18 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
         };
     });
 
-    fastify.get<{ Params: { dept: string } }>("/raw/:dept/events", async (request, reply) => {
-        let {dept} = request.params;
+    fastify.get<{ Params: { dept: string, semester: string } }>("/raw/:semester/:dept/events", async (request, reply) => {
+        let {dept, semester} = request.params;
         dept = dept.toUpperCase();
 
-        const departments = await getDepartments();
+        if (!validateSemester(semester)) {
+            return {
+                error: `Unknown semester: '${semester}'`,
+                known_semesters: Object.keys(semesters)
+            };
+        }
+
+        const departments = await getDepartments(semester);
 
         if (!departments.includes(dept)) {
             return {
@@ -156,7 +195,7 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
             };
         }
 
-        const events = (await getFileListing(dept)).events;
+        const events = (await getFileListing(dept, semester)).events;
 
         return {
             'department': dept,
