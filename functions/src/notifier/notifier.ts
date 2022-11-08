@@ -1,11 +1,10 @@
-import axios from "axios";
 import * as webpush from "web-push";
 
 import type {CloudEvent} from "firebase-functions/v2";
 import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 
-import {discordWebhookQueue, discordWebhookQueueShard, rtdb, tasksClient} from "../common";
-import {getDiscordContent} from "./discord";
+import {rtdb} from "../common";
+import {sendDiscordNotification, sendWebhookNotification, sendWebPushNotification} from "./send";
 
 const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
 
@@ -116,28 +115,15 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
 
             if (sub_methods.web_hook) {
                 console.log("Notifying", key, "through a web hook");
-                webhookPromises.push(axios.post(sub_methods.web_hook, event));
+                webhookPromises.push(sendWebhookNotification(sub_methods.web_hook, event));
             }
             if (sub_methods.web_push) {
                 console.log("Notifying", key, "through a web push");
-                webhookPromises.push(webpush.sendNotification(sub_methods.web_push, JSON.stringify({title: 'new update', ...event})));
+                webhookPromises.push(sendWebPushNotification(sub_methods.web_push, event));
             }
             if (sub_methods.discord) {
                 console.log("Notifying", key, "through a discord web hook")
-                taskPromises.push(tasksClient.createTask({
-                    parent: discordWebhookQueue(discordWebhookQueueShard(sub_methods.discord as string)),
-                    task: {
-                        httpRequest: {
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bot ${process.env.DISCORD_CLIENT_SECRET}`
-                            },
-                            httpMethod: 'POST',
-                            url: sub_methods.discord,
-                            body: Buffer.from(JSON.stringify(getDiscordContent([event]))).toString('base64')
-                        }
-                    }
-                }));
+                taskPromises.push(sendDiscordNotification(sub_methods.discord, event));
             }
         }
     }
