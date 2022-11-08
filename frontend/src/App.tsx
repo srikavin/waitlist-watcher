@@ -8,7 +8,7 @@ import {AuthContext} from './context/AuthContext';
 import {SemesterContext} from "./context/SemesterContext";
 import {Card} from 'evergreen-ui'
 import {Navigation} from "./components/Navigation/Navigation";
-import {Route, Routes, useLocation, useParams, useSearchParams} from "react-router-dom";
+import {Route, Routes, useLocation, useNavigate, useParams, useSearchParams} from "react-router-dom";
 import {LandingPageScreen} from "./screens/LandingPageScreen/LandingPageScreen";
 import {CourseListing} from "./components/CourseListing/CourseListing";
 import {ProfileScreen} from "./screens/ProfileScreen/ProfileScreen";
@@ -17,6 +17,17 @@ import {LoginScreen} from "./screens/LoginScreen/LoginScreen";
 import {DepartmentsScreen} from "./screens/DepartmentsScreen/DepartmentsScreen";
 import {doc, getDocFromServer} from "firebase/firestore";
 import {getDocFromCache} from "@firebase/firestore";
+
+const semesters = {
+    "202208": {
+        name: "Fall 2022",
+        suffix: ''
+    },
+    "202301": {
+        name: "Spring 2023",
+        suffix: "202301"
+    }
+};
 
 function PrefixRenderer() {
     let {prefix} = useParams();
@@ -49,7 +60,8 @@ function App() {
     const [user, setUser] = useState<User>();
     const [courseListing, setCourseListing] = useState([]);
     const location = useLocation();
-    let [searchParams, setSearchParams] = useSearchParams({semester: "202301"});
+    const navigate = useNavigate();
+    let [searchParams, _] = useSearchParams({semester: "202301"});
     const [semester, setSemester] = useState(searchParams.get("semester")!);
 
     useEffect(() => {
@@ -75,11 +87,17 @@ function App() {
     }, [setUser]);
 
     useEffect(() => {
-        if (new URLSearchParams(location.search).get("semester") !== semester)
-            setSearchParams({semester: semester!});
-    }, [semester, location, setSearchParams])
+        if (!(semester in semesters)) {
+            setSemester("202301");
+            navigate(location.pathname + "?" + new URLSearchParams({semester: "202301"}), {replace: true});
+        } else if (new URLSearchParams(location.search).get("semester") !== semester)
+            navigate(location.pathname + "?" + new URLSearchParams({semester}), {replace: true});
+    }, [semester, location])
 
     useEffect(() => {
+        if (!(semester in semesters)) {
+            return;
+        }
         const semesterDoc = doc(db, `course_listing/${semester}`);
         getDocFromCache(semesterDoc).catch(() => getDocFromServer(semesterDoc)).then((e) => {
             setCourseListing(e.get("courses"));
@@ -97,18 +115,13 @@ function App() {
 
     const semesterCtx = {
         semester: semester,
-        semesters: {
-            "202208": {
-                name: "Fall 2022",
-                suffix: ''
-            },
-            "202301": {
-                name: "Spring 2023",
-                suffix: "202301"
-            }
-        },
+        semesters,
         setSemester: setSemester,
         courseListing
+    }
+
+    if (!(semester in semesters)) {
+        return null;
     }
 
     return (

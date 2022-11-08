@@ -4,7 +4,9 @@ import App from './App'
 import './index.css'
 import {BrowserRouter} from "react-router-dom";
 
-export const notifWorker = navigator.serviceWorker.register("/sw.js");
+export const notifWorker = navigator.serviceWorker.register("/sw.js")
+    .then(registration => registration.update())
+    .catch(console.error);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
