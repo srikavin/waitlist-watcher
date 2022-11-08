@@ -1,12 +1,8 @@
-import * as webpush from "web-push";
-
 import type {CloudEvent} from "firebase-functions/v2";
 import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 
 import {rtdb} from "../common";
 import {publishNotifications} from "./send";
-
-const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
 
 export const sendNotifications = async (event: CloudEvent<MessagePublishedData>) => {
     const parsedData = JSON.parse(Buffer.from(event.data.message.data, 'base64').toString());
@@ -18,7 +14,6 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
         return;
     }
 
-    webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY!)
     console.log(process.env.VAPID_PRIV_KEY);
 
     console.log("Notifying users of changes in ", prefix, events.length);

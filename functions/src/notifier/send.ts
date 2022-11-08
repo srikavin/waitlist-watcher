@@ -3,6 +3,7 @@ import {
     discordWebhookQueueShardCount,
     shardQueueUrl,
     tasksClient,
+    webhookQueue,
     webhookQueueShardCount
 } from "../common";
 import {getDiscordContent} from "./discord";
@@ -12,7 +13,7 @@ import {PushSubscription} from "web-push";
 
 export const sendDiscordNotification = async (webhook_url: string, event: CourseEvent) => {
     return await tasksClient.createTask({
-        parent: discordWebhookQueue(shardQueueUrl(webhook_url, webhookQueueShardCount)),
+        parent: discordWebhookQueue(shardQueueUrl(webhook_url, discordWebhookQueueShardCount)),
         task: {
             httpRequest: {
                 headers: {
@@ -29,7 +30,7 @@ export const sendDiscordNotification = async (webhook_url: string, event: Course
 
 export const sendWebhookNotification = async (webhook_url: string, event: CourseEvent) => {
     return await tasksClient.createTask({
-        parent: discordWebhookQueue(shardQueueUrl(webhook_url, discordWebhookQueueShardCount)),
+        parent: webhookQueue(shardQueueUrl(webhook_url, webhookQueueShardCount)),
         task: {
             httpRequest: {
                 headers: {
@@ -38,14 +39,30 @@ export const sendWebhookNotification = async (webhook_url: string, event: Course
                 },
                 httpMethod: 'POST',
                 url: webhook_url,
-                body: Buffer.from(JSON.stringify(event)).toString('base64')
+                body: Buffer.from(JSON.stringify(event)).toString('base64'),
             }
         }
     });
 }
 
 export const sendWebPushNotification = async (subscription: PushSubscription, event: CourseEvent) => {
-    return webpush.sendNotification(subscription, JSON.stringify({...event}))
+    const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
+    webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY!);
+
+    const requestDetails = webpush.generateRequestDetails(subscription, JSON.stringify({...event}))
+    return await tasksClient.createTask({
+        parent: webhookQueue(shardQueueUrl(requestDetails.endpoint, webhookQueueShardCount)),
+        task: {
+            httpRequest: {
+                headers: {
+                    ...requestDetails.headers
+                },
+                httpMethod: requestDetails.method,
+                url: requestDetails.endpoint,
+                body: requestDetails.body.toString('base64'),
+            }
+        }
+    });
 }
 
 export const publishNotifications = async (sub_methods: any, key: string, event: CourseEvent) => {
