@@ -201,6 +201,13 @@ const meetingTimesChanged = simpleChangeEvent(
     16734296
 );
 
+const testNotification = simpleChangeEvent(
+    (event) => `This is an example notification for ${event.course}-${event.section}`,
+    "Previous Value",
+    "New Value",
+    16734296
+)
+
 const sectionRemoved = addRemoveEvent((event) => `Section ${event.course}-${event.section} Removed`);
 const sectionAdded = addRemoveEvent((event) => `Section ${event.course}-${event.section} Added`);
 const courseRemoved = addRemoveEvent((event) => `Course ${event.course} Removed`);
@@ -234,6 +241,7 @@ export const getDiscordContent = (events: Array<CourseEvent>) => {
         "section_removed": sectionRemoved,
         "course_added": courseAdded,
         "course_removed": courseRemoved,
+        "test_notification": testNotification
     }
 
     return {

@@ -4,6 +4,7 @@ import {onMessagePublished} from "firebase-functions/v2/pubsub";
 import {sendNotifications} from "./notifier/notifier";
 import {updateTopic} from "./common";
 import {scraperLauncher} from "./scraper";
+import {testNotify} from "./notifier/test_notify";
 
 export const onCourseAddition202208 =
     functions
@@ -46,3 +47,14 @@ export const scraperfunction = onMessagePublished({
     maxInstances: 1,
     timeoutSeconds: 5 * 60
 }, scraperLauncher);
+
+export const test_notification =
+    functions
+        .region('us-east4')
+        .runWith({
+            invoker: "public",
+            memory: "128MB",
+            timeoutSeconds: 30,
+            secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY"],
+        })
+        .https.onCall(testNotify);

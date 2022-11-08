@@ -47,3 +47,21 @@ export const sendWebhookNotification = async (webhook_url: string, event: Course
 export const sendWebPushNotification = async (subscription: PushSubscription, event: CourseEvent) => {
     return webpush.sendNotification(subscription, JSON.stringify({...event}))
 }
+
+export const publishNotifications = async (sub_methods: any, key: string, event: CourseEvent) => {
+    const promises = [];
+    if (sub_methods.web_hook) {
+        console.log("Notifying", key, "through a web hook");
+        promises.push(sendWebhookNotification(sub_methods.web_hook, event));
+    }
+    if (sub_methods.web_push) {
+        console.log("Notifying", key, "through a web push");
+        promises.push(sendWebPushNotification(sub_methods.web_push, event));
+    }
+    if (sub_methods.discord) {
+        console.log("Notifying", key, "through a discord web hook")
+        promises.push(sendDiscordNotification(sub_methods.discord, event));
+    }
+
+    return Promise.all(promises);
+}

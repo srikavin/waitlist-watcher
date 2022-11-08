@@ -4,7 +4,7 @@ import type {CloudEvent} from "firebase-functions/v2";
 import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 
 import {rtdb} from "../common";
-import {sendDiscordNotification, sendWebhookNotification, sendWebPushNotification} from "./send";
+import {publishNotifications} from "./send";
 
 const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
 
@@ -56,8 +56,6 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
     await Promise.all(cachePromises);
 
     const promises: Promise<any>[] = [];
-    const webhookPromises = [];
-    const taskPromises: Array<Promise<any>> = [];
 
 
     for (const event of events) {
@@ -113,40 +111,15 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
 
             const sub_methods = subscription_methods.val();
 
-            if (sub_methods.web_hook) {
-                console.log("Notifying", key, "through a web hook");
-                webhookPromises.push(sendWebhookNotification(sub_methods.web_hook, event));
-            }
-            if (sub_methods.web_push) {
-                console.log("Notifying", key, "through a web push");
-                webhookPromises.push(sendWebPushNotification(sub_methods.web_push, event));
-            }
-            if (sub_methods.discord) {
-                console.log("Notifying", key, "through a discord web hook")
-                taskPromises.push(sendDiscordNotification(sub_methods.discord, event));
-            }
+            promises.push(publishNotifications(sub_methods, key, event));
         }
     }
 
     const results = await Promise.allSettled(promises);
-    const webhookResults = await Promise.allSettled(webhookPromises);
-    const taskResults = await Promise.allSettled(taskPromises);
 
     results.forEach((e) => {
         if (e.status === 'rejected') {
             console.error("results", "rejected", e.reason)
-        }
-    });
-
-    webhookResults.forEach((e) => {
-        if (e.status === 'rejected') {
-            console.error("webhookResults", "rejected", e.reason.message)
-        }
-    });
-
-    taskResults.forEach((e) => {
-        if (e.status === 'rejected') {
-            console.error("taskResults", "rejected", e.reason)
         }
     });
 }

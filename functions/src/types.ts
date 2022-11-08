@@ -27,7 +27,8 @@ export type EventTypes = 'course_added' |
     'open_seats_changed' |
     'waitlist_changed' |
     'holdfile_changed' |
-    'meeting_times_changed';
+    'meeting_times_changed' |
+    'test_notification';
 
 export interface BaseEvent<T extends EventTypes = EventTypes> {
     id: string
@@ -71,6 +72,7 @@ export type CourseEventOpenSeatsChanged = ICourseSectionChangeEvent<'open_seats_
 export type CourseEventWaitlistChanged = ICourseSectionChangeEvent<'waitlist_changed', number>;
 export type CourseEventHoldfileChanged = ICourseSectionChangeEvent<'holdfile_changed', number>;
 export type CourseEventMeetingTimesChanged = ICourseSectionChangeEvent<'meeting_times_changed', string>;
+export type TestNotificationEvent = ICourseSectionChangeEvent<'test_notification', string>;
 
 export type AddRemoveEvents = CourseEventCourseAdded |
     CourseEventSectionAdded |
@@ -89,4 +91,5 @@ export type CourseEvent = CourseEventCourseAdded |
     CourseEventOpenSeatsChanged |
     CourseEventWaitlistChanged |
     CourseEventHoldfileChanged |
-    CourseEventMeetingTimesChanged;
+    CourseEventMeetingTimesChanged |
+    TestNotificationEvent;
