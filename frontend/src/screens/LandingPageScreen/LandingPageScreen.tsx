@@ -1,6 +1,19 @@
 import {useContext} from "react";
 import {AuthContext} from "../../context/AuthContext";
-import {Button, Card, ChatIcon, CodeIcon, Heading, Icon, Link, NotificationsIcon, Pane, Text} from "evergreen-ui";
+import {
+    Button,
+    Card,
+    ChatIcon,
+    CodeIcon,
+    Heading,
+    Icon,
+    Link,
+    ListItem,
+    NotificationsIcon,
+    Pane,
+    Text,
+    UnorderedList
+} from "evergreen-ui";
 import {CircleContainer} from "../../components/CircleContainer/CircleContainer";
 import {NavLink} from "react-router-dom";
 import {Search} from "../../components/Search/Search";
@@ -66,6 +79,24 @@ export function LandingPageScreen() {
                             title="Web Hooks"
                             description="Integrate with third-party apps using web hooks"/>
                     </Pane>
+                </Card>
+                <Card maxWidth={1000} marginRight="auto" marginLeft="auto" marginY={32}>
+                    <Heading size={800} marginBottom={12}>Notification Types</Heading>
+                    <Text size={600}>
+                        Waitlist watcher watches for and can notify you of the following events:
+                    </Text>
+
+                    <UnorderedList style={{columns: 3}} marginTop={6}>
+                        <ListItem>New Courses</ListItem>
+                        <ListItem>New Sections</ListItem>
+                        <ListItem>Removed Courses</ListItem>
+                        <ListItem>Removed Sections</ListItem>
+                        <ListItem>Course Name and Description Changes</ListItem>
+                        <ListItem>Section Meeting Time Changes</ListItem>
+                        <ListItem>Instructor Changes</ListItem>
+                        <ListItem>Seat Changes</ListItem>
+                        <ListItem>Waitlist and Holdfile Changes</ListItem>
+                    </UnorderedList>
                 </Card>
                 <Card maxWidth={1000} marginRight="auto" marginLeft="auto" marginY={32}>
                     <Heading size={800} marginBottom={12}>Raw Data</Heading>
