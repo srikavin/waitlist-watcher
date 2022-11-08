@@ -104,11 +104,11 @@ export function LandingPageScreen() {
                         Want to use the raw data for your own purposes?
                         Get the{" "}
                         <Link size={600} target="_blank"
-                              href="https://waitlist-watcher.uk.r.appspot.com/raw/CMSC/events">raw event
+                              href="https://waitlist-watcher.uk.r.appspot.com/raw/202301/CMSC/events">raw event
                             data</Link>{" "}
                         and{" "}
                         <Link size={600} target="_blank"
-                              href="https://waitlist-watcher.uk.r.appspot.com/raw/CMSC/snapshots">course history
+                              href="https://waitlist-watcher.uk.r.appspot.com/raw/202301/CMSC/snapshots">course history
                             snapshots</Link>.
                     </Text>
                 </Card>
