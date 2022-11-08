@@ -110,7 +110,7 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
                                 All</Button>
                         </Pane>
                     </Pane>
-                    <Button isLoading={isLoading} onClick={() => onSave(close)}>Save</Button>
+                    <Button isLoading={isLoading} onClick={() => onSave(() => setTimeout(close, 2000))}>Save</Button>
                 </Pane>
             )}
         >
@@ -190,7 +190,6 @@ export function WatchButton(props: WatchButtonProps) {
         update(ref(realtime_db), updates)
             .then(() => {
                 setIsSaving(false);
-                closePopover();
             })
             .catch((e) => {
                 setIsSaving(false);

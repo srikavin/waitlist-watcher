@@ -39,7 +39,7 @@ export function LandingPageScreen() {
 
     return (
         <Pane overflowX="hidden">
-            <Pane width="100vw" background="tint1">
+            <Pane width="100vw" background="tint1" paddingX={12}>
                 <Card maxWidth={1000} marginRight="auto" marginLeft="auto" justifyContent="center"
                       height={250} paddingY={16} display="flex" flexDirection="column" flexGrow="0">
                     <Heading size={900} marginBottom={12}>Never miss an open seat again</Heading>
@@ -54,12 +54,12 @@ export function LandingPageScreen() {
             </Pane>
 
             <Pane maxWidth={1000} marginRight="auto" marginLeft="auto" justifyContent="center"
-                  marginTop={32} display="flex" flexDirection="column">
+                  marginTop={32} display="flex" flexDirection="column" paddingX={12}>
                 <Heading size={800} marginBottom={12}>Search for a course or section</Heading>
                 <Search/>
             </Pane>
 
-            <Pane width="100vw" marginY={64}>
+            <Pane width="100vw" marginTop={64} paddingX={12} marginBottom={12}>
                 <Card maxWidth={1000} marginRight="auto" marginLeft="auto">
                     <Heading size={800} marginBottom={12}>Notification Options</Heading>
                     <Pane marginBottom={48}>
