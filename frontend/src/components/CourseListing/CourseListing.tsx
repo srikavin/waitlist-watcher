@@ -64,6 +64,8 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
         onSave
     } = props;
 
+    const {isAuthed} = useContext(AuthContext);
+
     return (
         <Popover
             bringFocusInside
@@ -86,6 +88,12 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
                                 Ensure that you are logged in.
                             </Alert>
                         ) : null}
+
+                        {!isAuthed && (
+                            <Alert intent="danger" title="You aren't logged in." marginY={12}>
+                                An account is required to watch courses.
+                            </Alert>
+                        )}
 
                         {Object.keys(subscriptionLabels).map((k: keyof (typeof subscriptionLabels)) => (
                             <Checkbox key={k} checked={subscriptionState[k]}
