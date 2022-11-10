@@ -8,6 +8,7 @@
     "populate_historical_events": "npm run build && node populate_historical_events.js",
     "populate_historical_course_listing": "npm run build && node populate_historical_course_listing.js",
     "move_to_cloud_storage": "npm run build && node move_to_cloud_storage.js",
+    "create_discord_server": "npm run build && node create_discord_server.js",
     "move_files": "npm run build && node move_files.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.27.2",
+    "discord.js": "^14.6.0",
     "fast-json-patch": "^3.1.1",
     "firebase-admin": "^11.0.1",
     "typescript": "^4.6.3"
