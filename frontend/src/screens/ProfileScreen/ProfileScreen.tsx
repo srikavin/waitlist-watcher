@@ -5,7 +5,7 @@ import {
     Button,
     Card,
     EmptyState,
-    FormField,
+    FormField, FormFieldDescription,
     Heading,
     Pane,
     SearchTemplateIcon,
@@ -216,7 +216,9 @@ function NotificationSettings() {
                 ) : null}
                 <TextInputField
                     label="Discord Webhook URL"
-                    description="Receive notifications on a Discord server"
+                    description={<FormFieldDescription>Receive notifications on a Discord server <a
+                        href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks">(more
+                        details)</a></FormFieldDescription>}
                     placeholder="https://discord.com/api/webhooks/<...>/<...>"
                     value={discordUrl}
                     onChange={(e: any) => setDiscordUrl(e.target.value)}
@@ -233,14 +235,14 @@ function NotificationSettings() {
                 <Button onClick={save} isLoading={isLoading}
                         appearance={isModified ? "primary" : "default"}>Save</Button>
             </Pane>
-                <Button onClick={() => {
-                    setIsLoading(true);
-                    save().then(() => {
-                        testNotifyFunction()
-                            .then(() => setStatusText("Sent test notification!"))
-                            .finally(() => setIsLoading(false));
-                    })
-                }} appearance={isModified ? "primary" : "default"}>Save and Send Test Notification</Button>
+            <Button onClick={() => {
+                setIsLoading(true);
+                save().then(() => {
+                    testNotifyFunction()
+                        .then(() => setStatusText("Sent test notification!"))
+                        .finally(() => setIsLoading(false));
+                })
+            }} appearance={isModified ? "primary" : "default"}>Save and Send Test Notification</Button>
             <Pane marginLeft={20} display="inline"><Text>{statusText}</Text></Pane>
         </>
     );
