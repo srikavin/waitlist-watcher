@@ -111,7 +111,6 @@ function EnableNotificationsButton() {
 }
 
 function CurrentSubscriptions() {
-    const {isAuthed, getUser} = useContext(AuthContext);
     const {userSubscriptions} = useContext(UserSubscriptionsContext);
 
     if (Object.keys(userSubscriptions).length === 0) {
@@ -151,8 +150,8 @@ function NotificationSettings() {
     const [storedDiscordUrl, setStoredDiscordUrl] = useState('');
     const [storedWebhookUrl, setStoredWebhookUrl] = useState('');
 
-    const discordUrlRef = ref(realtime_db, "user_settings/" + getUser()!.uid + "/discord");
-    const webhookUrlRef = ref(realtime_db, "user_settings/" + getUser()!.uid + "/web_hook");
+    const discordUrlRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/discord");
+    const webhookUrlRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_hook");
 
     const [statusText, setStatusText] = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -196,6 +195,8 @@ function NotificationSettings() {
         });
     }, []);
 
+    const isDiscordUrlValid = discordUrl === "" || /^https:\/\/discord.com\/api\//.test(discordUrl);
+    const isUrlValid = webhookUrl === "" || /^https?:\/\//.test(webhookUrl);
 
     return (
         <>
@@ -221,6 +222,8 @@ function NotificationSettings() {
                         details)</a></FormFieldDescription>}
                     placeholder="https://discord.com/api/webhooks/<...>/<...>"
                     value={discordUrl}
+                    isInvalid={!isDiscordUrlValid}
+                    validationMessage={!isDiscordUrlValid ? "A discord webhook must start with https://discord.com/api/" : null}
                     onChange={(e: any) => setDiscordUrl(e.target.value)}
                 />
                 <TextInputField
@@ -228,14 +231,16 @@ function NotificationSettings() {
                     description="Receive notifications at a custom Webhook URL"
                     placeholder="https://example.com/course_changed"
                     value={webhookUrl}
+                    isInvalid={!isUrlValid}
+                    validationMessage={!isUrlValid ? "A webhook url must start with http:// or https://" : null}
                     onChange={(e: any) => setWebhookUrl(e.target.value)}
                 />
             </Pane>
             <Pane marginRight={12} display={"inline"}>
-                <Button onClick={save} isLoading={isLoading}
+                <Button disabled={!isDiscordUrlValid || !isUrlValid} onClick={save} isLoading={isLoading}
                         appearance={isModified ? "primary" : "default"}>Save</Button>
             </Pane>
-            <Button onClick={() => {
+            <Button disabled={!isDiscordUrlValid || !isUrlValid} onClick={() => {
                 setIsLoading(true);
                 save().then(() => {
                     testNotifyFunction()
@@ -302,7 +307,7 @@ export function ProfileScreen() {
                             label="Email"
                             disabled
                             description="Used only for login purposes"
-                            value={getUser().email!}
+                            value={getUser()?.email ?? ""}
                         />
                         <TextInputField
                             label="Password"
