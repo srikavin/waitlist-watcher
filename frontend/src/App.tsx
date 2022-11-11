@@ -20,6 +20,7 @@ import {getDocFromCache} from "@firebase/firestore";
 import {useTitle} from "./util/useTitle";
 import {onValue, ref} from "firebase/database";
 import {UserSubscriptionsContext} from "./context/UserSubscriptions";
+import {OnboardingScreen} from "./screens/OnboardingScreen/OnboardingScreen";
 
 const semesters = {
     "202208": {
@@ -55,6 +56,7 @@ function PageRenderer() {
                 <Route path="/history/:name" element={<HistoryRenderer/>}/>
                 <Route path="/profile" element={<ProfileScreen/>}/>
                 <Route path="/login" element={<LoginScreen/>}/>
+                <Route path="/onboarding" element={<OnboardingScreen/>}/>
             </Routes>
         </Card>
     );

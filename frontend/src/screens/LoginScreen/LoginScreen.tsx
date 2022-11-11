@@ -1,11 +1,12 @@
 import {useCallback, useContext, useState} from "react";
 import {Alert, Button, Card, Heading, Pane, Tab, Tablist, Text, TextInputField} from "evergreen-ui";
-import {auth} from "../../firebase";
+import {auth, realtime_db} from "../../firebase";
 import {LoginWithUMD} from "../../components/LoginWithUMD/LoginWithUMD";
 import {createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth";
 import {useNavigate} from "react-router-dom";
 import {AuthContext} from "../../context/AuthContext";
 import {useTitle} from "../../util/useTitle";
+import {get, ref} from "firebase/database";
 
 
 export function LoginScreen() {
@@ -21,11 +22,7 @@ export function LoginScreen() {
     const navigate = useNavigate();
     useTitle(`Login/Sign up`);
 
-    const {isAuthed} = useContext(AuthContext);
-
-    if (isAuthed) {
-        navigate('/profile');
-    }
+    const {isAuthed, getUser} = useContext(AuthContext);
 
     const loginCallback = useCallback(() => {
         setLoading(true);
@@ -59,6 +56,24 @@ export function LoginScreen() {
             })
             .finally(() => setLoading(false));
     }, [setError, setLoading, email, password]);
+
+
+    if (isAuthed) {
+        (async () => {
+            const subscriptions = await Promise.all([
+                get(ref(realtime_db, "user_settings/" + getUser()?.uid + "/discord")),
+                get(ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_push")),
+                get(ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_hook"))
+            ]);
+            if (subscriptions.some(e => e.exists() && e.val() != "")) {
+                navigate("/onboarding");
+            } else {
+                navigate("/setup")
+            }
+        })();
+
+        return <>Logged in...</>;
+    }
 
     return (
         <Pane margin={10}>

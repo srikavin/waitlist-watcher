@@ -25,7 +25,7 @@ function EnableNotificationsButton() {
     const [isErrored, setIsErrored] = useState(false);
     const [subscriptionUrl, setSubscriptionUrl] = useState("");
 
-    const {getUser} = useContext(AuthContext);
+    const {isAuthed, getUser} = useContext(AuthContext);
 
     const webPushRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_push");
 
@@ -105,7 +105,7 @@ function EnableNotificationsButton() {
                     </Pane>
 
                 ) : (
-                    <Button isLoading={isLoading} onClick={enablePushNotifications}>
+                    <Button isLoading={isLoading || !isAuthed} onClick={enablePushNotifications}>
                         Enable notifications
                     </Button>
                 )}
@@ -145,7 +145,7 @@ function CurrentSubscriptions() {
     )
 }
 
-function NotificationSettings() {
+export function NotificationSettingsBody() {
     const {isAuthed, getUser} = useContext(AuthContext);
 
     const [discordUrl, setDiscordUrl] = useState('');
@@ -204,9 +204,6 @@ function NotificationSettings() {
 
     return (
         <>
-            <Heading size={800}>Notification Settings</Heading>
-            <Text>Course notifications will be sent to all configured channels below.</Text>
-
             <Pane>
                 {"Notification" in window ? (
                     <Pane marginY={20}>
@@ -253,6 +250,17 @@ function NotificationSettings() {
                 })
             }} appearance={isModified ? "primary" : "default"}>Save and Send Test Notification</Button>
             <Pane marginLeft={20} display="inline"><Text>{statusText}</Text></Pane>
+        </>
+    );
+}
+
+function NotificationSettings() {
+    return (
+        <>
+            <Heading size={800}>Notification Settings</Heading>
+            <Text>Course notifications will be sent to all configured channels below.</Text>
+
+            <NotificationSettingsBody/>
         </>
     );
 }
