@@ -70,6 +70,10 @@ function EnableNotificationsButton() {
         }).finally(() => setIsLoading(false));
     }, []);
 
+    useEffect(() => {
+        enablePushNotifications();
+    }, []);
+
     const disablePushNotifications = useCallback(() => {
         setIsLoading(true);
         set(webPushRef, {})
