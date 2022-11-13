@@ -7,8 +7,6 @@ import {compare} from "fast-json-patch";
 import {generateEvents} from "./generate_events";
 import {getSectionInformation} from "./scraper";
 
-const BATCH_SIZE = 8;
-
 const BUCKET_SNAPSHOT_PREFIX = (semester: string, department: string) => `${semester}/snapshots/${department}/`
 const BUCKET_EVENTS_PREFIX = (semester: string, department: string) => `${semester}/events/${department}/`
 
@@ -127,18 +125,18 @@ export const scraperLauncher = async (event: CloudEvent<MessagePublishedData>) =
         state = currentStateDoc.data();
     }
 
-    console.log("Scraping batch of size ", BATCH_SIZE, " at index ", state.prefixIndex);
+    console.log("Scraping batch of size ", config.batch_size, " at index ", state.prefixIndex);
 
     const prefixPromises = [];
     for (let semester of config.semesters) {
-        for (let i = 0; i < BATCH_SIZE; ++i) {
+        for (let i = 0; i < config.batch_size; ++i) {
             const prefix = config.prefixes[(state.prefixIndex + i) % config.prefixes.length];
             prefixPromises.push(runScraper(semester, prefix, event.time, event.id))
             console.log("Started scraper for ", prefix);
         }
     }
 
-    state.prefixIndex = state.prefixIndex + BATCH_SIZE;
+    state.prefixIndex = state.prefixIndex + config.batch_size;
     await triggerDataRef.set(state);
 
     console.log("Waiting for scraper completion");
