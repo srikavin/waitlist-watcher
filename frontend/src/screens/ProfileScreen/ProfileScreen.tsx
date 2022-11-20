@@ -5,8 +5,10 @@ import {
     Button,
     Card,
     EmptyState,
-    FormField, FormFieldDescription,
+    FormField,
+    FormFieldDescription,
     Heading,
+    Link,
     Pane,
     SearchTemplateIcon,
     Text,
@@ -27,6 +29,8 @@ function EnableNotificationsButton() {
 
     const {isAuthed, getUser} = useContext(AuthContext);
 
+    const supportsWebPush = "Notification" in window;
+
     const webPushRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_push");
 
     useEffect(() => {
@@ -38,6 +42,8 @@ function EnableNotificationsButton() {
     })
 
     const enablePushNotifications = useCallback(() => {
+        if (!supportsWebPush) return;
+
         setIsLoading(true);
 
         void async function () {
@@ -71,10 +77,13 @@ function EnableNotificationsButton() {
     }, []);
 
     useEffect(() => {
-        enablePushNotifications();
+        if (!JSON.parse(localStorage.getItem("disabledNotifications") || "false")) {
+            enablePushNotifications();
+        }
     }, []);
 
     const disablePushNotifications = useCallback(() => {
+        localStorage.setItem("disabledNotifications", JSON.stringify(true));
         setIsLoading(true);
         set(webPushRef, {})
             .then(() => {
@@ -90,11 +99,24 @@ function EnableNotificationsButton() {
 
     return (
         <>
-            <Pane marginY={4}>
-                {isErrored ? (
-                    <Alert intent="danger">Failed to enable notifications</Alert>
-                ) : null}
-            </Pane>
+            {isErrored || !supportsWebPush && (
+                <Pane marginBottom={12}>
+                    {isErrored && (
+                        <Alert intent="danger">Failed to enable notifications</Alert>
+                    )}
+                    {!supportsWebPush && (
+                        <Alert intent="danger">
+                            <Pane marginTop={-4}>
+                                <Text size={400}>
+                                    Your browser doesn't support web push notifications
+                                    (<Link href="https://caniuse.com/push-api" target="_blank">view supported
+                                    browsers</Link>).
+                                </Text>
+                            </Pane>
+                        </Alert>
+                    )}
+                </Pane>
+            )}
             <div>
                 {subscriptionUrl ? (
                     <Pane display="flex" gap={10} width="100%">
@@ -105,7 +127,8 @@ function EnableNotificationsButton() {
                     </Pane>
 
                 ) : (
-                    <Button isLoading={isLoading || !isAuthed} onClick={enablePushNotifications}>
+                    <Button isLoading={isLoading || !isAuthed} onClick={enablePushNotifications}
+                            disabled={!supportsWebPush}>
                         Enable notifications
                     </Button>
                 )}
@@ -205,17 +228,15 @@ export function NotificationSettingsBody() {
     return (
         <>
             <Pane>
-                {"Notification" in window ? (
-                    <Pane marginY={20}>
-                        <FormField
-                            label="Web Push Notifications"
-                            description="Receive notifications through your browser">
-                            <Pane display="flex" flexDirection="column">
-                                <EnableNotificationsButton/>
-                            </Pane>
-                        </FormField>
-                    </Pane>
-                ) : null}
+                <Pane marginY={20}>
+                    <FormField
+                        label="Web Push Notifications"
+                        description="Receive notifications through your browser">
+                        <Pane display="flex" flexDirection="column">
+                            <EnableNotificationsButton/>
+                        </Pane>
+                    </FormField>
+                </Pane>
                 <TextInputField
                     label="Discord Webhook URL"
                     description={<FormFieldDescription>Receive notifications on a Discord server <a
