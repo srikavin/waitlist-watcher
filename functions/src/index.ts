@@ -18,6 +18,12 @@ export const onCourseAddition202301 =
         .runWith({memory: "128MB"})
         .firestore.document("events202301/{course_name}").onCreate(onNewCourse("202301"));
 
+export const onCourseAddition202308 =
+    functions
+        .region('us-east4')
+        .runWith({memory: "128MB"})
+        .firestore.document("events202308/{course_name}").onCreate(onNewCourse("202308"));
+
 export const onCourseRemove202208 =
     functions
         .region('us-east4')
@@ -29,6 +35,12 @@ export const onCourseRemove202301 =
         .region('us-east4')
         .runWith({memory: "256MB"})
         .firestore.document("events202301/{course_name}").onDelete(onRemoveCourse("202301"));
+
+export const onCourseRemove202308 =
+    functions
+        .region('us-east4')
+        .runWith({memory: "256MB"})
+        .firestore.document("events202308/{course_name}").onDelete(onRemoveCourse("202308"));
 
 export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,

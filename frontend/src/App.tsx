@@ -30,6 +30,10 @@ const semesters = {
     "202301": {
         name: "Spring 2023",
         suffix: "202301"
+    },
+    "202308": {
+        name: "Fall 2023",
+        suffix: '202308'
     }
 };
 
@@ -67,7 +71,7 @@ function App() {
     const [courseListing, setCourseListing] = useState([]);
     const location = useLocation();
     const navigate = useNavigate();
-    let [searchParams, _] = useSearchParams({semester: "202301"});
+    let [searchParams, _] = useSearchParams({semester: "202308"});
     const [semester, setSemester] = useState(searchParams.get("semester")!);
     const [userSubscriptions, setUserSubscriptions] = useState({});
 
@@ -95,8 +99,8 @@ function App() {
 
     useEffect(() => {
         if (!(semester in semesters)) {
-            setSemester("202301");
-            navigate(location.pathname + "?" + new URLSearchParams({semester: "202301"}), {replace: true});
+            setSemester("202308");
+            navigate(location.pathname + "?" + new URLSearchParams({semester: "202308"}), {replace: true});
         } else if (new URLSearchParams(location.search).get("semester") !== semester)
             navigate(location.pathname + "?" + new URLSearchParams({semester}), {replace: true});
     }, [semester, location])
