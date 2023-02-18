@@ -21,6 +21,7 @@ const generateUrl = (event: ICourseEvent<any> | ICourseSectionEvent<any>) => {
 const mapSemester = (semester: string) => {
     if (semester === "202208") return "Fall 2022";
     if (semester === "202301") return "Spring 2023";
+    if (semester === "202308") return "Fall 2023";
     return semester;
 }
 
