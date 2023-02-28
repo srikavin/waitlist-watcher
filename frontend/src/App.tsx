@@ -15,7 +15,7 @@ import {ProfileScreen} from "./screens/ProfileScreen/ProfileScreen";
 import {HistoryScreen} from './screens/HistoryScreen/HistoryScreen';
 import {LoginScreen} from "./screens/LoginScreen/LoginScreen";
 import {DepartmentsScreen} from "./screens/DepartmentsScreen/DepartmentsScreen";
-import {doc, getDocFromServer} from "firebase/firestore";
+import {clearIndexedDbPersistence, doc, getDocFromServer} from "firebase/firestore";
 import {getDocFromCache} from "@firebase/firestore";
 import {useTitle} from "./util/useTitle";
 import {onValue, ref} from "firebase/database";
@@ -111,7 +111,14 @@ function App() {
         }
         const semesterDoc = doc(db, `course_listing/${semester}`);
         getDocFromCache(semesterDoc).catch(() => getDocFromServer(semesterDoc)).then((e) => {
-            setCourseListing(e.get("courses"));
+            const listing = e.get("courses");
+            if (listing) {
+                setCourseListing(listing);
+            } else {
+                clearIndexedDbPersistence(db).then(() => {
+                    getDocFromCache(semesterDoc).then(e => setCourseListing(e.get("courses")));
+                });
+            }
         });
     }, [semester])
 
