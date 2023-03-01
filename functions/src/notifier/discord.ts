@@ -15,7 +15,7 @@ const generateFooter = (event: CourseEvent) => {
 }
 
 const generateUrl = (event: ICourseEvent<any> | ICourseSectionEvent<any>) => {
-    return `https://waitlist-watcher.web.app/history/${event.course}${event.section ? '-' + event.section : ''}`;
+    return `https://waitlist-watcher.web.app/history/${event.course}${event.section ? '-' + event.section : ''}?semester=${event.semester}`;
 }
 
 const mapSemester = (semester: string) => {
