@@ -28,7 +28,7 @@ export function Search() {
                     const {getInputProps, getRef} = subProps
                     return (
                         <TextInput
-                            placeholder="Search"
+                            placeholder="Search for sections or courses"
                             ref={getRef}
                             {...getInputProps()}
                             width="100%"

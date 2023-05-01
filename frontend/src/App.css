@@ -8,7 +8,7 @@ a {
 
 
 a, a:visited {
-    color: #3366FF;
+    color: #3366FF !important;
 }
 
 a:hover {

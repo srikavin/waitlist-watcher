@@ -1,6 +1,4 @@
-import {doc, onSnapshot} from "firebase/firestore";
-import {db} from "../../firebase";
-import {useContext, useEffect, useState} from "react";
+import {useContext} from "react";
 import {Card, EmptyState, Heading, Pane, SearchTemplateIcon, Text} from "evergreen-ui";
 import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
@@ -11,6 +9,7 @@ import {SemesterContext} from "../../context/SemesterContext";
 import {useTitle} from "../../util/useTitle";
 import {ViewOnTestudo} from "../../components/ViewOnTestudo/ViewOnTestudo";
 import {AddToSchedule} from "../../components/AddToSchedule/AddToSchedule";
+import {useCourseEvents} from "../../util/useCourseEvents";
 
 interface FormattedCourseEventProps {
     event: object
@@ -24,26 +23,26 @@ function MeetingTimeChanged(props: { event_data: any }) {
     ));
 }
 
+const nameMapping: Record<string, string> = {
+    'course_added': 'Course added',
+    'section_added': 'Section added',
+    'course_removed': 'Course removed',
+    'course_name_changed': 'Course name changed',
+    'section_removed': 'Section removed',
+    'instructor_changed': 'Instructor changed',
+    'total_seats_changed': 'Total seats changed',
+    'open_seat_available': 'Open seat became available',
+    'open_seats_changed': 'Open seats changed',
+    'waitlist_changed': 'Waitlist changed',
+    'holdfile_changed': 'Holdfile changed',
+    'course_description_changed': 'Course description changed',
+    'meeting_times_changed': 'Meeting times changed'
+}
+
 export function FormattedCourseEvent(props: FormattedCourseEventProps) {
     const {event} = props as any;
 
-    const nameMapping: Record<string, string> = {
-        'course_added': 'Course Added',
-        'section_added': 'Section Added',
-        'course_removed': 'Course Removed',
-        'course_name_changed': 'Course Name Changed',
-        'section_removed': 'Section Removed',
-        'instructor_changed': 'Instructor Changed',
-        'total_seats_changed': 'Total Seats Changed',
-        'open_seat_available': 'Open Seat Became Available',
-        'open_seats_changed': 'Open Seats Changed',
-        'waitlist_changed': 'Waitlist Changed',
-        'holdfile_changed': 'Holdfile Changed',
-        'course_description_changed': 'Course Description Changed',
-        'meeting_times_changed': 'Meeting Times Changed'
-    }
-
-    if (event.type === 'open_seat_available') return null;
+    // if () return null;
 
     if (!(event.type in nameMapping)) {
         return (
@@ -55,42 +54,97 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
     }
 
     return (
-        <Pane display="inline-flex" gap={6} alignItems="baseline">
+        <div className="flex gap-2">
             <small>{dayjs(event.timestamp).format("MM-DD-YYYY HH:mm")}</small>
-            <b>{nameMapping[event.type]}
+            <span>
+            <span>{nameMapping[event.type]}
                 {event.type === 'section_added' || event.type === 'section_removed' ? <> ({event.section})</> : ''}
                 {event.type === 'course_added' && event.title ? <> ({event.course})</> : ''}
-            </b>
-            {event.old !== undefined ? (
-                <>from <s>
-                        <pre className={styles.old}>
+            </span>
+                {event.type !== 'open_seat_available' && (
+                    <>
+                        {event.old !== undefined && (
+                            <> from <s>
+                        <pre className={styles.old + " inline"}>
                         {event.type === 'meeting_times_changed' ? (
                             <MeetingTimeChanged event_data={event.old}/>
                         ) : (
                             <>'{event.old}'</>
                         )}
                     </pre>
-                </s>
-                </>
-            ) : ''}
-            {event.new !== undefined ? (
-                <>to <pre className={styles.new}>
+                            </s>
+                            </>
+                        )}
+                        {event.new !== undefined && (
+                            <> to <pre className={styles.new + " inline"}>
                     {event.type === 'meeting_times_changed' ? (
                         <MeetingTimeChanged event_data={event.new}/>
                     ) : (
                         <>'{event.new}'</>
                     )}
                     </pre>
-                </>
-            ) : ''}
-        </Pane>
+                            </>
+                        )}
+                    </>
+                )}
+            </span>
+        </div>
     );
 }
 
 
+function FormattedCourseEvents(props: { events: Array<any> }) {
+    const {events} = props;
+
+    const grouped = [];
+    let lastType = undefined;
+    for (let event of events) {
+        if (event.type !== lastType) {
+            grouped.push([event]);
+            lastType = event.type;
+        } else {
+            grouped[grouped.length - 1].push(event);
+        }
+    }
+
+    return (
+        <>
+            {grouped.flatMap(x => {
+                if (x.length == 1) {
+                    return [
+                        <FormattedCourseEvent event={x[0]} key={x[0].id}/>
+                    ]
+                }
+                if (['total_seats_changed', 'waitlist_changed', 'holdfile_changed', 'open_seats_changed'].includes(x[0].type)) {
+                    return [
+                        <details>
+                            <summary className="list-outside">
+                                <div className="flex gap-2">
+                                    <div className="leading-tight">
+                                        <small
+                                            className="block">{dayjs(x[0].timestamp).format("MM-DD-YYYY HH:mm")}</small>
+                                        <small
+                                            className="block">{dayjs(x[x.length - 1].timestamp).format("MM-DD-YYYY HH:mm")}</small>
+                                    </div>
+                                    <p className="place-self-center">{nameMapping[x[0].type]} from {x[x.length - 1].old} to {x[0].new}</p>
+                                </div>
+                            </summary>
+                            <Pane display="flex" flexDirection="column" gap={0} paddingLeft={12} marginLeft={4}
+                                  marginTop={4} borderLeft={'1px solid black'}>
+                                {x.map(k => <FormattedCourseEvent event={k}/>)}
+                            </Pane>
+                        </details>
+                    ]
+                }
+            })}
+        </>
+    )
+}
+
 interface HistoryScreenProps {
     name: string
     minimal?: boolean
+    landing?: boolean
 }
 
 const numericalChangeEventTypes = [
@@ -137,53 +191,92 @@ function transformEventsToChart(events: Array<any>) {
     return ret;
 }
 
+export function HistoryChart(props: { name: string }) {
+    const events = useCourseEvents(props.name);
+    const timeseriesData = transformEventsToChart([...events]);
+
+    console.log(events, timeseriesData);
+
+    if (timeseriesData.length === 0) return null;
+
+    return (
+        <ResponsiveContainer height={400}>
+            <LineChart data={timeseriesData}>
+                <XAxis dataKey="time" type="number"
+                       domain={[timeseriesData[0].time, timeseriesData[timeseriesData.length - 1].time]}
+                       tickFormatter={val => new Date(val).toLocaleDateString()}
+                       fontSize={14}
+                />
+                <YAxis name="Count" fontSize={14}/>
+                <Tooltip
+                    labelFormatter={(label, payload) => new Date((payload?.[0]?.payload?.time ?? 0)).toLocaleString()}/>
+                <Legend/>
+                <Line connectNulls name="Total Seats"
+                      dataKey="total_seats_changed"
+                      stroke="#003f5c"/>
+                <Line connectNulls name="Open Seats"
+                      dataKey="open_seats_changed"
+                      stroke="#7a5195"/>
+                <Line connectNulls name="Waitlist Count"
+                      dataKey="waitlist_changed"
+                      stroke="#ef5675"/>
+                <Line connectNulls name="Holdfile Count"
+                      dataKey="holdfile_changed"
+                      stroke="#ffa600"/>
+
+                {events.map(e => {
+                    if (e.type !== 'instructor_changed') return null;
+                    return <ReferenceLine key={e.id} x={new Date(e.timestamp).getTime()}
+                                          strokeDasharray="3 3"
+                                          isFront={true}
+                                          label={<Label fontSize={12} angle={300}
+                                                        position={"middle"}
+                                                        value={e.new}></Label>}
+                                          stroke="green"/>
+                })}
+            </LineChart>
+        </ResponsiveContainer>
+    );
+}
 
 export function HistoryScreen(props: HistoryScreenProps) {
     const {name, minimal = false} = props;
-    const {semester, semesters, courseListing} = useContext(SemesterContext);
+    const {courseListing} = useContext(SemesterContext);
 
     const isSection = name.includes('-');
     const courseName = name.split('-')[0];
     const sectionName = isSection ? name.split('-')[1] : '';
 
-    const [events, setEvents] = useState<Array<any>>([])
-
     useTitle(`${name} Course History`);
 
-    useEffect(() => {
-        const removeListener = onSnapshot(doc(db, "events" + semesters[semester].suffix, name), (doc) => {
-            const eventMap: Record<string, any> = doc.get("events");
-            setEvents(Object.values(eventMap)
-                .sort((a, b) => {
-                    if (a.timestamp === b.timestamp) return a.type.localeCompare(b.type);
-                    return -new Date(a.timestamp) + +new Date(b.timestamp);
-                }));
-        });
-        return () => {
-            removeListener();
-            setEvents([]);
-        }
-    }, [name, semesters, semester]);
+    const events = useCourseEvents(name);
 
-    const timeseriesData = transformEventsToChart([...events]);
+    const LinkToSection = minimal ? <Link to={`/history/${name}`}>{name}</Link> : (
+        isSection ? <><Link
+            to={`/history/${courseName}`}>{courseName}</Link> {sectionName}</> : name
+    );
 
     return (
         <>
-            <Pane display="flex" flexDirection="column" marginBottom={12}>
-                <Heading size={900}>
-                    {minimal ? <Link to={`/history/${name}`}>{name}</Link> : (
-                        isSection ? <><Link to={`/history/${courseName}`}>{courseName}</Link> {sectionName}</> : name
-                    )}{" "}
-                    {isSection ?
-                        <WatchButton courseName={courseName} sectionName={sectionName}/> :
-                        <WatchCourseButton courseName={name}/>}
-                </Heading>
-                <Pane display={"flex"} gap={16}>
-                    <Text size={500}><ViewOnTestudo course={courseName} section={sectionName}/></Text>
-                    <Text size={500}>{isSection && <AddToSchedule course={courseName} section={sectionName}/>}</Text>
+            {!props.landing && (
+                <Pane display="flex" flexDirection="column">
+                    <Heading size={900}>
+                        {LinkToSection}
+                        <span className="mx-1">
+                        {isSection ?
+                            <WatchButton courseName={courseName} sectionName={sectionName}/> :
+                            <WatchCourseButton courseName={name}/>}
+                        </span>
+                    </Heading>
+
+                    <Pane display={"flex"} gap={16}>
+                        <Text size={500}><ViewOnTestudo course={courseName} section={sectionName}/></Text>
+                        <Text size={500}>{isSection &&
+                            <AddToSchedule course={courseName} section={sectionName}/>}</Text>
+                    </Pane>
                 </Pane>
-            </Pane>
-            <Pane display="flex" gap={10} flexDirection="column" marginBottom={28}>
+            )}
+            <Pane display="flex" gap={10} flexDirection="column">
                 <Card border="1px solid #c1c4d6" paddingY={12} paddingX={16}>
                     {events.length === 0 ? (
                         <EmptyState title="No Events Found" icon={<SearchTemplateIcon/>}
@@ -193,57 +286,23 @@ export function HistoryScreen(props: HistoryScreenProps) {
                         </EmptyState>
                     ) : (
                         <>
-                            {isSection && timeseriesData.length > 0 && (
+                            {isSection && (
                                 <Pane marginBottom={12}>
-                                    <Heading size={800} marginBottom={8}>Registration Changes</Heading>
+                                    {!props.landing &&
+                                        <Heading size={800} marginBottom={8}>Registration Changes</Heading>}
+                                    {props.landing &&
+                                        <Heading size={800} marginBottom={8}>{LinkToSection} Historical Data</Heading>}
                                     <Pane marginLeft={-40} marginTop={32}>
-                                        <ResponsiveContainer height={400}>
-                                            <LineChart data={timeseriesData}>
-                                                <XAxis dataKey="time" type="number"
-                                                       domain={[timeseriesData[0].time, timeseriesData[timeseriesData.length - 1].time]}
-                                                       tickFormatter={val => new Date(val).toLocaleDateString()}
-                                                       fontSize={14}
-                                                />
-                                                <YAxis name="Count" fontSize={14}/>
-                                                <Tooltip
-                                                    labelFormatter={(label, payload) => new Date((payload?.[0]?.payload?.time ?? 0)).toLocaleString()}/>
-                                                <Legend/>
-                                                <Line connectNulls name="Total Seats"
-                                                      dataKey="total_seats_changed"
-                                                      stroke="#003f5c"/>
-                                                <Line connectNulls name="Open Seats"
-                                                      dataKey="open_seats_changed"
-                                                      stroke="#7a5195"/>
-                                                <Line connectNulls name="Waitlist Count"
-                                                      dataKey="waitlist_changed"
-                                                      stroke="#ef5675"/>
-                                                <Line connectNulls name="Holdfile Count"
-                                                      dataKey="holdfile_changed"
-                                                      stroke="#ffa600"/>
-
-                                                {events.map(e => {
-                                                    if (e.type !== 'instructor_changed') return null;
-                                                    return <ReferenceLine key={e.id} x={new Date(e.timestamp).getTime()}
-                                                                          strokeDasharray="3 3"
-                                                                          isFront={true}
-                                                                          label={<Label fontSize={12} angle={300}
-                                                                                        position={"middle"}
-                                                                                        value={e.new}></Label>}
-                                                                          stroke="green"/>
-                                                })}
-                                            </LineChart>
-                                        </ResponsiveContainer>
+                                        <HistoryChart name={name}/>
                                     </Pane>
                                 </Pane>
                             )}
                             {!minimal && (
                                 <>
                                     <Heading size={800} marginBottom={8}>Historical Events</Heading>
-                                    <Pane display="flex" flexDirection="column" gap={4}>
-                                        {events.map((e) => (
-                                            <FormattedCourseEvent key={e.id} event={e}/>
-                                        ))}
-                                    </Pane>
+                                    <div className="flex flex-col gap-0.5 ml-6 text-sm">
+                                        <FormattedCourseEvents events={events}/>
+                                    </div>
                                 </>
                             )}
                         </>)}
@@ -254,7 +313,8 @@ export function HistoryScreen(props: HistoryScreenProps) {
                     {(() => {
                         const filtered = courseListing.filter(e => e.startsWith(name + '-'));
                         if (filtered.length < 10) {
-                            return filtered.map(e => <HistoryScreen key={e} name={e} minimal/>)
+                            return filtered.map(e => <div className="mt-8"><HistoryScreen key={e} name={e} minimal/>
+                            </div>)
                         }
                         return null;
                     })()}

@@ -18,7 +18,7 @@ export function Navigation() {
                     <Heading size={600}>Waitlist Watcher</Heading>
                 </Button>
 
-                <Button marginLeft={10} appearance="minimal"
+                <Button marginLeft={10} marginRight={10} appearance="minimal"
                         onClick={() => navigate("/departments")}>Departments</Button>
                 <div className={styles.search}>
                     <Search/>
@@ -34,7 +34,7 @@ export function Navigation() {
                     <Button marginLeft={10} appearance="primary" onClick={() => navigate("/login")}>Get Started</Button>
                 ) : (
                     <>
-                        <Button appearance="minimal"
+                        <Button appearance="minimal" marginLeft={10}
                                 onClick={() => navigate("/profile")}>{getUser()?.email ?? '<loading>'}</Button>
                         <Button marginRight={8} intent="danger" appearance="minimal" onClick={logout}>Logout</Button>
                     </>

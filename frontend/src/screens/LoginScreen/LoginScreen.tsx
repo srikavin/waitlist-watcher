@@ -1,4 +1,4 @@
-import {useCallback, useContext, useState} from "react";
+import {useCallback, useContext, useEffect, useState} from "react";
 import {Alert, Button, Card, Heading, Pane, Tab, Tablist, Text, TextInputField} from "evergreen-ui";
 import {auth, realtime_db} from "../../firebase";
 import {LoginWithUMD} from "../../components/LoginWithUMD/LoginWithUMD";
@@ -58,7 +58,7 @@ export function LoginScreen() {
     }, [setError, setLoading, email, password]);
 
 
-    if (isAuthed) {
+    useEffect(() => {
         (async () => {
             const subscriptions = await Promise.all([
                 get(ref(realtime_db, "user_settings/" + getUser()?.uid + "/discord")),
@@ -66,12 +66,14 @@ export function LoginScreen() {
                 get(ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_hook"))
             ]);
             if (subscriptions.some(e => e.exists() && e.val() != "")) {
-                navigate("/onboarding");
+                navigate("/profile")
             } else {
-                navigate("/setup")
+                navigate("/onboarding");
             }
         })();
+    })
 
+    if (isAuthed) {
         return <>Logged in...</>;
     }
 
