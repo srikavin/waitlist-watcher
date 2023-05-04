@@ -54,6 +54,20 @@ resource "google_secret_manager_secret_version" "discord-client-secret" {
   secret_data = var.DISCORD_CLIENT_SECRET
 }
 
+resource "google_secret_manager_secret" "sendgrid-api-key" {
+  secret_id = "SENDGRID_API_KEY"
+
+  replication {
+    automatic = true
+  }
+}
+
+resource "google_secret_manager_secret_version" "sendgrid-api-key" {
+  secret = google_secret_manager_secret.sendgrid-api-key.id
+
+  secret_data = var.SENDGRID_API_KEY
+}
+
 resource "google_secret_manager_secret" "notifier-vapid-priv-key" {
   secret_id = "VAPID_PRIV_KEY"
 

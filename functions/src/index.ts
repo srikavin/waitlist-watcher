@@ -46,7 +46,7 @@ export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,
     memory: "256MiB",
     cpu: 'gcf_gen1',
-    secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY"],
+    secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "SENDGRID_API_KEY"],
     region: "us-east1"
 }, sendNotifications);
 
@@ -67,6 +67,6 @@ export const test_notification =
             invoker: "public",
             memory: "128MB",
             timeoutSeconds: 30,
-            secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY"],
+            secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "SENDGRID_API_KEY"],
         })
         .https.onCall(testNotify);
