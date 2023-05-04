@@ -55,7 +55,7 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
 
     return (
         <div className="flex gap-2">
-            <small>{dayjs(event.timestamp).format("MM-DD-YYYY HH:mm")}</small>
+            <small className="flex-shrink-0">{dayjs(event.timestamp).format("MM-DD-YYYY HH:mm")}</small>
             <span>
             <span>{nameMapping[event.type]}
                 {event.type === 'section_added' || event.type === 'section_removed' ? <> ({event.section})</> : ''}
@@ -120,7 +120,7 @@ function FormattedCourseEvents(props: { events: Array<any> }) {
                         <details>
                             <summary className="list-outside">
                                 <div className="flex gap-2">
-                                    <div className="leading-tight">
+                                    <div className="leading-tight flex-shrink-0">
                                         <small
                                             className="block">{dayjs(x[0].timestamp).format("MM-DD-YYYY HH:mm")}</small>
                                         <small
