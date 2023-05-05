@@ -172,18 +172,21 @@ export function NotificationSettingsBody() {
     const {isAuthed, getUser} = useContext(AuthContext);
 
     const [discordUrl, setDiscordUrl] = useState('');
+    const [email, setEmail] = useState('');
     const [webhookUrl, setWebhookUrl] = useState('');
 
     const [storedDiscordUrl, setStoredDiscordUrl] = useState('');
     const [storedWebhookUrl, setStoredWebhookUrl] = useState('');
+    const [storedEmail, setStoredEmail] = useState('');
 
     const discordUrlRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/discord");
     const webhookUrlRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/web_hook");
+    const emailRef = ref(realtime_db, "user_settings/" + getUser()?.uid + "/email");
 
     const [statusText, setStatusText] = useState('')
     const [isLoading, setIsLoading] = useState(false)
 
-    const isModified = storedDiscordUrl !== discordUrl || storedWebhookUrl !== webhookUrl;
+    const isModified = storedDiscordUrl !== discordUrl || storedWebhookUrl !== webhookUrl || email != storedEmail;
 
     const save = useCallback(() => {
         if (!isAuthed) return Promise.resolve();
@@ -193,6 +196,7 @@ export function NotificationSettingsBody() {
             try {
                 await set(discordUrlRef, discordUrl);
                 await set(webhookUrlRef, webhookUrl);
+                await set(emailRef, email);
                 setStatusText('Saved!');
             } catch (e) {
                 console.error(e);
@@ -202,7 +206,7 @@ export function NotificationSettingsBody() {
             }
             setTimeout(() => setStatusText(''), 5000);
         })();
-    }, [isAuthed, discordUrl, webhookUrl])
+    }, [isAuthed, discordUrl, webhookUrl, email])
 
     useEffect(() => {
         return onValue(discordUrlRef, e => {
@@ -222,8 +226,18 @@ export function NotificationSettingsBody() {
         });
     }, []);
 
+    useEffect(() => {
+        return onValue(emailRef, e => {
+           if (e.exists()) {
+               setEmail(e.val());
+               setStoredEmail(e.val());
+           }
+        });
+    })
+
     const isDiscordUrlValid = discordUrl === "" || /^https:\/\/discord.com\/api\//.test(discordUrl);
     const isUrlValid = webhookUrl === "" || /^https?:\/\//.test(webhookUrl);
+    const isEmailValid = email === "" || (email.includes("@") && email.includes("."));
 
     return (
         <>
@@ -256,6 +270,15 @@ export function NotificationSettingsBody() {
                     isInvalid={!isUrlValid}
                     validationMessage={!isUrlValid ? "A webhook url must start with http:// or https://" : null}
                     onChange={(e: any) => setWebhookUrl(e.target.value)}
+                />
+                <TextInputField
+                    label="Email Notifications"
+                    description="Receive email notifications"
+                    placeholder={getUser()?.email ?? "Email"}
+                    value={email}
+                    isInvalid={!isEmailValid}
+                    validationMessage={!isEmailValid ? "Enter a valid email" : null}
+                    onChange={(e: any) => setEmail(e.target.value)}
                 />
             </Pane>
             <Pane marginRight={12} display={"inline"}>
