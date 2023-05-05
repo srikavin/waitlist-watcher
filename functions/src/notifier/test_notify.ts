@@ -12,7 +12,7 @@ export async function testNotify(data: any, context: CallableContext) {
     const subscription_methods = await rtdb.ref("user_settings/" + userid).once('value');
     if (!subscription_methods.exists()) return;
 
-    const pro = (await rtdb.ref("user_settings/paid_plan/").once('value')).exists();
+    const pro = (await rtdb.ref(`user_settings/${userid}/paid_plan/`).once('value')).exists();
 
     const sub_methods = subscription_methods.val();
 

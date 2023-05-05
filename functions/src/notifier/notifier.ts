@@ -104,7 +104,7 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
             const subscription_methods = await rtdb.ref("user_settings/" + key).once('value');
             if (!subscription_methods.exists()) continue;
 
-            const paid_plan = await rtdb.ref("user_settings/paid_plan/" + semester).once('value');
+            const paid_plan = await rtdb.ref(`user_settings/${key}/paid_plan/${semester}`).once('value');
             let pro = false;
             if (paid_plan.exists() && paid_plan.val() === "pro") {
                 pro = true;
