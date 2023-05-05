@@ -5,7 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && node build/index.js | npx pino-pretty",
+    "start": "npm run build && node build/index.js",
     "gcp-build": "npm run build"
   },
   "author": "",
@@ -20,7 +20,8 @@
     "fastify": "^4.5.2",
     "fastify-raw-body": "^4.0.0",
     "firebase-admin": "^10.1.0",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "stripe": "^12.4.0"
   },
   "devDependencies": {
     "pino-pretty": "^9.0.1",

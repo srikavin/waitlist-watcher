@@ -12,3 +12,7 @@ variable "GOOGLE_CREDENTIALS" {}
 variable "DISCORD_CLIENT_SECRET" {}
 
 variable "SENDGRID_API_KEY" {}
+
+variable "STRIPE_API_KEY" {}
+
+variable "STRIPE_SIGNING_SECRET" {}

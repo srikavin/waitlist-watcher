@@ -110,6 +110,7 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
         data: {
             prefix: prefix,
             events: events,
+            semester: semester,
             timestamp: timestamp,
             id: eventId
         }

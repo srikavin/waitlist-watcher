@@ -1,5 +1,14 @@
 import {useState} from "react";
-import {ChatIcon, CodeIcon, Icon, Link, NotificationsIcon} from "evergreen-ui";
+import {
+    ChatIcon,
+    CodeIcon,
+    EnvelopeIcon,
+    Icon,
+    Link,
+    MobilePhoneIcon,
+    NotificationsIcon,
+    TickCircleIcon
+} from "evergreen-ui";
 import {useTitle} from "../../util/useTitle";
 import {HistoryScreen} from "../HistoryScreen/HistoryScreen";
 import {NavLink} from "react-router-dom";
@@ -22,9 +31,12 @@ function NotificationInfo(props: { icon: any, title: string, description: string
 
 const randomCourseNames = [
     'CMSC131-0101',
-    'CHEM131-1214',
+    'CHEM131-1241',
     'CMSC430-0101',
-    'CMSC330-0302'
+    'CMSC330-0302',
+    'MATH410-0601',
+    'MATH410-0501',
+    'PHYS103-0801'
 ]
 
 export function LandingPageScreen() {
@@ -121,15 +133,82 @@ export function LandingPageScreen() {
                                         icon={<CodeIcon/>}
                                         title="Web Hooks"
                                         description="Integrate with third-party apps using web hooks."/>
-                                    {/*<NotificationInfo*/}
-                                    {/*    icon={<MobilePhoneIcon/>}*/}
-                                    {/*    title="Text Message"*/}
-                                    {/*    description="Get notified through real-time text message updates."/>*/}
-                                    {/*<NotificationInfo*/}
-                                    {/*    icon={<EnvelopeIcon/>}*/}
-                                    {/*    title="E-Mail"*/}
-                                    {/*    description="Get notified through e-mails."/>*/}
+                                    <NotificationInfo
+                                        icon={<MobilePhoneIcon/>}
+                                        title="Text Message*"
+                                        description="Get notified through real-time text message updates."/>
+                                    <NotificationInfo
+                                        icon={<EnvelopeIcon/>}
+                                        title="Email*"
+                                        description="Get notified through emails."/>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section className="relative pt-12">
+                <div
+                    className="absolute inset-0 bg-gradient-to-b from-red-50 to-blue-50 pointer-events-none border-t-2 border-b-2 border-amber-500"
+                    aria-hidden="true"></div>
+                <div className="text-center relative max-w-6xl mx-auto px-4 sm:px-6 pb-12 gap-12">
+                    <h2 className="h2 mb-4">Pay what you want.</h2>
+
+                    <div className="flex justify-center gap-12">
+                        <div className="w-64 p-4 bg-white shadow-lg rounded-2xl dark:bg-gray-800">
+                            <p className="mb-4 text-xl font-medium text-gray-800 dark:text-gray-50">
+                                Always Free
+                            </p>
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                                $0
+                                <span className="text-sm text-gray-300">/ semester</span>
+                            </p>
+                            <p className="mt-4 text-xs text-gray-600 dark:text-gray-100">
+                                Core features will always be free.
+                            </p>
+                            <ul className="w-full mt-6 mb-6 text-sm text-gray-600 dark:text-gray-100">
+                                {["No Watch Limit", "Real-time Notifications", "Push Notifications", "Discord Notifications", "Web Hook Notifications"].map(x => (
+                                    <li className="mb-3 flex gap-2 items-center" key={x}>
+                                        <Icon color="#10b981" size={24} icon={<TickCircleIcon/>}></Icon>
+                                        {x}
+                                    </li>
+                                ))}
+                            </ul>
+                            <NavLink to={"/login"}>
+                                <button type="button"
+                                        className="py-2 px-4  bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 focus:ring-offset-indigo-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg ">
+                                    Register
+                                </button>
+                            </NavLink>
+                        </div>
+                        <div className="w-64 p-4 bg-white shadow-lg rounded-2xl dark:bg-gray-800">
+                            <p className="mb-4 text-xl font-medium text-gray-800 dark:text-gray-50">
+                                Pro
+                            </p>
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                                $2.99
+                                <span className="text-sm text-gray-300">/ semester</span>
+                            </p>
+                            <p className="mt-4 text-xs text-gray-600 dark:text-gray-100">
+                                Support hosting costs and get access to expensive notification channels.
+                            </p>
+                            <ul className="w-full mt-6 mb-6 text-sm text-gray-600 dark:text-gray-100">
+                                {["All Always Free Features", "Email Notifications", "Text Notifications"].map(x => (
+                                    <li className="mb-3 flex gap-2 items-center" key={x}>
+                                        <Icon color="#10b981" size={24} icon={<TickCircleIcon/>}></Icon>
+                                        {x}
+                                    </li>
+                                ))}
+                                <li>&nbsp;</li>
+                                <li>&nbsp;</li>
+                            </ul>
+                            <div>
+                                <NavLink to={"/login"}>
+                                    <button type="button"
+                                            className="py-2 px-4  bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 focus:ring-offset-indigo-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg ">
+                                        Register
+                                    </button>
+                                </NavLink>
                             </div>
                         </div>
                     </div>
@@ -139,7 +218,7 @@ export function LandingPageScreen() {
                 <div className="text-center relative max-w-6xl mx-auto px-4 sm:px-6 pb-12">
                     <h1 className="h2 mb-4">Raw Data and Source Code</h1>
                     <p className="text-xl text-center text-gray-600 mb-4">
-                        Want to use the raw data for your own purposes, or see how Waitlist Watcher works?
+                        Want to use the raw data for your own purposes or see how Waitlist Watcher works?
                     </p>
                     <p>
                         Get the

@@ -91,6 +91,8 @@ module "appengine" {
   runtime    = "nodejs16"
   env_vars   = {
     DISCORD_CLIENT_SECRET = var.DISCORD_CLIENT_SECRET
+    STRIPE_API_KEY = var.STRIPE_API_KEY
+    STRIPE_SIGNING_SECRET = var.STRIPE_SIGNING_SECRET
   }
 }
 

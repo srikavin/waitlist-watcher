@@ -133,9 +133,22 @@ function App() {
         });
     }, [user]);
 
+    const [isPro, setIsPro] = useState(false);
+    useEffect(() => {
+        if (!user) return;
+        return onValue(ref(realtime_db, "user_settings/" + user!.uid + "/paid_plan/" + semester), (e) => {
+            if (e.exists()) {
+                setIsPro(e.val() === "pro");
+            } else {
+                setIsPro(false);
+            }
+        });
+    }, [user]);
+
     const authCtx = {
         isAuthed: !!auth.currentUser,
         getUser: () => user as User,
+        isPro: isPro,
         logout: () => {
             auth.signOut();
             localStorage.removeItem("customToken");

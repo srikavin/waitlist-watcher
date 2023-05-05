@@ -12,6 +12,8 @@ export async function testNotify(data: any, context: CallableContext) {
     const subscription_methods = await rtdb.ref("user_settings/" + userid).once('value');
     if (!subscription_methods.exists()) return;
 
+    const pro = (await rtdb.ref("user_settings/paid_plan/").once('value')).exists();
+
     const sub_methods = subscription_methods.val();
 
     await publishNotifications(sub_methods, userid, {
@@ -24,7 +26,7 @@ export async function testNotify(data: any, context: CallableContext) {
         section: "101",
         new: "New Value",
         old: "Old Value",
-    });
+    }, pro);
 
     return {success: true};
 }

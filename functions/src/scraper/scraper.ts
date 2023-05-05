@@ -53,6 +53,7 @@ export type ScrapedOutput = Record<string, ScrapedCourse>;
 const getCourseList = async (semester: string, prefix: string) => {
     const data = (await axiosInstance.get(COURSE_LIST_URL(semester, prefix))).data;
 
+    // @ts-ignore
     return Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course")]
         .map((e, i) => {
             let courseTitle = e.querySelector(".course-title");
@@ -83,6 +84,7 @@ const parseNumber = (val: string) => {
 }
 
 export const getMeetingTimes = (sectionNode: Element): ScrapedMeeting[] => {
+    // @ts-ignore
     return [...sectionNode.querySelectorAll(".class-days-container > .row")].map(meeting => {
         let meetingType = meeting.querySelector(".class-type");
         let buildingCode = meeting.querySelector('.building-code');
@@ -113,6 +115,7 @@ export const getSectionInformation = async (semester: string, prefix: string): P
     const courseList = Object.keys(courseData).join(",");
     const data = (await axiosInstance.get(SECTIONS_URL(semester, prefix, courseList))).data;
 
+    // @ts-ignore
     return Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course-sections")]
         .map(course => {
             return [course.id, {

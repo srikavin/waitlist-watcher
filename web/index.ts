@@ -10,6 +10,7 @@ initializeApp({
 import {discordRoute} from "./routes/discord";
 import {authRoute} from "./routes/auth";
 import {rawDataRoute} from "./routes/rawdata";
+import {paymentRoute} from "./routes/payment";
 
 const PORT = Number(process.env.PORT) || 8080;
 
@@ -34,6 +35,7 @@ app.register(cors, {})
 app.register(authRoute)
 app.register(discordRoute)
 app.register(rawDataRoute)
+app.register(paymentRoute)
 
 app.listen({port: PORT}, (err, address) => {
     if (err) throw err;

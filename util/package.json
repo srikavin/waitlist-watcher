@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -b",
     "populate_historical_events": "npm run build && node populate_historical_events.js",
+    "disable_snapshot": "npm run build && node disable_snapshot.js",
     "populate_historical_course_listing": "npm run build && node populate_historical_course_listing.js",
     "move_to_cloud_storage": "npm run build && node move_to_cloud_storage.js",
     "create_discord_server": "npm run build && node create_discord_server.js",

@@ -21,6 +21,7 @@ import {notifWorker} from "../../main";
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 import {useTitle} from "../../util/useTitle";
 import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
+import {SemesterContext} from "../../context/SemesterContext";
 
 function EnableNotificationsButton() {
     const [isLoading, setIsLoading] = useState(false);
@@ -169,7 +170,7 @@ function CurrentSubscriptions() {
 }
 
 export function NotificationSettingsBody() {
-    const {isAuthed, getUser} = useContext(AuthContext);
+    const {isAuthed, isPro, getUser} = useContext(AuthContext);
 
     const [discordUrl, setDiscordUrl] = useState('');
     const [email, setEmail] = useState('');
@@ -274,8 +275,9 @@ export function NotificationSettingsBody() {
                     onChange={(e: any) => setWebhookUrl(e.target.value)}
                 />
                 <TextInputField
-                    label="Email Notifications"
-                    description="Receive email notifications"
+                    label="Email Notifications (Pro Only)"
+                    description={`Receive email notifications ${!isPro ? "(Pro Plan only)" : ""}`}
+                    disabled={!isPro}
                     placeholder={getUser()?.email ?? "Email"}
                     value={email}
                     isInvalid={!isEmailValid}
@@ -346,6 +348,58 @@ function DeleteAccount() {
     );
 }
 
+export function PaidPlan() {
+    const {isAuthed, getUser, isPro} = useContext(AuthContext);
+    const {semester, semesters} = useContext(SemesterContext);
+
+    const [paidPlans, setPaidPlans] = useState<any>({});
+
+    useEffect(() => {
+        return onValue(ref(realtime_db, `user_settings/${getUser()?.uid}/paid_plans`), e => {
+            setPaidPlans(e ?? {});
+        });
+    }, [semesters, isAuthed]);
+
+    const plan = isPro ? "Pro Tier" : "Always Free";
+
+    const buyButtonId = import.meta.env.DEV ? "buy_btn_1N4THPFyZ0MspKh2OH5rczga" : "buy_btn_1N4T5KFyZ0MspKh2ZZmuwlSd";
+    const publishableKey = import.meta.env.DEV ?
+        "pk_test_51N2zqNFyZ0MspKh2ziT2o0XlXZ9Ab9tczmlyeqX3iTrBygPsi6mUFOG0qCrdGR0bsHuVZBsJF2VZEDbu4GMDxH05007U7bSWDa" :
+        "pk_live_51N2zqNFyZ0MspKh2k6z4TTBrmqza1YpomBOa5MJemzMYLz9oVyZiD7hwMx9lIjnu53y7GbFzSFpN8zC2oi4LLIat00DYmRZjeW";
+
+    return (
+        <>
+            <Heading size={800}>Your Plan</Heading>
+            <Text>Your current Waitlist Watcher plan is <b>{plan}</b> for {semesters[semester].name}.</Text>
+            {plan !== "Pro Tier" &&
+                <div className="mt-4 mb-2">
+                    <Text>
+                        Upgrade to Pro for $2.99 / semester (charged once).
+                    </Text>
+                    <br/>
+                    <stripe-buy-button
+                        buy-button-id={buyButtonId}
+                        publishable-key={publishableKey}
+                        client-reference-id={getUser()?.uid}
+                        customer-email={getUser()?.email}
+                    ></stripe-buy-button>
+                </div>
+            }
+            <div className="mt-2">
+                <Text>Your plan for other semesters: </Text>
+                {Object.keys(semesters).map(x => {
+                    if (x === semester) return null;
+                    return (
+                        <div>
+                            <Text>{semesters[x].name} - <b>{paidPlans[x] === "pro" ? "Pro Tier" : "Always Free"}</b></Text>
+                        </div>
+                    )
+                })}
+            </div>
+        </>
+    )
+}
+
 export function ProfileScreen() {
     const {isAuthed, getUser} = useContext(AuthContext);
     useTitle("User Settings");
@@ -368,14 +422,18 @@ export function ProfileScreen() {
                             description="Used only for login purposes"
                             value={getUser()?.email ?? ""}
                         />
-                        <TextInputField
-                            label="Password"
-                            description="Change your password"
-                            placeholder="*********"
-                        />
+                        {/*<TextInputField*/}
+                        {/*    label="Password"*/}
+                        {/*    description="Change your password"*/}
+                        {/*    placeholder="*********"*/}
+                        {/*/>*/}
                     </Pane>
 
                     <Button>Save</Button>
+                </Card>
+
+                <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
+                    <PaidPlan/>
                 </Card>
 
                 <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
@@ -398,6 +456,5 @@ export function ProfileScreen() {
                 </Card>
             </Pane>
         </>
-    )
-        ;
+    );
 }
