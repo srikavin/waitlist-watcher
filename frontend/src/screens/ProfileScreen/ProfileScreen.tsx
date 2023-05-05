@@ -188,7 +188,7 @@ export function NotificationSettingsBody() {
 
     const isModified = storedDiscordUrl !== discordUrl || storedWebhookUrl !== webhookUrl || email != storedEmail;
 
-    const save = useCallback(() => {
+    const save = useCallback((clearStatus: boolean) => {
         if (!isAuthed) return Promise.resolve();
 
         return (async () => {
@@ -204,7 +204,9 @@ export function NotificationSettingsBody() {
             } finally {
                 setIsLoading(false);
             }
-            setTimeout(() => setStatusText(''), 5000);
+            if (clearStatus) {
+                setTimeout(() => setStatusText(''), 5000);
+            }
         })();
     }, [isAuthed, discordUrl, webhookUrl, email])
 
@@ -282,12 +284,13 @@ export function NotificationSettingsBody() {
                 />
             </Pane>
             <Pane marginRight={12} display={"inline"}>
-                <Button disabled={!isDiscordUrlValid || !isUrlValid} onClick={save} isLoading={isLoading}
+                <Button disabled={!isDiscordUrlValid || !isUrlValid} onClick={() => save(true)} isLoading={isLoading}
                         appearance={isModified ? "primary" : "default"}>Save</Button>
             </Pane>
             <Button disabled={!isDiscordUrlValid || !isUrlValid} onClick={() => {
                 setIsLoading(true);
-                save().then(() => {
+                save(false).then(() => {
+                    setStatusText("Saved. Sending test notification...");
                     testNotifyFunction()
                         .then(() => setStatusText("Sent test notification!"))
                         .finally(() => setIsLoading(false));
