@@ -35,6 +35,11 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
 
     const data = await getSectionInformation(semester, prefix);
 
+    if (Object.entries(data).length === 0) {
+        console.warn("Scraping", semester, prefix, "had 0 courses. Ignoring results.");
+        return;
+    }
+
     const diff = compare(previous.latest, data, true);
     const newUpdateCount = previous.updateCount + 1;
 
