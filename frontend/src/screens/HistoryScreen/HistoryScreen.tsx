@@ -268,6 +268,13 @@ export function HistoryScreen(props: HistoryScreenProps) {
             to={`/history/${courseName}`}>{courseName}</Link> {sectionName}</> : name
     );
 
+    const WatchingInfo = (
+        <>
+            {numberOfWatchers} {numberOfWatchers === 1 ? "person is" : "people are"} watching
+            this {isSection ? "section" : "course"}.
+        </>
+    );
+
     return (
         <>
             {!props.landing && (
@@ -282,8 +289,7 @@ export function HistoryScreen(props: HistoryScreenProps) {
                     </Heading>
 
                     <Pane marginTop={-8}>
-                        <Text>{numberOfWatchers} {numberOfWatchers === 1 ? "person is" : "people are"} watching
-                            this {isSection ? "section" : "course"}.</Text>
+                        <Text>{WatchingInfo}</Text>
                     </Pane>
 
                     <Pane display={"flex"} gap={16}>
@@ -307,8 +313,13 @@ export function HistoryScreen(props: HistoryScreenProps) {
                                 <Pane marginBottom={12}>
                                     {!props.landing &&
                                         <Heading size={800} marginBottom={8}>Registration Changes</Heading>}
-                                    {props.landing &&
-                                        <Heading size={800} marginBottom={8}>{LinkToSection} Historical Data</Heading>}
+                                    {props.landing && (
+                                        <div className="mb-8">
+                                            <Heading size={800}>{LinkToSection} Historical
+                                                Data</Heading>
+                                            <Text>{WatchingInfo}</Text>
+                                        </div>
+                                    )}
                                     <Pane marginLeft={-40} marginTop={32}>
                                         <HistoryChart name={name}/>
                                     </Pane>
