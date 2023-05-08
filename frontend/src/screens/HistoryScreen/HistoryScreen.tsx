@@ -1,4 +1,4 @@
-import {useContext} from "react";
+import {useContext, useEffect, useState} from "react";
 import {Card, EmptyState, Heading, Pane, SearchTemplateIcon, Text} from "evergreen-ui";
 import dayjs from "dayjs";
 import styles from './HistoryScreen.module.css'
@@ -10,6 +10,8 @@ import {useTitle} from "../../util/useTitle";
 import {ViewOnTestudo} from "../../components/ViewOnTestudo/ViewOnTestudo";
 import {AddToSchedule} from "../../components/AddToSchedule/AddToSchedule";
 import {useCourseEvents} from "../../util/useCourseEvents";
+import {countWatchersFunction} from "../../firebase";
+import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
 
 interface FormattedCourseEventProps {
     event: object
@@ -242,10 +244,20 @@ export function HistoryChart(props: { name: string }) {
 export function HistoryScreen(props: HistoryScreenProps) {
     const {name, minimal = false} = props;
     const {courseListing} = useContext(SemesterContext);
+    const {userSubscriptions} = useContext(UserSubscriptionsContext);
 
     const isSection = name.includes('-');
     const courseName = name.split('-')[0];
     const sectionName = isSection ? name.split('-')[1] : '';
+
+    const [numberOfWatchers, setNumberOfWatchers] = useState(0);
+
+    useEffect(() => {
+        countWatchersFunction({course: courseName, section: sectionName}).then((r: any) => {
+            if (r.data.success)
+                setNumberOfWatchers(r.data.count);
+        });
+    }, [name, userSubscriptions])
 
     useTitle(`${name} Course History`);
 
@@ -268,6 +280,11 @@ export function HistoryScreen(props: HistoryScreenProps) {
                             <WatchCourseButton courseName={name}/>}
                         </span>
                     </Heading>
+
+                    <Pane marginTop={-8}>
+                        <Text>{numberOfWatchers} {numberOfWatchers === 1 ? "person is" : "people are"} watching
+                            this {isSection ? "section" : "course"}.</Text>
+                    </Pane>
 
                     <Pane display={"flex"} gap={16}>
                         <Text size={500}><ViewOnTestudo course={courseName} section={sectionName}/></Text>

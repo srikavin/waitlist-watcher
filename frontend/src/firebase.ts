@@ -25,6 +25,7 @@ export const functions = getFunctions(firebaseApp, "us-east4");
 getAnalytics(firebaseApp);
 
 export const testNotifyFunction = httpsCallable(functions, 'test_notification');
+export const countWatchersFunction = httpsCallable(functions, 'count_watchers');
 
 setPersistence(auth, browserLocalPersistence);
 enableIndexedDbPersistence(db).catch(console.error);

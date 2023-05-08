@@ -5,6 +5,7 @@ import {sendNotifications} from "./notifier/notifier";
 import {updateTopic} from "./common";
 import {scraperLauncher} from "./scraper";
 import {testNotify} from "./notifier/test_notify";
+import {countWatchers} from './count_watchers';
 
 export const onCourseAddition202208 =
     functions
@@ -70,3 +71,13 @@ export const test_notification =
             secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "SENDGRID_API_KEY"],
         })
         .https.onCall(testNotify);
+
+export const count_watchers =
+    functions
+        .region('us-east4')
+        .runWith({
+            invoker: "public",
+            memory: "128MB",
+            timeoutSeconds: 30,
+        })
+        .https.onCall(countWatchers);
