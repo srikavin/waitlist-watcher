@@ -7,7 +7,7 @@ import dayjs from 'dayjs'
 import relativeTime from "dayjs/plugin/relativeTime";
 import {get, ref, update} from "firebase/database";
 import ProfessorNames from "../ProfessorName/ProfessorNames";
-import {Link} from "react-router-dom";
+import {Link, NavLink} from "react-router-dom";
 import {SemesterContext} from "../../context/SemesterContext";
 import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
 
@@ -68,7 +68,7 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
     } = props;
 
     const {isAuthed} = useContext(AuthContext);
-    const {userSubscriptions} = useContext(UserSubscriptionsContext);
+    const {userSubscriptions, subscriptionMethods} = useContext(UserSubscriptionsContext);
 
     return (
         <Popover
@@ -85,7 +85,6 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
 
                     <Heading>{title}</Heading>
                     <Pane marginBottom={10}>
-                        <Text>Which events would you like to watch?</Text>
 
                         {isErrored ? (
                             <Alert intent="danger" title="Changes failed to save." marginY={12}>
@@ -98,6 +97,19 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
                                 An account is required to watch courses.
                             </Alert>
                         )}
+
+                        {subscriptionMethods.length === 0 && (
+                            <div className="my-4">
+                                <Alert intent="danger" title={"No notification methods set!"}>
+                                    <Text>
+                                        Setup notification methods in <NavLink to={"/profile"}>your
+                                        profile</NavLink> before watching courses.
+                                    </Text>
+                                </Alert>
+                            </div>
+                        )}
+
+                        <Text>Which events would you like to watch?</Text>
 
                         {Object.keys(subscriptionLabels).map((k: keyof (typeof subscriptionLabels)) => (
                             <Checkbox key={k} checked={subscriptionState[k]}
@@ -114,7 +126,9 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
                                 All</Button>
                         </Pane>
                     </Pane>
-                    <Button isLoading={isLoading} onClick={() => onSave(close)}>Save</Button>
+                    <Button isLoading={isLoading}
+                            disabled={!isAuthed || (Object.values(subscriptionState).filter(x => x).length !== 0 && subscriptionMethods.length === 0)}
+                            onClick={() => onSave(close)}>Save</Button>
                 </Pane>
             )}
         >

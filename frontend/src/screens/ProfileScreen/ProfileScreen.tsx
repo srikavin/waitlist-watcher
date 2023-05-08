@@ -231,12 +231,12 @@ export function NotificationSettingsBody() {
 
     useEffect(() => {
         return onValue(emailRef, e => {
-           if (e.exists()) {
-               setEmail(e.val());
-               setStoredEmail(e.val());
-           }
+            if (e.exists()) {
+                setEmail(e.val());
+                setStoredEmail(e.val());
+            }
         });
-    })
+    }, [])
 
     const isDiscordUrlValid = discordUrl === "" || /^https:\/\/discord.com\/api\//.test(discordUrl);
     const isUrlValid = webhookUrl === "" || /^https?:\/\//.test(webhookUrl);

@@ -74,6 +74,7 @@ function App() {
     let [searchParams, _] = useSearchParams({semester: "202308"});
     const [semester, setSemester] = useState(searchParams.get("semester")!);
     const [userSubscriptions, setUserSubscriptions] = useState({});
+    const [subscriptionMethods, setSubscriptionMethods] = useState<string[]>([]);
 
     useEffect(() => {
         if (!localStorage.customToken) return;
@@ -122,26 +123,19 @@ function App() {
         });
     }, [semester])
 
-    useEffect(() => {
-        if (!user) return;
-        return onValue(ref(realtime_db, "user_settings/" + user!.uid + "/subscriptions"), e => {
-            if (e.exists()) {
-                setUserSubscriptions(e.val())
-            } else {
-                setUserSubscriptions({})
-            }
-        });
-    }, [user]);
-
     const [isPro, setIsPro] = useState(false);
+
     useEffect(() => {
         if (!user) return;
-        return onValue(ref(realtime_db, "user_settings/" + user!.uid + "/paid_plan/" + semester), (e) => {
-            if (e.exists()) {
-                setIsPro(e.val() === "pro");
-            } else {
-                setIsPro(false);
-            }
+        return onValue(ref(realtime_db, "user_settings/" + user!.uid), e => {
+            setUserSubscriptions(e.child("subscriptions").val() ?? {})
+            setIsPro(e.child("paid_plan/" + semester).val() === "pro");
+            setSubscriptionMethods([
+                ...((e.child("email").val() ?? "") ? ["email"] : []),
+                ...((e.child("web_hook").val() ?? "") ? ["web_hook"] : []),
+                ...(e.child("web_push").exists() ? ["web_push"] : []),
+                ...((e.child("discord").val() ?? "") ? ["discord"] : []),
+            ]);
         });
     }, [user]);
 
@@ -169,7 +163,7 @@ function App() {
     return (
         <AuthContext.Provider value={authCtx}>
             <SemesterContext.Provider value={semesterCtx}>
-                <UserSubscriptionsContext.Provider value={{userSubscriptions}}>
+                <UserSubscriptionsContext.Provider value={{userSubscriptions, subscriptionMethods}}>
                     <Navigation/>
                     <Routes>
                         <Route path="/" element={<LandingPageScreen/>}/>
