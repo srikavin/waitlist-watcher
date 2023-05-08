@@ -355,8 +355,8 @@ export function PaidPlan() {
     const [paidPlans, setPaidPlans] = useState<any>({});
 
     useEffect(() => {
-        return onValue(ref(realtime_db, `user_settings/${getUser()?.uid}/paid_plans`), e => {
-            setPaidPlans(e ?? {});
+        return onValue(ref(realtime_db, `user_settings/${getUser()?.uid}/paid_plan`), e => {
+            setPaidPlans(e.val() ?? {});
         });
     }, [semesters, isAuthed]);
 
