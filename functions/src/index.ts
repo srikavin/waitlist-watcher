@@ -79,5 +79,6 @@ export const count_watchers =
             invoker: "public",
             memory: "128MB",
             timeoutSeconds: 30,
+            maxInstances: 2
         })
         .https.onCall(countWatchers);
