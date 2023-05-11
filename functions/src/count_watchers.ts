@@ -10,6 +10,8 @@ export async function countWatchers(data: any, context: CallableContext) {
         key = rtdb.ref('course_subscriptions').child(data['course']);
     }
 
+    console.log(data);
+
     if (!key) {
         return {success: false, error: 'invalid request'};
     }

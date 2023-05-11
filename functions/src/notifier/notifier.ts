@@ -3,6 +3,7 @@ import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 
 import {rtdb} from "../common";
 import {publishNotifications} from "./send";
+import {notify_discord_server} from "./discord_server_notifier";
 
 export const sendNotifications = async (event: CloudEvent<MessagePublishedData>) => {
     const parsedData = JSON.parse(Buffer.from(event.data.message.data, 'base64').toString());
@@ -53,6 +54,8 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
     const promises: Promise<any>[] = [];
 
 
+    promises.push(notify_discord_server(prefix, events));
+
     for (const event of events) {
         const {type} = event;
 
@@ -94,8 +97,6 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
                 ...courseSubscribers?.[key],
                 ...sectionSubscribers?.[key],
             };
-
-            console.log("merged preferences", JSON.stringify(merged));
 
             if (merged[type] !== true) {
                 continue;
