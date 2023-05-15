@@ -214,15 +214,19 @@ export function HistoryChart(props: { name: string }) {
                     labelFormatter={(label, payload) => new Date((payload?.[0]?.payload?.time ?? 0)).toLocaleString()}/>
                 <Legend/>
                 <Line connectNulls name="Total Seats"
+                      type="stepAfter"
                       dataKey="total_seats_changed"
                       stroke="#003f5c"/>
                 <Line connectNulls name="Open Seats"
+                      type="stepAfter"
                       dataKey="open_seats_changed"
                       stroke="#7a5195"/>
                 <Line connectNulls name="Waitlist Count"
+                      type="stepAfter"
                       dataKey="waitlist_changed"
                       stroke="#ef5675"/>
                 <Line connectNulls name="Holdfile Count"
+                      type="stepAfter"
                       dataKey="holdfile_changed"
                       stroke="#ffa600"/>
 
