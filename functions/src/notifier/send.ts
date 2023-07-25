@@ -7,14 +7,14 @@ import {
     webhookQueueShardCount
 } from "../common";
 import {getDiscordContent} from "./discord";
-import {CourseEvent} from "@/common/types";
+import {CourseEvent, TestNotificationEvent} from "@/common/events";
 import * as webpush from "web-push";
 import {PushSubscription} from "web-push";
 
 const sgMail = require('@sendgrid/mail')
 sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 
-export const sendDiscordNotification = async (webhook_url: string, event: CourseEvent) => {
+export const sendDiscordNotification = async (webhook_url: string, event: CourseEvent | TestNotificationEvent) => {
     return await tasksClient.createTask({
         parent: discordWebhookQueue(shardQueueUrl(webhook_url, discordWebhookQueueShardCount)),
         task: {
@@ -31,7 +31,7 @@ export const sendDiscordNotification = async (webhook_url: string, event: Course
     });
 }
 
-export const sendWebhookNotification = async (webhook_url: string, event: CourseEvent) => {
+export const sendWebhookNotification = async (webhook_url: string, event: CourseEvent | TestNotificationEvent) => {
     return await tasksClient.createTask({
         parent: webhookQueue(shardQueueUrl(webhook_url, webhookQueueShardCount)),
         task: {
@@ -48,7 +48,7 @@ export const sendWebhookNotification = async (webhook_url: string, event: Course
     });
 }
 
-export const sendWebPushNotification = async (subscription: PushSubscription, event: CourseEvent) => {
+export const sendWebPushNotification = async (subscription: PushSubscription, event: CourseEvent | TestNotificationEvent) => {
     const VAPID_PUB_KEY = "BIlQ6QPEDRN6KWNvsCz9V9td8vDqO_Q9ZoUX0dAzHAhGVWoAPjjuK9nliB-qpfcN-tcGff0Df536Y2kk9xdYarA";
     webpush.setVapidDetails('mailto: contact@srikavin.me', VAPID_PUB_KEY, process.env.VAPID_PRIV_KEY!);
 
@@ -68,7 +68,7 @@ export const sendWebPushNotification = async (subscription: PushSubscription, ev
     });
 }
 
-export const sendEmailNotification = async (email: string, event: CourseEvent) => {
+export const sendEmailNotification = async (email: string, event: CourseEvent | TestNotificationEvent) => {
     const msg = {
         to: email, // Change to your recipient
         from: 'notifier.noreply@waitlistwatcher.srikavin.me', // Change to your verified sender
@@ -80,7 +80,7 @@ export const sendEmailNotification = async (email: string, event: CourseEvent) =
     return sgMail.send(msg);
 }
 
-export const publishNotifications = async (sub_methods: any, key: string, event: CourseEvent, is_pro: boolean) => {
+export const publishNotifications = async (sub_methods: any, key: string, event: CourseEvent | TestNotificationEvent, is_pro: boolean) => {
     const promises = [];
     if (sub_methods.web_hook) {
         console.log("Notifying", key, "through a web hook");

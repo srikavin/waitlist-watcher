@@ -1,3 +1,15 @@
+export interface SectionMeeting {
+    days?: string,
+    start?: string,
+    end?: string,
+    location?: {
+        buildingCode?: string,
+        classRoom?: string,
+        sectionText?: string,
+        elmsClassMessage?: string,
+    },
+}
+
 export interface CourseDataSection {
     section: string,
     holdfile: number,
@@ -5,6 +17,7 @@ export interface CourseDataSection {
     openSeats: number,
     totalSeats: number,
     waitlist: number
+    meetings: SectionMeeting[]
 }
 
 export interface CourseDataCourse {
@@ -91,5 +104,4 @@ export type CourseEvent = CourseEventCourseAdded |
     CourseEventOpenSeatsChanged |
     CourseEventWaitlistChanged |
     CourseEventHoldfileChanged |
-    CourseEventMeetingTimesChanged |
-    TestNotificationEvent;
+    CourseEventMeetingTimesChanged;

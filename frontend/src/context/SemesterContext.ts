@@ -1,17 +1,30 @@
-import {createContext} from "react";
+import {createContext, useContext} from "react";
+import {CollectionReference} from "firebase/firestore";
+import {FSCourseDataDocument, FSEventsDocument} from "@/common/firestore";
 
 type Semester = string;
 
+export interface SemesterInfo {
+    name: string,
+    courseDataCollection: CollectionReference<FSCourseDataDocument>,
+    eventsCollection: CollectionReference<FSEventsDocument>,
+}
+
 type SemesterContextValue = {
-    semester: Semester,
-    semesters: Record<Semester, { name: string, suffix: string }>
+    semester: SemesterInfo,
+    semesters: Record<Semester, SemesterInfo>
     setSemester: (semester: Semester) => void
     courseListing: string[]
 };
 
-export const SemesterContext = createContext<SemesterContextValue>({
-    semester: "",
-    semesters: {},
-    setSemester: () => null,
-    courseListing: []
-});
+const SemesterContext = createContext<SemesterContextValue | undefined>(undefined);
+
+export const SemesterContextProvider = SemesterContext.Provider;
+
+export const useSemesterContext = () => {
+    const data = useContext(SemesterContext);
+    if (!data) {
+        throw new Error("SemesterContext used outside of provider!")
+    }
+    return data;
+}

@@ -1,4 +1,4 @@
-import {enableIndexedDbPersistence, getFirestore} from "firebase/firestore";
+import {collection, enableIndexedDbPersistence, getFirestore} from "firebase/firestore";
 import {initializeApp} from "firebase/app";
 import {browserLocalPersistence, getAuth, setPersistence} from "firebase/auth";
 import {getDatabase} from "firebase/database";

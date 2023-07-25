@@ -1,4 +1,4 @@
-import {db, realtime_db} from "../../firebase";
+import {realtime_db} from "../../firebase";
 import {doc, onSnapshot} from "firebase/firestore";
 import {useCallback, useContext, useEffect, useState} from "react";
 import {AuthContext} from "../../context/AuthContext";
@@ -8,37 +8,15 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import {get, ref, update} from "firebase/database";
 import ProfessorNames from "../ProfessorName/ProfessorNames";
 import {Link, NavLink} from "react-router-dom";
-import {SemesterContext} from "../../context/SemesterContext";
+import {useSemesterContext} from "../../context/SemesterContext";
 import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
+import {FSCourseDataConverter, FSCourseDataDocument} from "@/common/firestore";
 
 dayjs.extend(relativeTime);
 
 interface CourseListingProps {
     prefix: string
 }
-
-interface CourseSection {
-    holdfile: number,
-    waitlist: number,
-    instructor: string,
-    section: string,
-    openSeats: number,
-    totalSeats: number
-}
-
-interface Course {
-    course: string,
-    name: string,
-    sections: Record<string, CourseSection>
-}
-
-interface CourseData {
-    lastRun: string,
-    latest: Record<string, Course>
-    timestamp: string,
-    updateCount: number
-}
-
 interface WatchButtonBaseProps {
     id: string,
     subscriptionState: Record<string, boolean>;
@@ -418,12 +396,12 @@ export function WatchDepartmentButton(props: WatchDepartmentButtonProps) {
 export function CourseListing(props: CourseListingProps) {
     const {prefix} = props;
 
-    const [courses, setCourses] = useState<CourseData>();
-    const {semester, semesters} = useContext(SemesterContext);
+    const [courses, setCourses] = useState<FSCourseDataDocument>();
+    const {semester, semesters} = useSemesterContext();
 
     useEffect(() => {
-        const removeListener = onSnapshot(doc(db, "course_data" + semesters[semester].suffix, prefix), (doc) => {
-            setCourses(doc.data() as CourseData);
+        const removeListener = onSnapshot(doc(semester.courseDataCollection, prefix).withConverter(FSCourseDataConverter), (doc) => {
+            setCourses(doc.data());
         });
 
         return () => {

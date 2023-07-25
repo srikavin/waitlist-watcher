@@ -5,8 +5,9 @@ import {
     EventTypes,
     IChangeEvent,
     ICourseEvent,
-    ICourseSectionEvent
-} from "@/common/types";
+    ICourseSectionEvent,
+    TestNotificationEvent
+} from "@/common/events";
 
 const generateFooter = (event: CourseEvent) => {
     return {
@@ -227,7 +228,7 @@ const unknownEvent = (event: any) => {
     };
 }
 
-export const getDiscordContent = (events: Array<CourseEvent>) => {
+export const getDiscordContent = (events: Array<CourseEvent | TestNotificationEvent>) => {
     const mapping: Record<EventTypes, (event: any) => object> = {
         "open_seat_available": seatAvailable,
         "open_seats_changed": openSeatsChanged,

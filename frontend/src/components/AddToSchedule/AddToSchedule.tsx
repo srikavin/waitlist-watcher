@@ -1,8 +1,7 @@
-import {useContext} from "react";
-import {SemesterContext} from "../../context/SemesterContext";
+import {useSemesterContext} from "../../context/SemesterContext";
 
 export function AddToSchedule(props: { course: string, section: string }) {
-    const {semester} = useContext(SemesterContext);
+    const {semester} = useSemesterContext();
     const {course, section} = props;
 
     const url = `https://app.testudo.umd.edu/main/dropAdd?venusTermId=${semester}&crslist=${course}_/${section}`;

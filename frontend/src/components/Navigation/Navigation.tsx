@@ -3,12 +3,12 @@ import {useContext} from "react";
 import {AuthContext} from "../../context/AuthContext";
 import {useNavigate} from "react-router-dom";
 import {Search} from "../Search/Search";
-import {SemesterContext} from "../../context/SemesterContext";
+import {useSemesterContext} from "../../context/SemesterContext";
 import styles from './Navigation.module.css'
 
 export function Navigation() {
     const {isAuthed, getUser, logout} = useContext(AuthContext);
-    const {semester, semesters, setSemester} = useContext(SemesterContext);
+    const {semester, semesters, setSemester} = useSemesterContext();
     const navigate = useNavigate();
 
     return (
@@ -25,7 +25,7 @@ export function Navigation() {
                 </div>
             </Pane>
             <Pane>
-                <Select value={semester} onChange={event => setSemester(event.target.value)}>
+                <Select value={semester.name} onChange={event => setSemester(event.target.value)}>
                     {Object.entries(semesters).map(([key, val]) => (
                         <option value={key} key={key}>{val.name}</option>
                     ))}

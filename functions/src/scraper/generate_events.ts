@@ -1,5 +1,5 @@
 import * as crypto from "crypto";
-import {CourseEvent} from "@/common/types";
+import {CourseEvent} from "@/common/events";
 import {ScrapedCourse, ScrapedOutput, ScrapedSection} from "./scraper";
 
 function toOrderedString(obj: any) {
@@ -114,7 +114,7 @@ function emitSectionEvents(events: Array<Partial<CourseEvent>>, course: string, 
     }
 }
 
-export const generateEvents = (previousCourses: ScrapedOutput, newCourses: ScrapedOutput, timestamp: string, semester: string) => {
+export const generateEvents = (previousCourses: ScrapedOutput, newCourses: ScrapedOutput, timestamp: string, semester: string): CourseEvent[] => {
     const events: Array<Partial<CourseEvent>> = [];
 
     for (const course in newCourses) {
@@ -164,6 +164,7 @@ export const generateEvents = (previousCourses: ScrapedOutput, newCourses: Scrap
 
     events.sort((a, b) => a.course!.localeCompare(b.course!));
 
+    // @ts-ignore
     return events.map((e) => ({
         ...e,
         id: crypto.createHash("sha1").update(e.course! + e.type + timestamp + e.section + semester).digest("hex"),

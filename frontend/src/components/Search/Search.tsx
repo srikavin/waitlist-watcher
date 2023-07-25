@@ -1,12 +1,12 @@
 import {Autocomplete, TextInput} from "evergreen-ui"
 import {useNavigate} from "react-router-dom";
-import {useContext, useState} from "react";
-import {SemesterContext} from "../../context/SemesterContext";
+import {useState} from "react";
 import {ErrorBoundary} from "../../util/ErrorBoundary";
+import {useSemesterContext} from "@/frontend/src/context/SemesterContext";
 
 export function Search() {
     const navigate = useNavigate();
-    const {courseListing} = useContext(SemesterContext);
+    const {courseListing} = useSemesterContext();
     const [inputValue, setInputValue] = useState("");
 
     return (

@@ -2,10 +2,12 @@ import * as config from "../config.json";
 import {fsdb, historical_bucket, updateTopic} from "../common";
 
 import type {CloudEvent} from "firebase-functions/v2";
+import type {CollectionReference} from "firebase-admin/firestore";
 import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 import {compare} from "fast-json-patch";
 import {generateEvents} from "./generate_events";
 import {getSectionInformation} from "./scraper";
+import {FSCourseDataDocument, FSEventsDocument} from "@/common/firestore";
 
 const BUCKET_SNAPSHOT_PREFIX = (semester: string, department: string) => `${semester}/snapshots/${department}/`
 const BUCKET_EVENTS_PREFIX = (semester: string, department: string) => `${semester}/events/${department}/`
@@ -13,8 +15,8 @@ const BUCKET_EVENTS_PREFIX = (semester: string, department: string) => `${semest
 const runScraper = async (semester: string, prefix: string, timestamp: string, eventId: string) => {
     const semester_code = semester === "202208" ? "" : semester;
 
-    const events_collection = fsdb.collection("events" + semester_code);
-    const docRef = fsdb.collection("course_data" + semester_code).doc(prefix)
+    const events_collection = fsdb.collection("events" + semester_code) as CollectionReference<FSEventsDocument>;
+    const docRef = (fsdb.collection("course_data" + semester_code) as CollectionReference<FSCourseDataDocument>).doc(prefix)
     const currentDoc = await docRef.get();
 
     let previous: any = {

@@ -5,7 +5,7 @@ import {auth, db, realtime_db} from "./firebase";
 import type {User} from "firebase/auth";
 import {signInWithCustomToken} from 'firebase/auth';
 import {AuthContext} from './context/AuthContext';
-import {SemesterContext} from "./context/SemesterContext";
+import {SemesterContextProvider, SemesterInfo} from "./context/SemesterContext";
 import {Card} from 'evergreen-ui'
 import {Navigation} from "./components/Navigation/Navigation";
 import {Route, Routes, useLocation, useNavigate, useParams, useSearchParams} from "react-router-dom";
@@ -15,25 +15,29 @@ import {ProfileScreen} from "./screens/ProfileScreen/ProfileScreen";
 import {HistoryScreen} from './screens/HistoryScreen/HistoryScreen';
 import {LoginScreen} from "./screens/LoginScreen/LoginScreen";
 import {DepartmentsScreen} from "./screens/DepartmentsScreen/DepartmentsScreen";
-import {clearIndexedDbPersistence, doc, getDocFromServer} from "firebase/firestore";
+import {clearIndexedDbPersistence, collection, doc, getDocFromServer} from "firebase/firestore";
 import {getDocFromCache} from "@firebase/firestore";
 import {useTitle} from "./util/useTitle";
 import {onValue, ref} from "firebase/database";
 import {UserSubscriptionsContext} from "./context/UserSubscriptions";
 import {OnboardingScreen} from "./screens/OnboardingScreen/OnboardingScreen";
+import {FSCourseDataConverter, FSEventsConverter} from "@/common/firestore";
 
-const semesters = {
+const semesters: Record<string, SemesterInfo> = {
     "202208": {
         name: "Fall 2022",
-        suffix: ''
+        courseDataCollection: collection(db, "course_data").withConverter(FSCourseDataConverter),
+        eventsCollection: collection(db, "events").withConverter(FSEventsConverter)
     },
     "202301": {
         name: "Spring 2023",
-        suffix: "202301"
+        courseDataCollection: collection(db, "course_data202301").withConverter(FSCourseDataConverter),
+        eventsCollection: collection(db, "events202301").withConverter(FSEventsConverter)
     },
     "202308": {
         name: "Fall 2023",
-        suffix: '202308'
+        courseDataCollection: collection(db, "course_data202308").withConverter(FSCourseDataConverter),
+        eventsCollection: collection(db, "events202308").withConverter(FSEventsConverter)
     }
 };
 
@@ -150,7 +154,7 @@ function App() {
     };
 
     const semesterCtx = {
-        semester: semester,
+        semester: semesters[semester],
         semesters,
         setSemester: setSemester,
         courseListing
@@ -162,7 +166,7 @@ function App() {
 
     return (
         <AuthContext.Provider value={authCtx}>
-            <SemesterContext.Provider value={semesterCtx}>
+            <SemesterContextProvider value={semesterCtx}>
                 <UserSubscriptionsContext.Provider value={{userSubscriptions, subscriptionMethods}}>
                     <Navigation/>
                     <Routes>
@@ -170,7 +174,7 @@ function App() {
                         <Route path="*" element={<PageRenderer/>}/>
                     </Routes>
                 </UserSubscriptionsContext.Provider>
-            </SemesterContext.Provider>
+            </SemesterContextProvider>
         </AuthContext.Provider>
     )
 }

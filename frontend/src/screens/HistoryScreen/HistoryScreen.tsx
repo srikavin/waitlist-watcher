@@ -5,14 +5,14 @@ import styles from './HistoryScreen.module.css'
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 import {Label, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts";
 import {Link} from "react-router-dom";
-import {SemesterContext} from "../../context/SemesterContext";
+import {useSemesterContext} from "../../context/SemesterContext";
 import {useTitle} from "../../util/useTitle";
 import {ViewOnTestudo} from "../../components/ViewOnTestudo/ViewOnTestudo";
 import {AddToSchedule} from "../../components/AddToSchedule/AddToSchedule";
 import {useCourseEvents} from "../../util/useCourseEvents";
 import {countWatchersFunction} from "../../firebase";
 import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
-import {CourseEvent} from "@/common/types";
+import {CourseEvent} from "@/common/events";
 
 interface FormattedCourseEventProps {
     event: CourseEvent
@@ -40,7 +40,6 @@ const nameMapping: Record<CourseEvent['type'], string> = {
     'holdfile_changed': 'Holdfile changed',
     'course_description_changed': 'Course description changed',
     'meeting_times_changed': 'Meeting times changed',
-    'test_notification': ''
 }
 
 export function FormattedCourseEvent(props: FormattedCourseEventProps) {
@@ -253,7 +252,7 @@ export function HistoryChart(props: { name: string }) {
 
 export function HistoryScreen(props: HistoryScreenProps) {
     const {name, minimal = false} = props;
-    const {courseListing} = useContext(SemesterContext);
+    const {courseListing} = useSemesterContext();
     const {userSubscriptions} = useContext(UserSubscriptionsContext);
 
     const isSection = name.includes('-');

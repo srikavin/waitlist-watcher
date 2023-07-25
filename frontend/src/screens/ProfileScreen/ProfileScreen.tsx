@@ -21,7 +21,7 @@ import {notifWorker} from "../../main";
 import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
 import {useTitle} from "../../util/useTitle";
 import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
-import {SemesterContext} from "../../context/SemesterContext";
+import {useSemesterContext} from "../../context/SemesterContext";
 
 function EnableNotificationsButton() {
     const [isLoading, setIsLoading] = useState(false);
@@ -350,7 +350,7 @@ function DeleteAccount() {
 
 export function PaidPlan() {
     const {isAuthed, getUser, isPro} = useContext(AuthContext);
-    const {semester, semesters} = useContext(SemesterContext);
+    const {semester, semesters} = useSemesterContext();
 
     const [paidPlans, setPaidPlans] = useState<any>({});
 
@@ -370,7 +370,7 @@ export function PaidPlan() {
     return (
         <>
             <Heading size={800}>Your Plan</Heading>
-            <Text>Your current Waitlist Watcher plan is <b>{plan}</b> for {semesters[semester].name}.</Text>
+            <Text>Your current Waitlist Watcher plan is <b>{plan}</b> for {semester.name}.</Text>
             {plan !== "Pro Tier" &&
                 <div className="mt-4 mb-2">
                     <Text>
@@ -388,7 +388,7 @@ export function PaidPlan() {
             <div className="mt-2">
                 <Text>Your plan for other semesters: </Text>
                 {Object.keys(semesters).map(x => {
-                    if (x === semester) return null;
+                    if (x === semester.name) return null;
                     return (
                         <div>
                             <Text>{semesters[x].name} - <b>{paidPlans[x] === "pro" ? "Pro Tier" : "Always Free"}</b></Text>
