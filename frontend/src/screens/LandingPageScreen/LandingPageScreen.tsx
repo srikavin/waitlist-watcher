@@ -155,18 +155,18 @@ export function LandingPageScreen() {
                     <h2 className="h2 mb-4">Pay what you want.</h2>
 
                     <div className="flex justify-center gap-12">
-                        <div className="w-64 p-4 bg-white shadow-lg rounded-2xl dark:bg-gray-800">
-                            <p className="mb-4 text-xl font-medium text-gray-800 dark:text-gray-50">
+                        <div className="w-64 p-4 bg-white shadow-lg rounded-2xl">
+                            <p className="mb-4 text-xl font-medium text-gray-800">
                                 Always Free
                             </p>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                            <p className="text-3xl font-bold text-gray-900">
                                 $0
                                 <span className="text-sm text-gray-300">/ semester</span>
                             </p>
-                            <p className="mt-4 text-xs text-gray-600 dark:text-gray-100">
+                            <p className="mt-4 text-xs text-gray-600">
                                 Core features will always be free.
                             </p>
-                            <ul className="w-full mt-6 mb-6 text-sm text-gray-600 dark:text-gray-100">
+                            <ul className="w-full mt-6 mb-6 text-sm text-gray-600">
                                 {["No Watch Limit", "Real-time Notifications", "Push Notifications", "Discord Notifications", "Web Hook Notifications"].map(x => (
                                     <li className="mb-3 flex gap-2 items-center" key={x}>
                                         <Icon color="#10b981" size={24} icon={<TickCircleIcon/>}></Icon>
@@ -181,18 +181,18 @@ export function LandingPageScreen() {
                                 </button>
                             </NavLink>
                         </div>
-                        <div className="w-64 p-4 bg-white shadow-lg rounded-2xl dark:bg-gray-800">
-                            <p className="mb-4 text-xl font-medium text-gray-800 dark:text-gray-50">
+                        <div className="w-64 p-4 bg-white shadow-lg rounded-2xl">
+                            <p className="mb-4 text-xl font-medium text-gray-800">
                                 Pro
                             </p>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                            <p className="text-3xl font-bold text-gray-900">
                                 $2.99
                                 <span className="text-sm text-gray-300">/ semester</span>
                             </p>
-                            <p className="mt-4 text-xs text-gray-600 dark:text-gray-100">
+                            <p className="mt-4 text-xs text-gray-600">
                                 Support hosting costs and get access to expensive notification channels.
                             </p>
-                            <ul className="w-full mt-6 mb-6 text-sm text-gray-600 dark:text-gray-100">
+                            <ul className="w-full mt-6 mb-6 text-sm text-gray-600">
                                 {["All Always Free Features", "Email Notifications", "Text Notifications"].map(x => (
                                     <li className="mb-3 flex gap-2 items-center" key={x}>
                                         <Icon color="#10b981" size={24} icon={<TickCircleIcon/>}></Icon>
