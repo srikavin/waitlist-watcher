@@ -10,24 +10,24 @@ import axios from "axios";
 const storage = new Storage();
 const historical_bucket = storage.bucket('waitlist-watcher-historical-data')
 
-const BUCKET_SNAPSHOT_PREFIX = (department: string) => `202301/snapshots/${department}/`
-const BUCKET_EVENTS_PREFIX = (department: string) => `202301/events/${department}/`
+const BUCKET_SNAPSHOT_PREFIX = (department: string) => `202308/snapshots/${department}/`
+const BUCKET_EVENTS_PREFIX = (department: string) => `202308/events/${department}/`
 
 initializeApp();
 
 const db = getFirestore();
 db.settings({ignoreUndefinedProperties: true})
 
-const events_collection = db.collection("events202301");
+const events_collection = db.collection("events202308");
 
 const run = async (department: string, snapshot_time: string) => {
     const existing: {
         snapshots: any[]
-    } = (await axios.get(`https://waitlist-watcher.uk.r.appspot.com/raw/202301/${department}/snapshots`)).data;
+    } = (await axios.get(`https://waitlist-watcher.uk.r.appspot.com/raw/202308/${department}/snapshots`)).data;
 
     const {events: existing_events}: {
         events: any[]
-    } = (await axios.get(`https://waitlist-watcher.uk.r.appspot.com/raw/202301/${department}/events`)).data;
+    } = (await axios.get(`https://waitlist-watcher.uk.r.appspot.com/raw/202308/${department}/events`)).data;
 
     let prior: any = null;
     let after: any = null;
@@ -66,7 +66,7 @@ const run = async (department: string, snapshot_time: string) => {
     const prev = (await axios.get(prior.url)).data;
     const cur = (await axios.get(after.url)).data;
 
-    const events = generateEvents(prev, cur, after.data_time, "202301");
+    const events = generateEvents(prev, cur, after.data_time, "202308");
 
     const firestoreSets = []
 
@@ -128,7 +128,7 @@ const run = async (department: string, snapshot_time: string) => {
 const remove_empty_snapshots = async (department: string) => {
     const existing: {
         snapshots: any[]
-    } = (await axios.get(`https://waitlist-watcher.uk.r.appspot.com/raw/202301/${department}/snapshots`)).data;
+    } = (await axios.get(`https://waitlist-watcher.uk.r.appspot.com/raw/202308/${department}/snapshots`)).data;
 
     for (const snapshot of existing.snapshots) {
         if (snapshot.meta.file_size === "22") {
