@@ -1,0 +1,13 @@
+{
+  "name": "waitlist-watcher",
+  "version": "1.0.0",
+  "description": "Get notified of changes to courses",
+  "workspaces": [
+    "frontend",
+    "functions",
+    "scripts",
+    "web"
+  ],
+  "dependencies": {
+  }
+}

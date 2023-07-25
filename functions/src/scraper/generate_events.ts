@@ -1,5 +1,5 @@
 import * as crypto from "crypto";
-import {CourseEvent} from "../types";
+import {CourseEvent} from "@/common/types";
 import {ScrapedCourse, ScrapedOutput, ScrapedSection} from "./scraper";
 
 function toOrderedString(obj: any) {

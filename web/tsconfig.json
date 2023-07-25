@@ -1,5 +1,10 @@
 {
   "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "../*"
+      ]
+    },
     "lib": ["es2021"],
     "module": "commonjs",
     "target": "es2021",

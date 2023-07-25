@@ -12,9 +12,10 @@ import {AddToSchedule} from "../../components/AddToSchedule/AddToSchedule";
 import {useCourseEvents} from "../../util/useCourseEvents";
 import {countWatchersFunction} from "../../firebase";
 import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
+import {CourseEvent} from "@/common/types";
 
 interface FormattedCourseEventProps {
-    event: object
+    event: CourseEvent
 }
 
 function MeetingTimeChanged(props: { event_data: any }) {
@@ -25,7 +26,7 @@ function MeetingTimeChanged(props: { event_data: any }) {
     ));
 }
 
-const nameMapping: Record<string, string> = {
+const nameMapping: Record<CourseEvent['type'], string> = {
     'course_added': 'Course added',
     'section_added': 'Section added',
     'course_removed': 'Course removed',
@@ -38,13 +39,12 @@ const nameMapping: Record<string, string> = {
     'waitlist_changed': 'Waitlist changed',
     'holdfile_changed': 'Holdfile changed',
     'course_description_changed': 'Course description changed',
-    'meeting_times_changed': 'Meeting times changed'
+    'meeting_times_changed': 'Meeting times changed',
+    'test_notification': ''
 }
 
 export function FormattedCourseEvent(props: FormattedCourseEventProps) {
-    const {event} = props as any;
-
-    // if () return null;
+    const {event} = props;
 
     if (!(event.type in nameMapping)) {
         return (
@@ -65,23 +65,27 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
             </span>
                 {event.type !== 'open_seat_available' && (
                     <>
+                        {/* @ts-ignore */}
                         {event.old !== undefined && (
                             <> from <s>
                         <pre className={styles.old + " inline"}>
                         {event.type === 'meeting_times_changed' ? (
                             <MeetingTimeChanged event_data={event.old}/>
                         ) : (
+                            /* @ts-ignore */
                             <>'{event.old}'</>
                         )}
                     </pre>
                             </s>
                             </>
                         )}
+                        {/* @ts-ignore */}
                         {event.new !== undefined && (
                             <> to <pre className={styles.new + " inline"}>
                     {event.type === 'meeting_times_changed' ? (
                         <MeetingTimeChanged event_data={event.new}/>
                     ) : (
+                        /* @ts-ignore */
                         <>'{event.new}'</>
                     )}
                     </pre>
@@ -95,7 +99,7 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
 }
 
 
-function FormattedCourseEvents(props: { events: Array<any> }) {
+function FormattedCourseEvents(props: { events: Array<CourseEvent> }) {
     const {events} = props;
 
     const grouped = [];
@@ -112,12 +116,13 @@ function FormattedCourseEvents(props: { events: Array<any> }) {
     return (
         <>
             {grouped.flatMap(x => {
+                const firstEvent = x[0]
                 if (x.length == 1) {
                     return [
-                        <FormattedCourseEvent event={x[0]} key={x[0].id}/>
+                        <FormattedCourseEvent event={firstEvent} key={firstEvent.id}/>
                     ]
                 }
-                if (['total_seats_changed', 'waitlist_changed', 'holdfile_changed', 'open_seats_changed'].includes(x[0].type)) {
+                if (firstEvent.type === 'total_seats_changed' || firstEvent.type === 'waitlist_changed' || firstEvent.type === 'holdfile_changed' || firstEvent.type === 'open_seats_changed') {
                     return [
                         <details>
                             <summary className="list-outside">
@@ -128,7 +133,8 @@ function FormattedCourseEvents(props: { events: Array<any> }) {
                                         <small
                                             className="block">{dayjs(x[x.length - 1].timestamp).format("MM-DD-YYYY HH:mm")}</small>
                                     </div>
-                                    <p className="place-self-center">{nameMapping[x[0].type]} from {x[x.length - 1].old} to {x[0].new}</p>
+                                    {/* @ts-ignore */}
+                                    <p className="place-self-center">{nameMapping[firstEvent.type]} from {x[x.length - 1].old} to {firstEvent.new}</p>
                                 </div>
                             </summary>
                             <Pane display="flex" flexDirection="column" gap={0} paddingLeft={12} marginLeft={4}

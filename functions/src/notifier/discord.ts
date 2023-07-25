@@ -6,7 +6,7 @@ import {
     IChangeEvent,
     ICourseEvent,
     ICourseSectionEvent
-} from "../types";
+} from "@/common/types";
 
 const generateFooter = (event: CourseEvent) => {
     return {

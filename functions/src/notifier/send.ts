@@ -7,7 +7,7 @@ import {
     webhookQueueShardCount
 } from "../common";
 import {getDiscordContent} from "./discord";
-import {CourseEvent} from "../types";
+import {CourseEvent} from "@/common/types";
 import * as webpush from "web-push";
 import {PushSubscription} from "web-push";
 
