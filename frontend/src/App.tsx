@@ -26,16 +26,19 @@ import {FSCourseDataConverter, FSEventsConverter} from "@/common/firestore";
 const semesters: Record<string, SemesterInfo> = {
     "202208": {
         name: "Fall 2022",
+        id: "202208",
         courseDataCollection: collection(db, "course_data").withConverter(FSCourseDataConverter),
         eventsCollection: collection(db, "events").withConverter(FSEventsConverter)
     },
     "202301": {
         name: "Spring 2023",
+        id: "202301",
         courseDataCollection: collection(db, "course_data202301").withConverter(FSCourseDataConverter),
         eventsCollection: collection(db, "events202301").withConverter(FSEventsConverter)
     },
     "202308": {
         name: "Fall 2023",
+        id: "202308",
         courseDataCollection: collection(db, "course_data202308").withConverter(FSCourseDataConverter),
         eventsCollection: collection(db, "events202308").withConverter(FSEventsConverter)
     }

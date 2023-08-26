@@ -25,9 +25,9 @@ export function Navigation() {
                 </div>
             </Pane>
             <Pane>
-                <Select value={semester.name} onChange={event => setSemester(event.target.value)}>
-                    {Object.entries(semesters).map(([key, val]) => (
-                        <option value={key} key={key}>{val.name}</option>
+                <Select value={semester.id} onChange={event => setSemester(event.target.value)}>
+                    {Object.values(semesters).map((val) => (
+                        <option value={val.id} key={val.id}>{val.name}</option>
                     ))}
                 </Select>
                 {!isAuthed ? (

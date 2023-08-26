@@ -6,6 +6,7 @@ type Semester = string;
 
 export interface SemesterInfo {
     name: string,
+    id: string,
     courseDataCollection: CollectionReference<FSCourseDataDocument>,
     eventsCollection: CollectionReference<FSEventsDocument>,
 }
