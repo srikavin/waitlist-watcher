@@ -41,6 +41,12 @@ const semesters: Record<string, SemesterInfo> = {
         id: "202308",
         courseDataCollection: collection(db, "course_data202308").withConverter(FSCourseDataConverter),
         eventsCollection: collection(db, "events202308").withConverter(FSEventsConverter)
+    },
+    "202401": {
+        name: "Spring 2024",
+        id: "202401",
+        courseDataCollection: collection(db, "course_data202401").withConverter(FSCourseDataConverter),
+        eventsCollection: collection(db, "events202401").withConverter(FSEventsConverter)
     }
 };
 
