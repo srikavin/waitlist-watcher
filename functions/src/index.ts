@@ -7,17 +7,17 @@ import {scraperLauncher} from "./scraper";
 import {testNotify} from "./notifier/test_notify";
 import {countWatchers} from './count_watchers';
 
-export const onCourseAddition202308 =
+export const onCourseAddition202401 =
     functions
         .region('us-east4')
         .runWith({memory: "128MB"})
-        .firestore.document("events202308/{course_name}").onCreate(onNewCourse("202308"));
+        .firestore.document("events202401/{course_name}").onCreate(onNewCourse("202401"));
 
-export const onCourseRemove202308 =
+export const onCourseRemove202401 =
     functions
         .region('us-east4')
         .runWith({memory: "256MB"})
-        .firestore.document("events202308/{course_name}").onDelete(onRemoveCourse("202308"));
+        .firestore.document("events202401/{course_name}").onDelete(onRemoveCourse("202401"));
 
 export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,
