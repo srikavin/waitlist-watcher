@@ -44,7 +44,7 @@ resource "google_secret_manager_secret" "discord-client-secret" {
   secret_id = "DISCORD_CLIENT_SECRET"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
@@ -54,25 +54,25 @@ resource "google_secret_manager_secret_version" "discord-client-secret" {
   secret_data = var.DISCORD_CLIENT_SECRET
 }
 
-resource "google_secret_manager_secret" "sendgrid-api-key" {
-  secret_id = "SENDGRID_API_KEY"
+resource "google_secret_manager_secret" "email-secret" {
+  secret_id = "EMAIL_SECRET"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
-resource "google_secret_manager_secret_version" "sendgrid-api-key" {
-  secret = google_secret_manager_secret.sendgrid-api-key.id
+resource "google_secret_manager_secret_version" "email-secret" {
+  secret = google_secret_manager_secret.email-secret.id
 
-  secret_data = var.SENDGRID_API_KEY
+  secret_data = var.EMAIL_SECRET
 }
 
 resource "google_secret_manager_secret" "notifier-vapid-priv-key" {
   secret_id = "VAPID_PRIV_KEY"
 
   replication {
-    automatic = true
+    auto {}
   }
 }
 
@@ -91,7 +91,7 @@ module "appengine" {
   runtime    = "nodejs16"
   env_vars   = {
     DISCORD_CLIENT_SECRET = var.DISCORD_CLIENT_SECRET
-    STRIPE_API_KEY = var.STRIPE_API_KEY
+    STRIPE_API_KEY        = var.STRIPE_API_KEY
     STRIPE_SIGNING_SECRET = var.STRIPE_SIGNING_SECRET
   }
 }
