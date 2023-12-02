@@ -150,7 +150,7 @@ function App() {
                 ...((e.child("discord").val() ?? "") ? ["discord"] : []),
             ]);
         });
-    }, [user]);
+    }, [user, semester]);
 
     const authCtx = {
         isAuthed: !!auth.currentUser,
