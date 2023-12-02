@@ -371,7 +371,7 @@ export function PaidPlan() {
         <>
             <Heading size={800}>Your Plan</Heading>
             <Text>Your current Waitlist Watcher plan is <b>{plan}</b> for {semester.name}.</Text>
-            {plan !== "Pro Tier" &&
+            {plan !== "Pro Tier" && semester.id === "202401" &&
                 <div className="mt-4 mb-2">
                     <Text>
                         Upgrade to Pro for $2.99 / semester (charged once).
