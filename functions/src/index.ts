@@ -6,6 +6,7 @@ import {updateTopic} from "./common";
 import {scraperLauncher} from "./scraper";
 import {testNotify} from "./notifier/test_notify";
 import {countWatchers} from './count_watchers';
+import {emailUnsubscribe} from "./email_unsubscribe";
 
 export const onCourseAddition202401 =
     functions
@@ -23,7 +24,7 @@ export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,
     memory: "256MiB",
     cpu: 'gcf_gen1',
-    secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "SENDGRID_API_KEY"],
+    secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "EMAIL_SECRET"],
     region: "us-east1"
 }, sendNotifications);
 
@@ -44,9 +45,21 @@ export const test_notification =
             invoker: "public",
             memory: "128MB",
             timeoutSeconds: 30,
-            secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "SENDGRID_API_KEY"],
+            secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "EMAIL_SECRET"],
         })
         .https.onCall(testNotify);
+
+
+export const email_unsubscribe =
+    functions
+        .region('us-east4')
+        .runWith({
+            invoker: "public",
+            memory: "128MB",
+            timeoutSeconds: 30,
+            maxInstances: 2
+        })
+        .https.onRequest(emailUnsubscribe);
 
 export const count_watchers =
     functions

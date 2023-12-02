@@ -10,9 +10,7 @@ import {getDiscordContent} from "./discord";
 import {CourseEvent, TestNotificationEvent} from "@/common/events";
 import * as webpush from "web-push";
 import {PushSubscription} from "web-push";
-
-const sgMail = require('@sendgrid/mail')
-sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+import axios from "axios";
 
 export const sendDiscordNotification = async (webhook_url: string, event: CourseEvent | TestNotificationEvent) => {
     return await tasksClient.createTask({
@@ -68,16 +66,16 @@ export const sendWebPushNotification = async (subscription: PushSubscription, ev
     });
 }
 
-export const sendEmailNotification = async (email: string, event: CourseEvent | TestNotificationEvent) => {
-    const msg = {
-        to: email, // Change to your recipient
-        from: 'notifier.noreply@waitlistwatcher.srikavin.me', // Change to your verified sender
-        subject: `Waitlist Watcher: ${event.course} Course Update`,
-        html: `A course event occurred: ${JSON.stringify(event)}. <br />` +
-            `View the event on <a href="https://waitlist-watcher.web.app/history/${event.course}?semester=${event.semester}">Waitlist Watcher</a>`,
-    }
+export const sendEmailNotification = async (email: string, event: CourseEvent | TestNotificationEvent, key: string) => {
+    const unsubscribe_url = "https://us-east4-waitlist-watcher.cloudfunctions.net/email_unsubscribe?" + new URLSearchParams({
+        email, id: key
+    });
 
-    return sgMail.send(msg);
+    return await axios.post("https://cf.waitlistwatcher.srikavin.me/?" + new URLSearchParams({
+        email: email,
+        secret: process.env.EMAIL_SECRET!,
+        unsubscribe_key: unsubscribe_url
+    }), event);
 }
 
 export const publishNotifications = async (sub_methods: any, key: string, event: CourseEvent | TestNotificationEvent, is_pro: boolean) => {
@@ -97,7 +95,7 @@ export const publishNotifications = async (sub_methods: any, key: string, event:
     if (is_pro) {
         if (sub_methods.email) {
             console.log("Notifying", key, "through an email")
-            promises.push(sendEmailNotification(sub_methods.email, event));
+            promises.push(sendEmailNotification(sub_methods.email, event, key));
         }
     }
 
