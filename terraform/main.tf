@@ -26,6 +26,21 @@ resource "google_cloud_scheduler_job" "job" {
 resource "google_storage_bucket" "historical_bucket" {
   name     = "${var.project}-historical-data"
   location = var.region
+
+  cors {
+    origin          = ["*"]
+    method          = ["HEAD", "GET"]
+    response_header = ["*"]
+    max_age_seconds = 3600
+  }
+
+  uniform_bucket_level_access = true
+}
+
+resource "google_storage_bucket_acl" "historical_bucket_public_read" {
+  bucket = google_storage_bucket.historical_bucket.name
+
+  predefined_acl = "publicRead"
 }
 
 resource "google_project_iam_custom_role" "historical-data-reader" {
