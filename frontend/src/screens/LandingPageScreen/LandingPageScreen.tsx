@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useMemo} from "react";
 import {
     ChatIcon,
     CodeIcon,
@@ -12,6 +12,7 @@ import {
 import {useTitle} from "../../util/useTitle";
 import {HistoryScreen} from "../HistoryScreen/HistoryScreen";
 import {NavLink} from "react-router-dom";
+import {useSemesterContext} from "@/frontend/src/context/SemesterContext";
 
 function NotificationInfo(props: { icon: any, title: string, description: string }) {
     return (
@@ -29,18 +30,17 @@ function NotificationInfo(props: { icon: any, title: string, description: string
     );
 }
 
-const randomCourseNames = [
-    'CMSC131-0101',
-    'CHEM131-1241',
-    'CMSC430-0101',
-    'CMSC330-0302',
-    'MATH410-0601',
-    'MATH410-0501',
-    'PHYS103-0801'
-]
-
 export function LandingPageScreen() {
-    const [randomCourseName, _] = useState(randomCourseNames[Math.floor(Math.random() * randomCourseNames.length)]);
+    const {courseListing} = useSemesterContext();
+
+    const randomCourseName = useMemo(() => {
+        if (courseListing.length === 0) {
+            return "EMPTY";
+        }
+        let filteredCourseListings = courseListing.filter(x => x.includes('-'));
+
+        return filteredCourseListings[Math.floor(Math.random() * filteredCourseListings.length)];
+    }, [courseListing])
 
     useTitle("Waitlist Watcher");
 
