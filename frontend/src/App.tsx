@@ -47,6 +47,12 @@ const semesters: Record<string, SemesterInfo> = {
         id: "202401",
         courseDataCollection: collection(db, "course_data202401").withConverter(FSCourseDataConverter),
         eventsCollection: collection(db, "events202401").withConverter(FSEventsConverter)
+    },
+    "202408": {
+        name: "Fall 2024",
+        id: "202408",
+        courseDataCollection: collection(db, "course_data202408").withConverter(FSCourseDataConverter),
+        eventsCollection: collection(db, "events202408").withConverter(FSEventsConverter)
     }
 };
 
@@ -84,7 +90,7 @@ function App() {
     const [courseListing, setCourseListing] = useState([]);
     const location = useLocation();
     const navigate = useNavigate();
-    let [searchParams, _] = useSearchParams({semester: "202401"});
+    let [searchParams, _] = useSearchParams({semester: "202408"});
     const [semester, setSemester] = useState(searchParams.get("semester")!);
     const [userSubscriptions, setUserSubscriptions] = useState({});
     const [subscriptionMethods, setSubscriptionMethods] = useState<string[]>([]);
