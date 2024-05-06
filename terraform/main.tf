@@ -103,7 +103,7 @@ module "appengine" {
   region     = var.region
   name       = "web-app"
   source_dir = abspath("../web")
-  runtime    = "nodejs16"
+  runtime    = "nodejs20"
   env_vars   = {
     DISCORD_CLIENT_SECRET = var.DISCORD_CLIENT_SECRET
     STRIPE_API_KEY        = var.STRIPE_API_KEY
