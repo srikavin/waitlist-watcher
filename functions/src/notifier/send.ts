@@ -78,7 +78,7 @@ export const sendEmailNotification = async (email: string, event: CourseEvent | 
     }), event);
 }
 
-export const publishNotifications = async (sub_methods: any, key: string, event: CourseEvent | TestNotificationEvent, is_pro: boolean) => {
+export const publishNotifications = async (sub_methods: any, key: string, event: CourseEvent | TestNotificationEvent) => {
     const promises = [];
     if (sub_methods.web_hook) {
         console.log("Notifying", key, "through a web hook");
@@ -92,11 +92,9 @@ export const publishNotifications = async (sub_methods: any, key: string, event:
         console.log("Notifying", key, "through a discord web hook")
         promises.push(sendDiscordNotification(sub_methods.discord, event));
     }
-    if (is_pro) {
-        if (sub_methods.email) {
-            console.log("Notifying", key, "through an email")
-            promises.push(sendEmailNotification(sub_methods.email, event, key));
-        }
+    if (sub_methods.email) {
+        console.log("Notifying", key, "through an email")
+        promises.push(sendEmailNotification(sub_methods.email, event, key));
     }
 
     return Promise.all(promises);

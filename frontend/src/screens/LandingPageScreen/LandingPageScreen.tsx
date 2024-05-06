@@ -152,7 +152,7 @@ export function LandingPageScreen() {
                     className="absolute inset-0 bg-gradient-to-b from-red-50 to-blue-50 pointer-events-none border-t-2 border-b-2 border-amber-500"
                     aria-hidden="true"></div>
                 <div className="text-center relative max-w-6xl mx-auto px-4 sm:px-6 pb-12 gap-12">
-                    <h2 className="h2 mb-4">Pay what you want.</h2>
+                    <h2 className="h2 mb-4">Plans</h2>
 
                     <div className="flex justify-center gap-12">
                         <div className="w-64 p-4 bg-white shadow-lg rounded-2xl">
@@ -167,7 +167,7 @@ export function LandingPageScreen() {
                                 Core features will always be free.
                             </p>
                             <ul className="w-full mt-6 mb-6 text-sm text-gray-600">
-                                {["No Watch Limit", "Real-time Notifications", "Push Notifications", "Discord Notifications", "Web Hook Notifications"].map(x => (
+                                {["No Watch Limit", "Real-time Notifications", "Push Notifications", "Discord Notifications", "Web Hook Notifications", "Email Notifications"].map(x => (
                                     <li className="mb-3 flex gap-2 items-center" key={x}>
                                         <Icon color="#10b981" size={24} icon={<TickCircleIcon/>}></Icon>
                                         {x}
@@ -180,36 +180,6 @@ export function LandingPageScreen() {
                                     Register
                                 </button>
                             </NavLink>
-                        </div>
-                        <div className="w-64 p-4 bg-white shadow-lg rounded-2xl">
-                            <p className="mb-4 text-xl font-medium text-gray-800">
-                                Pro
-                            </p>
-                            <p className="text-3xl font-bold text-gray-900">
-                                $2.99
-                                <span className="text-sm text-gray-300">/ semester</span>
-                            </p>
-                            <p className="mt-4 text-xs text-gray-600">
-                                Support hosting costs and get access to expensive notification channels.
-                            </p>
-                            <ul className="w-full mt-6 mb-6 text-sm text-gray-600">
-                                {["All Always Free Features", "Email Notifications", "Text Notifications"].map(x => (
-                                    <li className="mb-3 flex gap-2 items-center" key={x}>
-                                        <Icon color="#10b981" size={24} icon={<TickCircleIcon/>}></Icon>
-                                        {x}
-                                    </li>
-                                ))}
-                                <li>&nbsp;</li>
-                                <li>&nbsp;</li>
-                            </ul>
-                            <div>
-                                <NavLink to={"/login"}>
-                                    <button type="button"
-                                            className="py-2 px-4  bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 focus:ring-offset-indigo-200 text-white w-full transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg ">
-                                        Register
-                                    </button>
-                                </NavLink>
-                            </div>
                         </div>
                     </div>
                 </div>
