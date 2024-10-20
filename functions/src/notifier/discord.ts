@@ -25,6 +25,7 @@ const mapSemester = (semester: string) => {
     if (semester === "202308") return "Fall 2023";
     if (semester === "202401") return "Spring 2024";
     if (semester === "202408") return "Fall 2024";
+    if (semester === "202501") return "Spring 2025";
     return semester;
 }
 
