@@ -102,7 +102,7 @@ function App() {
     const [courseListing, setCourseListing] = useState([]);
     const location = useLocation();
     const navigate = useNavigate();
-    let [searchParams, _] = useSearchParams({semester: "202501"});
+    let [searchParams, _] = useSearchParams({semester: "202508"});
     const [semester, setSemester] = useState(searchParams.get("semester")!);
     const [userSubscriptions, setUserSubscriptions] = useState({});
     const [subscriptionMethods, setSubscriptionMethods] = useState<string[]>([]);
