@@ -8,17 +8,17 @@ import {testNotify} from "./notifier/test_notify";
 import {countWatchers} from './count_watchers';
 import {emailUnsubscribe} from "./email_unsubscribe";
 
-export const onCourseAddition202501 =
+export const onCourseAddition202508 =
     functions
         .region('us-east4')
         .runWith({memory: "128MB"})
-        .firestore.document("events202501/{course_name}").onCreate(onNewCourse("202501"));
+        .firestore.document("events202508/{course_name}").onCreate(onNewCourse("202508"));
 
-export const onCourseRemove202501 =
+export const onCourseRemove202508 =
     functions
         .region('us-east4')
         .runWith({memory: "256MB"})
-        .firestore.document("events202501/{course_name}").onDelete(onRemoveCourse("202501"));
+        .firestore.document("events202508/{course_name}").onDelete(onRemoveCourse("202508"));
 
 export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,

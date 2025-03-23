@@ -8,7 +8,7 @@ import {notify_discord_server} from "./discord_server_notifier";
 export const sendNotifications = async (event: CloudEvent<MessagePublishedData>) => {
     const parsedData = JSON.parse(Buffer.from(event.data.message.data, 'base64').toString());
 
-    const {prefix, events, semester} = parsedData.data;
+    const {prefix, events} = parsedData.data;
 
     if (events === undefined) {
         console.log("Likely got old message. Skipping.")

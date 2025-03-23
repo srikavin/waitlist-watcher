@@ -349,7 +349,7 @@ export function HistoryScreen(props: HistoryScreenProps) {
                 <>
                     {(() => {
                         const filtered = courseListing.filter(e => e.startsWith(name + '-'));
-                        if (filtered.length < 10) {
+                        if (filtered.length < 30) {
                             return filtered.map(e => <div className="mt-8"><HistoryScreen key={e} name={e} minimal/>
                             </div>)
                         }

@@ -119,11 +119,11 @@ resource "google_cloud_tasks_queue" "advanced_configuration" {
 
   rate_limits {
     max_concurrent_dispatches = 1
-    max_dispatches_per_second = 1
+    max_dispatches_per_second = 0.2
   }
 
   retry_config {
-    max_attempts       = 4
+    max_attempts       = 3
     max_retry_duration = "1000s"
     max_backoff        = "3600s"
     min_backoff        = "15s"
@@ -142,15 +142,15 @@ resource "google_cloud_tasks_queue" "webhook-queue" {
   location = var.region
 
   rate_limits {
-    max_concurrent_dispatches = 5
-    max_dispatches_per_second = 2
+    max_concurrent_dispatches = 2
+    max_dispatches_per_second = 0.5
   }
 
   retry_config {
-    max_attempts       = 3
+    max_attempts       = 2
     max_retry_duration = "1000s"
     max_backoff        = "3600s"
-    min_backoff        = "15s"
+    min_backoff        = "30s"
     max_doublings      = 16
   }
 
