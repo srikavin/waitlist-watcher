@@ -287,8 +287,8 @@ export function HistoryScreen(props: HistoryScreenProps) {
     return (
         <>
             {!props.landing && (
-                <Pane display="flex" flexDirection="column">
-                    <Heading size={900}>
+                <Pane display="flex" flexDirection="column" className="gap-1">
+                    <Heading size={900} className="text-slate-900">
                         {LinkToSection}
                         <span className="mx-1">
                         {isSection ?
@@ -298,18 +298,25 @@ export function HistoryScreen(props: HistoryScreenProps) {
                     </Heading>
 
                     <Pane marginTop={-8}>
-                        <Text>{WatchingInfo}</Text>
+                        <Text className="text-slate-600">{WatchingInfo}</Text>
                     </Pane>
 
                     <Pane display={"flex"} gap={16}>
-                        <Text size={500}><ViewOnTestudo course={courseName} section={sectionName}/></Text>
-                        <Text size={500}>{isSection &&
+                        <Text size={500} className="text-slate-600">
+                            <ViewOnTestudo course={courseName} section={sectionName}/>
+                        </Text>
+                        <Text size={500} className="text-slate-600">{isSection &&
                             <AddToSchedule course={courseName} section={sectionName}/>}</Text>
                     </Pane>
                 </Pane>
             )}
-            <Pane display="flex" gap={10} flexDirection="column">
-                <Card border="1px solid #c1c4d6" paddingY={12} paddingX={16}>
+            <Pane display="flex" gap={10} flexDirection="column" className="mt-4">
+                <Card
+                    border="1px solid #e2e8f0"
+                    paddingY={16}
+                    paddingX={20}
+                    elevation={1}
+                    className="rounded-2xl bg-white/90 shadow-sm">
                     {events.length === 0 ? (
                         <EmptyState title="No Events Found" icon={<SearchTemplateIcon/>}
                                     iconBgColor="#EDEFF5"
@@ -336,8 +343,8 @@ export function HistoryScreen(props: HistoryScreenProps) {
                             )}
                             {!minimal && (
                                 <>
-                                    <Heading size={800} marginBottom={8}>Historical Events</Heading>
-                                    <div className="flex flex-col gap-0.5 ml-6 text-sm">
+                                    {/*<Heading size={800} marginBottom={8} className="text-slate-900">Historical Events</Heading>*/}
+                                    <div className="flex flex-col gap-2 ml-2 text-sm text-slate-700">
                                         <FormattedCourseEvents events={events}/>
                                     </div>
                                 </>
@@ -345,18 +352,22 @@ export function HistoryScreen(props: HistoryScreenProps) {
                         </>)}
                 </Card>
             </Pane>
+            <Card>
             {!isSection && (
                 <>
-                    {(() => {
-                        const filtered = courseListing.filter(e => e.startsWith(name + '-'));
-                        if (filtered.length < 30) {
-                            return filtered.map(e => <div className="mt-8"><HistoryScreen key={e} name={e} minimal/>
-                            </div>)
-                        }
-                        return null;
-                    })()}
+                    <div className="ml-24">
+                        {(() => {
+                            const filtered = courseListing.filter(e => e.startsWith(name + '-'));
+                            if (filtered.length < 30) {
+                                return filtered.map(e => <div className="mt-8"><HistoryScreen key={e} name={e} minimal/>
+                                </div>)
+                            }
+                            return null;
+                        })()}
+                    </div>
                 </>
             )}
+            </Card>
         </>
     );
 }
