@@ -1,8 +1,35 @@
 {
-  "batch_size": 8,
+  "batch_size": 10,
   "semesters": [
     "202601"
   ],
+  "prefix_weights": {
+    "BMGT": 4,
+    "ENGL": 4,
+    "MATH": 4,
+    "BSCI": 4,
+    "CHEM": 4,
+    "INST": 4,
+    "PHYS": 3,
+    "CMSC": 3,
+    "COMM": 3,
+    "ENES": 3,
+    "PSYC": 3,
+    "ENEE": 2,
+    "HIST": 2,
+    "MUSC": 2,
+    "KNES": 2,
+    "GVPT": 2,
+    "ECON": 2,
+    "STAT": 2,
+    "JOUR": 2,
+    "DATA": 2,
+    "PHIL": 2,
+    "ENME": 2,
+    "CCJS": 2,
+    "PLCY": 2,
+    "SOCY": 2
+  },
   "prefixes": [
     "AAPS",
     "AASP",

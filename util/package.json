@@ -14,6 +14,7 @@
     "move_files": "npm run build && node move_files.js",
     "ingest_events_to_bigquery": "node ingest_events_to_bigquery.js",
     "ingest_snapshots_to_bigquery": "node ingest_snapshots_to_bigquery.js",
+    "generate_prefix_weights": "node generate_prefix_weights.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
