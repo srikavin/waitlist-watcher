@@ -1,0 +1,82 @@
+[
+  {
+    "name": "snapshot_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "semester",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "department",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "course",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "course_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "course_description",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "section",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "instructor",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "open_seats",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "total_seats",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "waitlist",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "holdfile",
+    "type": "INT64",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "meetings_json",
+    "type": "JSON",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "scrape_event_id",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "scrape_published_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  }
+]

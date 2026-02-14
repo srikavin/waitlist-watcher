@@ -1,5 +1,5 @@
 import * as config from "../config.json";
-import {eventsIngestTopic, fsdb, historical_bucket, updateTopic} from "../common";
+import {eventsIngestTopic, fsdb, historical_bucket, snapshotsIngestTopic, updateTopic} from "../common";
 
 import type {CloudEvent} from "firebase-functions/v2";
 import type {CollectionReference} from "firebase-admin/firestore";
@@ -118,6 +118,49 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
     });
 
     const ingestedAt = new Date().toISOString();
+    const snapshotPublishes: Promise<string>[] = [];
+    for (const courseCode of Object.keys(data)) {
+        const course = data[courseCode];
+        if (!course || !course.sections) {
+            continue;
+        }
+
+        for (const sectionCode of Object.keys(course.sections)) {
+            const section = course.sections[sectionCode];
+            if (!section) {
+                continue;
+            }
+
+            snapshotPublishes.push(snapshotsIngestTopic.publishMessage({
+                data: Buffer.from(JSON.stringify({
+                    snapshot_id: `${semester}:${prefix}:${timestamp}:${courseCode}:${sectionCode}`,
+                    timestamp: timestamp,
+                    semester: semester,
+                    department: prefix,
+                    course: courseCode,
+                    course_name: course.name || null,
+                    course_description: course.description || null,
+                    section: sectionCode,
+                    instructor: section.instructor || null,
+                    open_seats: section.openSeats ?? null,
+                    total_seats: section.totalSeats ?? null,
+                    waitlist: section.waitlist ?? null,
+                    holdfile: section.holdfile ?? null,
+                    meetings_json: JSON.stringify(section.meetings || []),
+                    scrape_event_id: eventId,
+                    scrape_published_at: ingestedAt,
+                }))
+            }));
+        }
+    }
+    if (snapshotPublishes.length > 0) {
+        try {
+            await Promise.all(snapshotPublishes);
+        } catch (e) {
+            console.error("Failed publishing snapshot ingest for", prefix, e);
+        }
+    }
+
     const ingestPublishes: Promise<string>[] = [];
     for (const event of events) {
         if (!event.id || !event.type || !event.course) {

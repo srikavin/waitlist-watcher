@@ -13,6 +13,7 @@
     "migrate_discord_server": "npm run build && node migrate_discord_server.js",
     "move_files": "npm run build && node move_files.js",
     "ingest_events_to_bigquery": "node ingest_events_to_bigquery.js",
+    "ingest_snapshots_to_bigquery": "node ingest_snapshots_to_bigquery.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

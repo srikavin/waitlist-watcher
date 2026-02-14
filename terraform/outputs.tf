@@ -14,12 +14,24 @@ output "events_ingest_bigquery_subscription" {
   value = google_pubsub_subscription.events-bigquery-subscription.name
 }
 
+output "snapshots_ingest_topic" {
+  value = google_pubsub_topic.snapshot-ingest-topic.name
+}
+
+output "snapshots_ingest_bigquery_subscription" {
+  value = google_pubsub_subscription.snapshots-bigquery-subscription.name
+}
+
 output "bigquery_dataset_id" {
   value = google_bigquery_dataset.waitlist.dataset_id
 }
 
 output "bigquery_events_table_id" {
   value = google_bigquery_table.events.table_id
+}
+
+output "bigquery_snapshots_table_id" {
+  value = google_bigquery_table.snapshots.table_id
 }
 
 output "scheduled_query_transfer_ids" {
