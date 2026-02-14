@@ -37,3 +37,11 @@ output "bigquery_snapshots_table_id" {
 output "scheduled_query_transfer_ids" {
   value = { for k, v in google_bigquery_data_transfer_config.scheduled_queries : k => v.id }
 }
+
+output "live_stream_rtdb_instance_id" {
+  value = google_firebase_database_instance.live_stream.instance_id
+}
+
+output "live_stream_rtdb_resource_name" {
+  value = google_firebase_database_instance.live_stream.id
+}

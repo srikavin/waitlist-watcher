@@ -1,4 +1,4 @@
-import {useMemo} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {
     ChatIcon,
     CodeIcon,
@@ -14,6 +14,111 @@ import {HistoryScreen} from "../HistoryScreen/HistoryScreen";
 import {NavLink, useNavigate} from "react-router-dom";
 import {useSemesterContext} from "@/frontend/src/context/SemesterContext";
 import {useBucketStats} from "@/frontend/src/util/useBucketStats";
+import {LiveStreamEvent, useLiveEventStream} from "@/frontend/src/util/useLiveEventStream";
+import styles from "./LandingPageScreen.module.css";
+
+const SIGNAL_EVENT_TYPES = new Set([
+    "open_seat_available",
+    "open_seats_changed",
+    "waitlist_changed",
+    "holdfile_changed",
+    "section_added",
+    "section_removed",
+    "course_added",
+    "course_removed",
+    "instructor_changed",
+]);
+
+function parseNumeric(value: string | null | undefined): number | null {
+    if (value === undefined || value === null) return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toCourseCode(department: string, course: string): string {
+    const normalizedDepartment = department.trim().toUpperCase();
+    const normalizedCourse = course.trim().toUpperCase();
+    return normalizedCourse.startsWith(normalizedDepartment)
+        ? normalizedCourse
+        : `${normalizedDepartment}${normalizedCourse}`;
+}
+
+function toSectionCode(department: string, course: string, section: string): string {
+    return `${toCourseCode(department, course)}-${section.trim()}`;
+}
+
+function compactEventLabel(event: LiveStreamEvent): string {
+    const oldNumber = parseNumeric(event.old_value);
+    const newNumber = parseNumeric(event.new_value);
+    switch (event.type) {
+        case "open_seat_available":
+            return "Seat Opened";
+        case "open_seats_changed":
+            if (oldNumber !== null && newNumber !== null) {
+                const diff = newNumber - oldNumber;
+                if (diff > 0) return `Open +${diff}`;
+                if (diff < 0) return `Open ${diff}`;
+            }
+            return "Open Seats";
+        case "waitlist_changed":
+            if (oldNumber !== null && newNumber !== null) {
+                const diff = newNumber - oldNumber;
+                if (diff > 0) return `WL +${diff}`;
+                if (diff < 0) return `WL ${diff}`;
+            }
+            return "Waitlist";
+        case "holdfile_changed":
+            if (oldNumber !== null && newNumber !== null) {
+                const diff = newNumber - oldNumber;
+                if (diff > 0) return `HF +${diff}`;
+                if (diff < 0) return `HF ${diff}`;
+            }
+            return "Holdfile";
+        case "section_added":
+            return "Section Added";
+        case "section_removed":
+            return "Section Removed";
+        case "course_added":
+            return "Course Added";
+        case "course_removed":
+            return "Course Removed";
+        case "instructor_changed":
+            return "Instructor";
+        default:
+            return "Update";
+    }
+}
+
+function eventAccentClass(type: string | undefined): string {
+    switch (type) {
+        case "open_seat_available":
+        case "open_seats_changed":
+            return "bg-emerald-100 text-emerald-800 border-emerald-200";
+        case "waitlist_changed":
+        case "holdfile_changed":
+            return "bg-amber-100 text-amber-800 border-amber-200";
+        case "section_removed":
+        case "course_removed":
+            return "bg-rose-100 text-rose-800 border-rose-200";
+        case "section_added":
+        case "course_added":
+            return "bg-blue-100 text-blue-800 border-blue-200";
+        default:
+            return "bg-slate-100 text-slate-700 border-slate-200";
+    }
+}
+
+function eventTargetPath(event: LiveStreamEvent): string | null {
+    if (!event.department || !event.course) return null;
+    if (event.section) {
+        return `/history/${encodeURIComponent(toSectionCode(event.department, event.course, event.section))}`;
+    }
+    return `/history/${encodeURIComponent(toCourseCode(event.department, event.course))}`;
+}
+
+function eventRenderKey(event: LiveStreamEvent): string {
+    return `${event.event_id ?? "evt"}-${event.timestamp_ms ?? 0}`;
+}
 
 function NotificationInfo(props: { icon: any, title: string, description: string }) {
     return (
@@ -36,7 +141,10 @@ function NotificationInfo(props: { icon: any, title: string, description: string
 export function LandingPageScreen() {
     const {courseListing, semester} = useSemesterContext();
     const {overview, topCourses} = useBucketStats(semester.id);
+    const {events: liveEvents, loading: liveLoading} = useLiveEventStream(semester.id, 40);
     const navigate = useNavigate();
+    const [newEventKeys, setNewEventKeys] = useState<Set<string>>(new Set());
+    const seenKeysRef = useRef<Set<string>>(new Set());
 
     const randomCourseName = useMemo(() => {
         if (courseListing.length === 0) {
@@ -53,13 +161,40 @@ export function LandingPageScreen() {
         .filter(row => !row.period || row.period === "24h")
         .slice(0, 6);
     const formatInt = (value: number) => new Intl.NumberFormat().format(value);
-    const courseCode = (department: string, course: string) => {
-        const normalizedDepartment = department.trim().toUpperCase();
-        const normalizedCourse = course.trim().toUpperCase();
-        return normalizedCourse.startsWith(normalizedDepartment)
-            ? normalizedCourse
-            : `${normalizedDepartment}${normalizedCourse}`;
-    };
+    const courseCode = (department: string, course: string) => toCourseCode(department, course);
+    const filteredLiveEvents = useMemo(() => {
+        return liveEvents
+            .filter((event) => SIGNAL_EVENT_TYPES.has(event.type ?? ""))
+            .filter((event) => Boolean(event.department && event.course))
+            .slice(0, 30);
+    }, [liveEvents]);
+
+    useEffect(() => {
+        const currentKeys = filteredLiveEvents.map(eventRenderKey);
+        const seenKeys = seenKeysRef.current;
+        const freshKeys = currentKeys.filter((key) => !seenKeys.has(key));
+
+        seenKeysRef.current = new Set(currentKeys);
+        if (freshKeys.length === 0) {
+            return;
+        }
+
+        setNewEventKeys((previous) => {
+            const next = new Set(previous);
+            for (const key of freshKeys) next.add(key);
+            return next;
+        });
+
+        const timeout = window.setTimeout(() => {
+            setNewEventKeys((previous) => {
+                const next = new Set(previous);
+                for (const key of freshKeys) next.delete(key);
+                return next;
+            });
+        }, 1200);
+
+        return () => window.clearTimeout(timeout);
+    }, [filteredLiveEvents]);
 
     return (
         <>
@@ -144,6 +279,61 @@ export function LandingPageScreen() {
                                     </button>
                                 ))}
                             </div>
+                        </div>
+                        <div className="mt-6">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                                <p className="text-sm text-slate-500">Recent Events</p>
+                                <p className="text-xs text-slate-400">latest 30</p>
+                            </div>
+                            {liveLoading && filteredLiveEvents.length === 0 ? (
+                                <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                                    Loading live stream...
+                                </div>
+                            ) : filteredLiveEvents.length === 0 ? (
+                                <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                                    No recent events yet.
+                                </div>
+                            ) : (
+                                <div className={styles.liveRailViewport}>
+                                    <div className={styles.liveRailTrack}>
+                                        {filteredLiveEvents.map((event) => {
+                                            const key = eventRenderKey(event);
+                                            const course = event.department && event.course ? toCourseCode(event.department, event.course) : "";
+                                            const section = event.department && event.course && event.section ?
+                                                toSectionCode(event.department, event.course, event.section) : null;
+                                            const targetPath = eventTargetPath(event);
+                                            const time = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : "";
+                                            const label = compactEventLabel(event);
+                                            const accentClass = eventAccentClass(event.type);
+                                            const card = (
+                                                <div className={`${styles.liveEventCard} ${newEventKeys.has(key) ? styles.liveEventNew : ""}`}>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-[11px] px-2 py-0.5 rounded-full border ${accentClass}`}>
+                                                            {label}
+                                                        </span>
+                                                        <span className="text-[11px] text-slate-500">{time}</span>
+                                                    </div>
+                                                    <div className="mt-1 text-sm font-semibold text-slate-800">
+                                                        {section ?? course}
+                                                    </div>
+                                                </div>
+                                            );
+                                            if (!targetPath) {
+                                                return <div key={key}>{card}</div>;
+                                            }
+                                            return (
+                                                <NavLink
+                                                    key={key}
+                                                    to={targetPath}
+                                                    className={styles.liveEventLink}
+                                                >
+                                                    {card}
+                                                </NavLink>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

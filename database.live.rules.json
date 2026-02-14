@@ -1,0 +1,13 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "live_event_stream": {
+      "$semester": {
+        ".read": true,
+        ".write": false,
+        ".indexOn": ["timestamp_ms"]
+      }
+    }
+  }
+}

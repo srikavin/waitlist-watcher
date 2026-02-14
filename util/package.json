@@ -15,6 +15,7 @@
     "ingest_events_to_bigquery": "node ingest_events_to_bigquery.js",
     "ingest_snapshots_to_bigquery": "node ingest_snapshots_to_bigquery.js",
     "generate_prefix_weights": "node generate_prefix_weights.js",
+    "fetch_prefixes_from_testudo": "node fetch_prefixes_from_testudo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

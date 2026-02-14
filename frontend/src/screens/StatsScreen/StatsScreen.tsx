@@ -3,7 +3,7 @@ import {useSemesterContext} from "@/frontend/src/context/SemesterContext";
 import {TimePeriod, useBucketStats} from "@/frontend/src/util/useBucketStats";
 import {useTitle} from "@/frontend/src/util/useTitle";
 import {NavLink} from "react-router-dom";
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {ResponsiveContainer, Tooltip, Treemap} from "recharts";
 
 function formatInt(value: number): string {
@@ -61,6 +61,7 @@ function TreemapHoverTooltip(props: any) {
     const totalSeats = Number(data.total_seats ?? 0);
     const sectionCount = Number(data.section_count ?? 0);
     const pressure = Number(data.pressure ?? 0);
+    const filledSeats = Math.max(0, Number(data.filled_seats ?? 0));
 
     return (
         <div className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-md text-xs text-slate-700">
@@ -68,6 +69,7 @@ function TreemapHoverTooltip(props: any) {
             <div>{`Waitlist: ${formatInt(waitlist)}`}</div>
             <div>{`Holdfile: ${formatInt(holdfile)}`}</div>
             <div>{`Pressure: ${(pressure * 100).toFixed(1)}%`}</div>
+            <div>{`Filled seats: ${formatInt(filledSeats)}`}</div>
             {totalSeats > 0 ? <div>{`Seats: ${formatInt(openSeats)}/${formatInt(totalSeats)} open/total`}</div> : null}
             {sectionCount > 0 ? <div>{`Sections: ${formatInt(sectionCount)}`}</div> : null}
         </div>
@@ -117,12 +119,34 @@ function courseCode(department: string, course: string): string {
         : `${normalizedDepartment}${normalizedCourse}`;
 }
 
+function periodMetric(period: TimePeriod, values: { h24?: number; d7?: number; semester?: number }): number | undefined {
+    if (period === "24h") return values.h24;
+    if (period === "7d") return values.d7;
+    return values.semester;
+}
+
 export function StatsScreen() {
-    const {semester} = useSemesterContext();
+    const {semester, semesters} = useSemesterContext();
     const {loading, error, overview, topCourses, mostWaitlistedCourses, mostWaitlistedSections, fastestFillingSections, quickestFilledSections} = useBucketStats(semester.id);
-    const [period, setPeriod] = useState<TimePeriod>("24h");
+    const latestSemesterId = useMemo(
+        () => Object.keys(semesters).sort((a, b) => Number(a) - Number(b)).at(-1) ?? semester.id,
+        [semesters, semester.id],
+    );
+    const isPastSemester = Number(semester.id) < Number(latestSemesterId);
+    const [period, setPeriod] = useState<TimePeriod>(isPastSemester ? "semester" : "24h");
+    const [treemapHighlightMode, setTreemapHighlightMode] = useState<"pressure" | "filled">(
+        isPastSemester ? "filled" : "pressure",
+    );
 
     useTitle("Stats");
+
+    useEffect(() => {
+        setPeriod(isPastSemester ? "semester" : "24h");
+    }, [semester.id, isPastSemester]);
+
+    useEffect(() => {
+        setTreemapHighlightMode(isPastSemester ? "filled" : "pressure");
+    }, [semester.id, isPastSemester]);
 
     const treemapData = useMemo(() => {
         const departmentMap = new Map<string, Map<string, Array<{ section: string; waitlist: number; effective_waitlist: number; holdfile: number; pressure: number; open_seats: number; total_seats: number }>>>();
@@ -158,9 +182,11 @@ export function StatsScreen() {
         const departmentsRaw = Array.from(departmentMap.entries()).map(([department, courses]) => {
             const coursesRaw = Array.from(courses.entries()).map(([course, sections]) => {
                 const sectionNodes = sections.map((sectionRow) => ({
+                    filled_ratio: sectionRow.total_seats > 0 ? Math.max(0, sectionRow.total_seats - sectionRow.open_seats) / sectionRow.total_seats : 0,
                     name: sectionCode(department, course, sectionRow.section),
                     size: Math.max(1, sectionRow.total_seats),
                     pressure: sectionRow.pressure,
+                    filled_seats: Math.max(0, sectionRow.total_seats - sectionRow.open_seats),
                     waitlist: sectionRow.waitlist,
                     effective_waitlist: sectionRow.effective_waitlist,
                     holdfile: sectionRow.holdfile,
@@ -174,6 +200,8 @@ export function StatsScreen() {
                 const courseHoldfile = sectionNodes.reduce((sum, node) => sum + Number(node.holdfile ?? 0), 0);
                 const courseOpenSeats = sectionNodes.reduce((sum, node) => sum + Number(node.open_seats ?? 0), 0);
                 const courseSeats = sectionNodes.reduce((sum, node) => sum + Number(node.total_seats ?? 0), 0);
+                const courseFilledSeats = sectionNodes.reduce((sum, node) => sum + Number(node.filled_seats ?? 0), 0);
+                const courseFilledRatio = courseSeats > 0 ? courseFilledSeats / courseSeats : 0;
                 const coursePressure = courseSeats > 0 ? courseEffectiveWaitlist / courseSeats : 0;
                 const courseSize = sectionNodes.reduce((sum, node) => sum + Number(node.size ?? 0), 0);
                 const courseSectionCount = sectionNodes.reduce((sum, node) => sum + Number(node.section_count ?? 0), 0);
@@ -181,6 +209,8 @@ export function StatsScreen() {
                     name: courseCode(department, course),
                     size: Math.max(1, courseSize),
                     pressure: coursePressure,
+                    filled_seats: courseFilledSeats,
+                    filled_ratio: courseFilledRatio,
                     waitlist: courseWaitlist,
                     effective_waitlist: courseEffectiveWaitlist,
                     holdfile: courseHoldfile,
@@ -196,6 +226,8 @@ export function StatsScreen() {
             const departmentHoldfile = coursesRaw.reduce((sum, node) => sum + Number(node.holdfile ?? 0), 0);
             const departmentOpenSeats = coursesRaw.reduce((sum, node) => sum + Number(node.open_seats ?? 0), 0);
             const departmentSeats = coursesRaw.reduce((sum, node) => sum + Number(node.total_seats ?? 0), 0);
+            const departmentFilledSeats = coursesRaw.reduce((sum, node) => sum + Number(node.filled_seats ?? 0), 0);
+            const departmentFilledRatio = departmentSeats > 0 ? departmentFilledSeats / departmentSeats : 0;
             const departmentPressure = departmentSeats > 0 ? departmentEffectiveWaitlist / departmentSeats : 0;
             const departmentSize = coursesRaw.reduce((sum, node) => sum + Number(node.size ?? 0), 0);
             const departmentSectionCount = coursesRaw.reduce((sum, node) => sum + Number(node.section_count ?? 0), 0);
@@ -203,6 +235,8 @@ export function StatsScreen() {
                 name: department,
                 size: Math.max(1, departmentSize),
                 pressure: departmentPressure,
+                filled_seats: departmentFilledSeats,
+                filled_ratio: departmentFilledRatio,
                 waitlist: departmentWaitlist,
                 effective_waitlist: departmentEffectiveWaitlist,
                 holdfile: departmentHoldfile,
@@ -214,34 +248,35 @@ export function StatsScreen() {
             };
         });
 
-        const allPressures = [
-            ...departmentsRaw.map((department) => Number(department.pressure ?? 0)),
-            ...departmentsRaw.flatMap((department) => department.children.map((course) => Number(course.pressure ?? 0))),
+        const metricKey = treemapHighlightMode === "filled" ? "filled_ratio" : "pressure";
+        const allMetricValues = [
+            ...departmentsRaw.map((department) => Number(department[metricKey] ?? 0)),
+            ...departmentsRaw.flatMap((department) => department.children.map((course) => Number(course[metricKey] ?? 0))),
             ...departmentsRaw.flatMap((department) =>
-                department.children.flatMap((course) => course.children.map((section) => Number(section.pressure ?? 0))),
+                department.children.flatMap((course) => course.children.map((section) => Number(section[metricKey] ?? 0))),
             ),
         ].filter((value) => Number.isFinite(value) && value >= 0);
-        const p95Pressure = percentile(allPressures, 0.95);
-        const cappedMaxPressure = Math.max(Number.EPSILON, p95Pressure);
-        const colorScore = (pressure: number) => {
-            const normalized = Math.min(1, Math.max(0, pressure / cappedMaxPressure));
+        const p95Metric = percentile(allMetricValues, 0.95);
+        const cappedMaxMetric = Math.max(Number.EPSILON, p95Metric);
+        const colorScore = (metricValue: number) => {
+            const normalized = Math.min(1, Math.max(0, metricValue / cappedMaxMetric));
             const logBase = 24;
             return Math.log1p(logBase * normalized) / Math.log1p(logBase);
         };
 
         return departmentsRaw.map((department) => ({
             ...department,
-            fill: heatColor(colorScore(Number(department.pressure ?? 0))),
+            fill: heatColor(colorScore(Number(department[metricKey] ?? 0))),
             children: department.children.map((course) => ({
                 ...course,
-                fill: heatColor(colorScore(Number(course.pressure ?? 0))),
+                fill: heatColor(colorScore(Number(course[metricKey] ?? 0))),
                 children: course.children.map((section) => ({
                     ...section,
-                    fill: heatColor(colorScore(Number(section.pressure ?? 0))),
+                    fill: heatColor(colorScore(Number(section[metricKey] ?? 0))),
                 })),
             })),
         }));
-    }, [mostWaitlistedSections]);
+    }, [mostWaitlistedSections, treemapHighlightMode]);
 
     if (loading) {
         return (
@@ -255,7 +290,7 @@ export function StatsScreen() {
         return <Alert intent="danger" title="Failed to load stats" marginTop={12}>{error}</Alert>;
     }
 
-    const inSelectedPeriod = (rowPeriod: TimePeriod | undefined) => rowPeriod === period;
+    const inSelectedPeriod = (rowPeriod: TimePeriod | undefined) => !!rowPeriod && rowPeriod === period;
     const topActiveCourses = topCourses.filter((row) => inSelectedPeriod(row.period)).slice(0, 15);
     const fastestFillingSectionsInPeriod = [...fastestFillingSections]
         .filter((row) => inSelectedPeriod(row.period))
@@ -268,6 +303,26 @@ export function StatsScreen() {
         .slice(0, 15);
     const topWaitlisted = mostWaitlistedCourses.slice(0, 15);
     const topWaitlistedSections = mostWaitlistedSections.slice(0, 15);
+    const eventsByPeriod = periodMetric(period, {
+        h24: overview?.events24h,
+        d7: overview?.events7d,
+        semester: overview?.eventsSemester,
+    });
+    const openSeatAlertsByPeriod = periodMetric(period, {
+        h24: overview?.openSeatAlerts24h,
+        d7: overview?.openSeatAlerts7d,
+        semester: overview?.openSeatAlertsSemester,
+    });
+    const activeSectionsByPeriod = periodMetric(period, {
+        h24: overview?.activeSections24h,
+        d7: overview?.activeSections7d,
+        semester: overview?.activeSectionsSemester,
+    });
+    const activeDepartmentsByPeriod = periodMetric(period, {
+        h24: overview?.activeDepartments24h,
+        d7: overview?.activeDepartments7d,
+        semester: overview?.activeDepartmentsSemester,
+    });
 
     return (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
@@ -279,25 +334,6 @@ export function StatsScreen() {
                 {overview?.generatedAt ? (
                     <p className="text-sm text-slate-500">Generated {formatGeneratedAt(overview.generatedAt)}</p>
                 ) : null}
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Events 24h</p>
-                    <p className="text-2xl font-semibold text-slate-900">{formatInt(overview?.events24h ?? 0)}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Events 7d</p>
-                    <p className="text-2xl font-semibold text-slate-900">{formatInt(overview?.events7d ?? 0)}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Open Seat Alerts 24h</p>
-                    <p className="text-2xl font-semibold text-slate-900">{formatInt(overview?.openSeatAlerts24h ?? 0)}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Active Sections 24h</p>
-                    <p className="text-2xl font-semibold text-slate-900">{formatInt(overview?.activeSections24h ?? 0)}</p>
-                </div>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-4">
@@ -333,8 +369,25 @@ export function StatsScreen() {
                         }
                         `}
                     </style>
-                    <h2 className="text-lg font-semibold text-slate-900 mb-2">Waitlist Pressure Treemap</h2>
-                    <p className="text-sm text-slate-500 mb-3">Darker red means higher waitlist pressure.</p>
+                    <div className="mb-3 flex items-start justify-between gap-3 flex-wrap">
+                        <h2 className="text-lg font-semibold text-slate-900">Treemap</h2>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-slate-500">Highlight</span>
+                            {([
+                                {id: "filled", label: "Filled seats"},
+                                {id: "pressure", label: "Waitlist pressure"},
+                            ] as const).map((option) => (
+                                <button
+                                    key={option.id}
+                                    type="button"
+                                    onClick={() => setTreemapHighlightMode(option.id)}
+                                    className={`px-3 py-1.5 rounded-full text-xs border ${treemapHighlightMode === option.id ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300"}`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     <div className="h-[420px]">
                         {treemapData.length === 0 ? (
                             <div className="h-full flex items-center justify-center text-slate-500 text-sm">
@@ -359,7 +412,7 @@ export function StatsScreen() {
                     )}
                     </div>
                     <div className="mt-2 flex items-center justify-start gap-2 text-xs text-slate-500">
-                        <span>Pressure:</span>
+                        <span>{treemapHighlightMode === "filled" ? "Filled seats:" : "Pressure:"}</span>
                         <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700">Low</span>
                         <span className="px-2 py-0.5 rounded bg-orange-400 text-white">Medium</span>
                         <span className="px-2 py-0.5 rounded bg-red-800 text-white">High</span>
@@ -378,27 +431,53 @@ export function StatsScreen() {
                         </button>
                     ))}
                 </div>
+                <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Events (${period})`}</p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                            {eventsByPeriod === undefined ? "—" : formatInt(eventsByPeriod)}
+                        </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Open Seat Alerts (${period})`}</p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                            {openSeatAlertsByPeriod === undefined ? "—" : formatInt(openSeatAlertsByPeriod)}
+                        </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Active Sections (${period})`}</p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                            {activeSectionsByPeriod === undefined ? "—" : formatInt(activeSectionsByPeriod)}
+                        </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Active Departments (${period})`}</p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                            {activeDepartmentsByPeriod === undefined ? "—" : formatInt(activeDepartmentsByPeriod)}
+                        </p>
+                    </div>
+                </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <h2 className="text-lg font-semibold text-slate-900 mb-3">Most Active Courses ({period})</h2>
-                    <div className="overflow-auto">
+                    <div className="overflow-auto rounded-lg border border-slate-100">
                         <table className="w-full text-sm">
                             <thead>
-                            <tr className="text-left text-slate-500 border-b border-slate-100">
-                                <th className="pb-2 pr-2">Course</th>
-                                <th className="pb-2 pr-2">Events</th>
-                                <th className="pb-2">Seat Churn</th>
+                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
+                                <th className="px-3 py-2 pr-2">Course</th>
+                                <th className="px-3 py-2 pr-2 text-right">Events</th>
+                                <th className="px-3 py-2 text-right">Seat Churn</th>
                             </tr>
                             </thead>
                             <tbody>
                             {topActiveCourses.map((row) => (
-                                <tr key={`${row.semester}-${row.period}-${row.department}-${row.course}`} className="border-b border-slate-50">
-                                    <td className="py-2 pr-2 text-slate-700">
-                                        <NavLink to={`/history/${encodeURIComponent(courseCode(row.department, row.course))}`}>
+                                <tr key={`${row.semester}-${row.period}-${row.department}-${row.course}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
+                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
+                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(courseCode(row.department, row.course))}`}>
                                             {courseCode(row.department, row.course)}
                                         </NavLink>
                                     </td>
-                                    <td className="py-2 pr-2 text-slate-600">{formatInt(Number(row.events ?? 0))}</td>
-                                    <td className="py-2 text-slate-600">{formatInt(Number(row.seat_churn ?? 0))}</td>
+                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(Number(row.events ?? 0))}</td>
+                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(Number(row.seat_churn ?? 0))}</td>
                                 </tr>
                             ))}
                             </tbody>
@@ -407,25 +486,25 @@ export function StatsScreen() {
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <h2 className="text-lg font-semibold text-slate-900 mb-3">Fastest Filling Sections ({period})</h2>
-                    <div className="overflow-auto">
+                    <div className="overflow-auto rounded-lg border border-slate-100">
                         <table className="w-full text-sm">
                             <thead>
-                            <tr className="text-left text-slate-500 border-b border-slate-100">
-                                <th className="pb-2 pr-2">Section</th>
-                                <th className="pb-2 pr-2">Seats Filled</th>
-                                <th className="pb-2">Events</th>
+                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
+                                <th className="px-3 py-2 pr-2">Section</th>
+                                <th className="px-3 py-2 pr-2 text-right">Seats Filled</th>
+                                <th className="px-3 py-2 text-right">Events</th>
                             </tr>
                             </thead>
                             <tbody>
                             {fastestFillingSectionsInPeriod.map((row) => (
-                                <tr key={`fillsec-${row.semester}-${row.period}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50">
-                                    <td className="py-2 pr-2 text-slate-700">
-                                        <NavLink to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
+                                <tr key={`fillsec-${row.semester}-${row.period}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
+                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
+                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
                                             {sectionCode(row.department, row.course, row.section)}
                                         </NavLink>
                                     </td>
-                                    <td className="py-2 pr-2 text-slate-600">{formatInt(parseNumber(row.seats_filled))}</td>
-                                    <td className="py-2 text-slate-600">{formatInt(parseNumber(row.events))}</td>
+                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.seats_filled))}</td>
+                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.events))}</td>
                                 </tr>
                             ))}
                             </tbody>
@@ -435,25 +514,25 @@ export function StatsScreen() {
 
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <h2 className="text-lg font-semibold text-slate-900 mb-3">Most Waitlisted Sections</h2>
-                    <div className="overflow-auto">
+                    <div className="overflow-auto rounded-lg border border-slate-100">
                         <table className="w-full text-sm">
                             <thead>
-                            <tr className="text-left text-slate-500 border-b border-slate-100">
-                                <th className="pb-2 pr-2">Section</th>
-                                <th className="pb-2 pr-2">Waitlist</th>
-                                <th className="pb-2">Seats</th>
+                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
+                                <th className="px-3 py-2 pr-2">Section</th>
+                                <th className="px-3 py-2 pr-2 text-right">Waitlist</th>
+                                <th className="px-3 py-2 text-right">Seats</th>
                             </tr>
                             </thead>
                             <tbody>
                             {topWaitlistedSections.map((row) => (
-                                <tr key={`${row.semester}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50">
-                                    <td className="py-2 pr-2 text-slate-700">
-                                        <NavLink to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
+                                <tr key={`${row.semester}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
+                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
+                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
                                             {sectionCode(row.department, row.course, row.section)}
                                         </NavLink>
                                     </td>
-                                    <td className="py-2 pr-2 text-slate-600">{formatInt(Number(row.waitlist ?? 0))}</td>
-                                    <td className="py-2 text-slate-600">{formatInt(Number(row.open_seats ?? 0))}/{formatInt(Number(row.total_seats ?? 0))}</td>
+                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(Number(row.waitlist ?? 0))}</td>
+                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(Number(row.open_seats ?? 0))}/{formatInt(Number(row.total_seats ?? 0))}</td>
                                 </tr>
                             ))}
                             </tbody>
@@ -463,25 +542,25 @@ export function StatsScreen() {
 
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <h2 className="text-lg font-semibold text-slate-900 mb-3">Most Waitlisted Courses</h2>
-                    <div className="overflow-auto">
+                    <div className="overflow-auto rounded-lg border border-slate-100">
                         <table className="w-full text-sm">
                             <thead>
-                            <tr className="text-left text-slate-500 border-b border-slate-100">
-                                <th className="pb-2 pr-2">Course</th>
-                                <th className="pb-2 pr-2">Total Waitlist</th>
-                                <th className="pb-2">Sections</th>
+                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
+                                <th className="px-3 py-2 pr-2">Course</th>
+                                <th className="px-3 py-2 pr-2 text-right">Total Waitlist</th>
+                                <th className="px-3 py-2 text-right">Sections</th>
                             </tr>
                             </thead>
                             <tbody>
                             {topWaitlisted.map((row) => (
-                                <tr key={`${row.semester}-${row.department}-${row.course}`} className="border-b border-slate-50">
-                                    <td className="py-2 pr-2 text-slate-700">
-                                        <NavLink to={`/history/${encodeURIComponent(courseCode(row.department, row.course))}`}>
+                                <tr key={`${row.semester}-${row.department}-${row.course}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
+                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
+                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(courseCode(row.department, row.course))}`}>
                                             {courseCode(row.department, row.course)}
                                         </NavLink>
                                     </td>
-                                    <td className="py-2 pr-2 text-slate-600">{formatInt(Number(row.total_waitlist ?? 0))}</td>
-                                    <td className="py-2 text-slate-600">{formatInt(Number(row.sections ?? 0))}</td>
+                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(Number(row.total_waitlist ?? 0))}</td>
+                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(Number(row.sections ?? 0))}</td>
                                 </tr>
                             ))}
                             </tbody>
@@ -490,25 +569,25 @@ export function StatsScreen() {
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <h2 className="text-lg font-semibold text-slate-900 mb-3">Quickest Filled Sections</h2>
-                    <div className="overflow-auto">
+                    <div className="overflow-auto rounded-lg border border-slate-100">
                         <table className="w-full text-sm">
                             <thead>
-                            <tr className="text-left text-slate-500 border-b border-slate-100">
-                                <th className="pb-2 pr-2">Section</th>
-                                <th className="pb-2 pr-2">Minutes to 0 Seats</th>
-                                <th className="pb-2">Events</th>
+                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
+                                <th className="px-3 py-2 pr-2">Section</th>
+                                <th className="px-3 py-2 pr-2 text-right">Minutes to 0 Seats</th>
+                                <th className="px-3 py-2 text-right">Events</th>
                             </tr>
                             </thead>
                             <tbody>
                             {quickestFilledSectionsAll.map((row) => (
-                                <tr key={`quicksec-${row.semester}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50">
-                                    <td className="py-2 pr-2 text-slate-700">
-                                        <NavLink to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
+                                <tr key={`quicksec-${row.semester}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
+                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
+                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
                                             {sectionCode(row.department, row.course, row.section)}
                                         </NavLink>
                                     </td>
-                                    <td className="py-2 pr-2 text-slate-600">{formatInt(parseNumber(row.quickest_minutes))}</td>
-                                    <td className="py-2 text-slate-600">{formatInt(parseNumber(row.events))}</td>
+                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.quickest_minutes))}</td>
+                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.events))}</td>
                                 </tr>
                             ))}
                             </tbody>

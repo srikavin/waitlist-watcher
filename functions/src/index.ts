@@ -7,6 +7,7 @@ import {scraperLauncher} from "./scraper";
 import {testNotify} from "./notifier/test_notify";
 import {countWatchers} from './count_watchers';
 import {emailUnsubscribe} from "./email_unsubscribe";
+import {streamEventsToLiveRtdb} from "./live_event_stream";
 
 export const onCourseAddition202601 =
     functions
@@ -37,6 +38,14 @@ export const scraperfunction = onMessagePublished({
     maxInstances: 1,
     timeoutSeconds: 5 * 60
 }, scraperLauncher);
+
+export const live_event_stream = onMessagePublished({
+    topic: "events-ingest",
+    memory: "256MiB",
+    cpu: "gcf_gen1",
+    region: "us-east1",
+    maxInstances: 1,
+}, streamEventsToLiveRtdb);
 
 export const test_notification =
     functions

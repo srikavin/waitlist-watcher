@@ -1,4 +1,14 @@
 {
+  "database": [
+    {
+      "target": "default-rtdb",
+      "rules": "database.default.rules.json"
+    },
+    {
+      "target": "live-stream-rtdb",
+      "rules": "database.live.rules.json"
+    }
+  ],
   "functions": {
     "ignore": [
       "node_modules",

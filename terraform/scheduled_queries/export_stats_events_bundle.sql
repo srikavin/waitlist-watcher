@@ -27,27 +27,54 @@ AS
 SELECT
   CURRENT_TIMESTAMP() AS generated_at,
   semester,
+  COUNT(*) AS events_semester,
   COUNTIF(timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)) AS events_24h,
   COUNTIF(timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)) AS events_7d,
+  COUNT(DISTINCT FORMAT('%s|%s|%s|%s', semester, department, course, section)) AS active_sections_semester,
   COUNT(DISTINCT IF(
     timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR),
     FORMAT('%s|%s|%s|%s', semester, department, course, section),
     NULL
   )) AS active_sections_24h,
+  COUNT(DISTINCT IF(
+    timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY),
+    FORMAT('%s|%s|%s|%s', semester, department, course, section),
+    NULL
+  )) AS active_sections_7d,
+  COUNTIF(type = 'open_seat_available') AS open_seat_alerts_semester,
   COUNTIF(
     timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
     AND type = 'open_seat_available'
   ) AS open_seat_alerts_24h,
   COUNTIF(
+    timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    AND type = 'open_seat_available'
+  ) AS open_seat_alerts_7d,
+  COUNTIF(
+    type = 'waitlist_changed'
+    AND SAFE_CAST(new_value AS INT64) < SAFE_CAST(old_value AS INT64)
+  ) AS waitlist_drops_semester,
+  COUNTIF(
     timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
     AND type = 'waitlist_changed'
     AND SAFE_CAST(new_value AS INT64) < SAFE_CAST(old_value AS INT64)
   ) AS waitlist_drops_24h,
+  COUNTIF(
+    timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    AND type = 'waitlist_changed'
+    AND SAFE_CAST(new_value AS INT64) < SAFE_CAST(old_value AS INT64)
+  ) AS waitlist_drops_7d,
+  COUNT(DISTINCT department) AS active_departments_semester,
   COUNT(DISTINCT IF(
     timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR),
     department,
     NULL
-  )) AS active_departments_24h
+  )) AS active_departments_24h,
+  COUNT(DISTINCT IF(
+    timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY),
+    department,
+    NULL
+  )) AS active_departments_7d
 FROM dedup_events
 GROUP BY semester
 ORDER BY semester DESC

@@ -1,0 +1,79 @@
+{
+  "rules": {
+    "auth_requests" : {
+      "$request_id": {
+        ".read": true,
+        ".write": "!data.exists() || !newData.exists()"
+      }
+    },
+
+    "user_settings": {
+      "$user_id": {
+        ".write": "$user_id == auth.uid",
+        ".read": "$user_id == auth.uid",
+        "discord": {
+          ".validate": "newData.isString() && (newData.val().matches(/^https:\\/\\/discord.com\\/api\\//) || newData.val() == '')"
+        },
+        "web_hook": {
+          ".validate": "newData.isString() && (newData.val().matches(/^https?:\\/\\//) || newData.val() == '')"
+        },
+        "email": {
+          ".validate": "newData.isString() && (true || newData.val() == '')"
+        },
+        "web_push": {
+          ".validate": "newData.hasChildren(['endpoint', 'keys']) && newData.child('keys').hasChildren()"
+        },
+        "subscriptions": {
+          "$sub_name": {
+            ".validate": true
+          }
+        },
+        "paid_plan": {
+          "$semester": {
+            ".write": false
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+
+    "section_subscriptions": {
+      "$course": {
+        "$section": {
+          "$user_id": {
+            ".write": "$user_id == auth.uid",
+            ".read": "$user_id == auth.uid",
+            ".validate": "newData.hasChildren([])"
+          }
+        }
+      }
+    },
+    "department_subscriptions": {
+      "$department": {
+        "$user_id": {
+          ".write": "$user_id == auth.uid",
+          ".read": "$user_id == auth.uid",
+          ".validate": "newData.hasChildren([])"
+        }
+      }
+    },
+    "course_subscriptions": {
+      "$course": {
+        "$user_id": {
+          ".write": "$user_id == auth.uid",
+          ".read": "$user_id == auth.uid",
+          ".validate": "newData.hasChildren([])"
+        }
+      }
+    },
+    "everything_subscriptions": {
+      "$user_id": {
+        ".write": "$user_id == auth.uid",
+        ".read": "$user_id == auth.uid",
+        ".validate": "newData.hasChildren([])"
+      }
+    }
+  }
+}

@@ -1,28 +1,48 @@
 import {useEffect, useMemo, useState} from "react";
 
 const bucketName = import.meta.env.VITE_STATS_BUCKET ?? "waitlist-watcher-scheduled-query-outputs";
+const etagCache = new Map<string, string>();
+const dataCache = new Map<string, unknown[]>();
 
 export type TimePeriod = "24h" | "7d" | "semester";
 
 type OverviewRow = {
     generated_at?: string;
     semester?: string;
+    events_semester?: number | string;
     events_24h?: number | string;
     events_7d?: number | string;
+    active_sections_semester?: number | string;
     active_sections_24h?: number | string;
+    active_sections_7d?: number | string;
+    open_seat_alerts_semester?: number | string;
     open_seat_alerts_24h?: number | string;
+    open_seat_alerts_7d?: number | string;
+    waitlist_drops_semester?: number | string;
     waitlist_drops_24h?: number | string;
+    waitlist_drops_7d?: number | string;
+    active_departments_semester?: number | string;
     active_departments_24h?: number | string;
+    active_departments_7d?: number | string;
 };
 
 export type OverviewStats = {
     generatedAt: string;
+    eventsSemester: number;
     events24h: number;
     events7d: number;
+    activeSectionsSemester: number;
     activeSections24h: number;
+    activeSections7d: number;
+    openSeatAlertsSemester: number;
     openSeatAlerts24h: number;
+    openSeatAlerts7d: number;
+    waitlistDropsSemester: number;
     waitlistDrops24h: number;
+    waitlistDrops7d: number;
+    activeDepartmentsSemester: number;
     activeDepartments24h: number;
+    activeDepartments7d: number;
 };
 
 export type TopCourseRow = {
@@ -98,9 +118,22 @@ function parseNumber(value: number | string | undefined): number {
 }
 
 async function fetchExportJson<T>(objectPath: string): Promise<T[]> {
-    const objectUrl = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucketName)}/o/${encodeURIComponent(objectPath)}?alt=media&ts=${Date.now()}`;
-    const objectRes = await fetch(objectUrl, {cache: "no-store"});
+    const objectUrl = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucketName)}/o/${encodeURIComponent(objectPath)}?alt=media`;
+    const cachedEtag = etagCache.get(objectPath);
+    const headers: Record<string, string> = {};
+    if (cachedEtag) {
+        headers["If-None-Match"] = cachedEtag;
+    }
+
+    const objectRes = await fetch(objectUrl, {
+        cache: "no-cache",
+        headers,
+    });
+    if (objectRes.status === 304) {
+        return (dataCache.get(objectPath) as T[] | undefined) ?? [];
+    }
     if (!objectRes.ok) {
+        if (objectRes.status === 404) return [];
         throw new Error(`Bucket object failed for ${objectPath}: ${objectRes.status}`);
     }
 
@@ -112,13 +145,21 @@ async function fetchExportJson<T>(objectPath: string): Promise<T[]> {
 
     try {
         const parsed = JSON.parse(trimmed);
-        return Array.isArray(parsed) ? parsed as T[] : [parsed as T];
+        const rows = Array.isArray(parsed) ? parsed as T[] : [parsed as T];
+        const etag = objectRes.headers.get("etag") ?? undefined;
+        if (etag) etagCache.set(objectPath, etag);
+        dataCache.set(objectPath, rows as unknown[]);
+        return rows;
     } catch {
-        return trimmed
+        const rows = trimmed
             .split("\n")
             .map(line => line.trim())
             .filter(Boolean)
             .map(line => JSON.parse(line) as T);
+        const etag = objectRes.headers.get("etag") ?? undefined;
+        if (etag) etagCache.set(objectPath, etag);
+        dataCache.set(objectPath, rows as unknown[]);
+        return rows;
     }
 }
 
@@ -153,12 +194,21 @@ export function useBucketStats(semesterId: string): StatsData {
                 const first = overviewRows.find(row => String(row.semester) === semesterId) ?? overviewRows[0];
                 setOverview(first ? {
                     generatedAt: first.generated_at ?? "",
+                    eventsSemester: parseNumber(first.events_semester),
                     events24h: parseNumber(first.events_24h),
                     events7d: parseNumber(first.events_7d),
+                    activeSectionsSemester: parseNumber(first.active_sections_semester),
                     activeSections24h: parseNumber(first.active_sections_24h),
+                    activeSections7d: parseNumber(first.active_sections_7d),
+                    openSeatAlertsSemester: parseNumber(first.open_seat_alerts_semester),
                     openSeatAlerts24h: parseNumber(first.open_seat_alerts_24h),
+                    openSeatAlerts7d: parseNumber(first.open_seat_alerts_7d),
+                    waitlistDropsSemester: parseNumber(first.waitlist_drops_semester),
                     waitlistDrops24h: parseNumber(first.waitlist_drops_24h),
+                    waitlistDrops7d: parseNumber(first.waitlist_drops_7d),
+                    activeDepartmentsSemester: parseNumber(first.active_departments_semester),
                     activeDepartments24h: parseNumber(first.active_departments_24h),
+                    activeDepartments7d: parseNumber(first.active_departments_7d),
                 } : undefined);
 
                 setTopCourses(topCourseRows);

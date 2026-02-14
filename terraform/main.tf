@@ -12,6 +12,8 @@ resource "google_project_service" "enabled_apis" {
   for_each = toset([
     "bigquery.googleapis.com",
     "bigquerydatatransfer.googleapis.com",
+    "firebase.googleapis.com",
+    "firebasedatabase.googleapis.com",
     "pubsub.googleapis.com",
     "storage.googleapis.com",
   ])
@@ -20,6 +22,17 @@ resource "google_project_service" "enabled_apis" {
   service = each.key
 
   disable_on_destroy = false
+}
+
+resource "google_firebase_database_instance" "live_stream" {
+  provider = google-beta
+  project  = var.project
+  region   = "us-central1"
+
+  instance_id = "waitlist-watcher-live-events"
+  type        = "USER_DATABASE"
+
+  depends_on = [google_project_service.enabled_apis]
 }
 
 resource "google_pubsub_topic" "scrape-launcher-topic" {

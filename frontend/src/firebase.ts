@@ -21,6 +21,8 @@ export const firebaseApp = initializeApp(firebaseConfig);
 export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);
 export const realtime_db = getDatabase(firebaseApp);
+const liveStreamDbUrl = "https://waitlist-watcher-live-events.firebaseio.com";
+export const live_realtime_db = getDatabase(firebaseApp, liveStreamDbUrl);
 export const functions = getFunctions(firebaseApp, "us-east4");
 getAnalytics(firebaseApp);
 

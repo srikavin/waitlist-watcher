@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "waitlist-watcher"
+  },
+  "targets": {
+    "waitlist-watcher": {
+      "database": {
+        "default-rtdb": [
+          "waitlist-watcher-default-rtdb"
+        ],
+        "live-stream-rtdb": [
+          "waitlist-watcher-live-events"
+        ]
+      }
+    }
   }
 }
