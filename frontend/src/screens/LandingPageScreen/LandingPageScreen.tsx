@@ -11,8 +11,9 @@ import {
 } from "evergreen-ui";
 import {useTitle} from "../../util/useTitle";
 import {HistoryScreen} from "../HistoryScreen/HistoryScreen";
-import {NavLink} from "react-router-dom";
+import {NavLink, useNavigate} from "react-router-dom";
 import {useSemesterContext} from "@/frontend/src/context/SemesterContext";
+import {useBucketStats} from "@/frontend/src/util/useBucketStats";
 
 function NotificationInfo(props: { icon: any, title: string, description: string }) {
     return (
@@ -34,6 +35,8 @@ function NotificationInfo(props: { icon: any, title: string, description: string
 
 export function LandingPageScreen() {
     const {courseListing, semester} = useSemesterContext();
+    const {overview, topCourses} = useBucketStats(semester.id);
+    const navigate = useNavigate();
 
     const randomCourseName = useMemo(() => {
         if (courseListing.length === 0) {
@@ -45,6 +48,18 @@ export function LandingPageScreen() {
     }, [courseListing])
 
     useTitle("Waitlist Watcher");
+
+    const topCourseChips = topCourses
+        .filter(row => !row.period || row.period === "24h")
+        .slice(0, 6);
+    const formatInt = (value: number) => new Intl.NumberFormat().format(value);
+    const courseCode = (department: string, course: string) => {
+        const normalizedDepartment = department.trim().toUpperCase();
+        const normalizedCourse = course.trim().toUpperCase();
+        return normalizedCourse.startsWith(normalizedDepartment)
+            ? normalizedCourse
+            : `${normalizedDepartment}${normalizedCourse}`;
+    };
 
     return (
         <>
@@ -90,7 +105,50 @@ export function LandingPageScreen() {
                     </div>
                 </div>
             </section>
-            <section className="relative -mt-64">
+            <section className="relative -mt-6">
+                <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pb-12">
+                    <div className="rounded-2xl border border-slate-200 bg-white shadow-lg p-6">
+                        <div className="flex justify-between items-center gap-4 flex-wrap mb-4">
+                            <h2 className="h3 text-slate-900">Live Overview</h2>
+                            <NavLink to={"/stats"} className="text-sm font-semibold text-blue-600">View full stats</NavLink>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="rounded-lg border border-slate-100 p-3">
+                                <p className="text-xs uppercase tracking-wide text-slate-500">Events</p>
+                                <p className="text-xl font-semibold text-slate-900">{formatInt(overview?.events24h ?? 0)}</p>
+                            </div>
+                            <div className="rounded-lg border border-slate-100 p-3">
+                                <p className="text-xs uppercase tracking-wide text-slate-500">Open Seat Alerts</p>
+                                <p className="text-xl font-semibold text-slate-900">{formatInt(overview?.openSeatAlerts24h ?? 0)}</p>
+                            </div>
+                            <div className="rounded-lg border border-slate-100 p-3">
+                                <p className="text-xs uppercase tracking-wide text-slate-500">Active Sections</p>
+                                <p className="text-xl font-semibold text-slate-900">{formatInt(overview?.activeSections24h ?? 0)}</p>
+                            </div>
+                            <div className="rounded-lg border border-slate-100 p-3">
+                                <p className="text-xs uppercase tracking-wide text-slate-500">Active Departments</p>
+                                <p className="text-xl font-semibold text-slate-900">{formatInt(overview?.activeDepartments24h ?? 0)}</p>
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                            <p className="text-sm text-slate-500 mb-2">Most active courses (24h)</p>
+                            <div className="flex gap-2 flex-wrap">
+                                {topCourseChips.map((row) => (
+                                    <button
+                                        key={`${row.department}-${row.course}`}
+                                        type="button"
+                                        onClick={() => navigate(`/history/${encodeURIComponent(courseCode(row.department, row.course))}`)}
+                                        className="border border-red-200 bg-red-50 text-red-900 px-3 py-1 rounded-full text-sm"
+                                    >
+                                        {courseCode(row.department, row.course)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section className="relative">
                 <div className="absolute inset-0 bg-slate-50 pointer-events-none" aria-hidden="true"></div>
                 <div className="h-36"></div>
 

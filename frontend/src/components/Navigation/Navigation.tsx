@@ -20,6 +20,8 @@ export function Navigation() {
 
                 <Button marginLeft={10} marginRight={10} appearance="minimal"
                         onClick={() => navigate("/departments")}>Departments</Button>
+                <Button marginLeft={10} marginRight={10} appearance="minimal"
+                        onClick={() => navigate("/stats")}>Stats</Button>
                 <div className={styles.search}>
                     <Search/>
                 </div>

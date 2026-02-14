@@ -1,6 +1,10 @@
 locals {
   scheduled_query_sa_name = "bq-scheduled-query-runner"
   scheduled_query_files   = fileset("${path.module}/scheduled_queries", "*.sql")
+  scheduled_query_schedules = {
+    export_stats_events_bundle    = "every 10 minutes"
+    export_stats_snapshots_bundle = "every 30 minutes"
+  }
   scheduled_queries = {
     for f in local.scheduled_query_files :
     trimsuffix(f, ".sql") => {
@@ -11,6 +15,7 @@ locals {
         snapshots_table = google_bigquery_table.snapshots.table_id
         output_bucket   = google_storage_bucket.scheduled_query_outputs.name
       })
+      schedule = lookup(local.scheduled_query_schedules, trimsuffix(f, ".sql"), "every 10 minutes")
     }
   }
 }
@@ -185,7 +190,7 @@ resource "google_bigquery_data_transfer_config" "scheduled_queries" {
   display_name         = each.key
   location             = var.bigquery_location
   data_source_id       = "scheduled_query"
-  schedule             = "every 10 minutes"
+  schedule             = each.value.schedule
   service_account_name = google_service_account.scheduled_query_runner.email
 
   params = {

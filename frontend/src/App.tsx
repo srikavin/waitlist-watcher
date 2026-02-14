@@ -22,6 +22,7 @@ import {onValue, ref} from "firebase/database";
 import {UserSubscriptionsContext} from "./context/UserSubscriptions";
 import {OnboardingScreen} from "./screens/OnboardingScreen/OnboardingScreen";
 import {FSCourseDataConverter, FSEventsConverter} from "@/common/firestore";
+import {StatsScreen} from "./screens/StatsScreen/StatsScreen";
 
 const semesters: Record<string, SemesterInfo> = {
     "202208": {
@@ -204,6 +205,7 @@ function App() {
                     <Navigation/>
                     <Routes>
                         <Route path="/" element={<LandingPageScreen/>}/>
+                        <Route path="/stats" element={<StatsScreen/>}/>
                         <Route path="*" element={<PageRenderer/>}/>
                     </Routes>
                 </UserSubscriptionsContext.Provider>
