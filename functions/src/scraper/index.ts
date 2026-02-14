@@ -1,5 +1,5 @@
 import * as config from "../config.json";
-import {fsdb, historical_bucket, updateTopic} from "../common";
+import {eventsIngestTopic, fsdb, historical_bucket, updateTopic} from "../common";
 
 import type {CloudEvent} from "firebase-functions/v2";
 import type {CollectionReference} from "firebase-admin/firestore";
@@ -11,6 +11,17 @@ import {FSCourseDataDocument, FSEventsDocument} from "@/common/firestore";
 
 const BUCKET_SNAPSHOT_PREFIX = (semester: string, department: string) => `${semester}/snapshots/${department}/`
 const BUCKET_EVENTS_PREFIX = (semester: string, department: string) => `${semester}/events/${department}/`
+
+const stringifyEventValue = (event: any, key: "old" | "new") => {
+    if (!(key in event)) {
+        return null;
+    }
+    const value = event[key];
+    if (value === undefined || value === null) {
+        return null;
+    }
+    return String(value);
+}
 
 const runScraper = async (semester: string, prefix: string, timestamp: string, eventId: string) => {
     const semester_code = semester === "202208" ? "" : semester;
@@ -105,6 +116,38 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
         updateCount: newUpdateCount,
         version: 2
     });
+
+    const ingestedAt = new Date().toISOString();
+    const ingestPublishes: Promise<string>[] = [];
+    for (const event of events) {
+        if (!event.id || !event.type || !event.course) {
+            continue;
+        }
+
+        ingestPublishes.push(eventsIngestTopic.publishMessage({
+            data: Buffer.from(JSON.stringify({
+                event_id: event.id,
+                timestamp: event.timestamp,
+                type: event.type,
+                course: event.course,
+                department: prefix,
+                title: event.title,
+                section: event.section || null,
+                semester: event.semester,
+                old_value: stringifyEventValue(event, "old"),
+                new_value: stringifyEventValue(event, "new"),
+                scrape_event_id: eventId,
+                scrape_published_at: ingestedAt
+            }))
+        }));
+    }
+    if (ingestPublishes.length > 0) {
+        try {
+            await Promise.all(ingestPublishes);
+        } catch (e) {
+            console.error("Failed publishing ingest events for", prefix, e);
+        }
+    }
 
     console.log("Published notification topic after scraping ", prefix)
 

@@ -16,6 +16,7 @@ export const pubsub = new PubSub({projectId: "waitlist-watcher"});
 export const storage = new Storage({retryOptions: {autoRetry: true}});
 
 export const updateTopic = pubsub.topic("prefix-update");
+export const eventsIngestTopic = pubsub.topic("events-ingest");
 export const historical_bucket = storage.bucket('waitlist-watcher-historical-data')
 export const discordWebhookQueueShardCount = 10
 export const webhookQueueShardCount = 5

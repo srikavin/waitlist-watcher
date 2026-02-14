@@ -5,6 +5,14 @@ variable "region" {
   default = "us-east4"
 }
 
+variable "bigquery_location" {
+  default = "US"
+}
+
+variable "bigquery_dataset" {
+  default = "waitlist_watcher_course_data"
+}
+
 variable "NOTIFIER_VAPID_PRIV_KEY" {}
 
 variable "GOOGLE_CREDENTIALS" {}

@@ -3,6 +3,25 @@ provider "google" {
   region  = var.region
 }
 
+provider "google-beta" {
+  project = var.project
+  region  = var.region
+}
+
+resource "google_project_service" "enabled_apis" {
+  for_each = toset([
+    "bigquery.googleapis.com",
+    "bigquerydatatransfer.googleapis.com",
+    "pubsub.googleapis.com",
+    "storage.googleapis.com",
+  ])
+
+  project = var.project
+  service = each.key
+
+  disable_on_destroy = false
+}
+
 resource "google_pubsub_topic" "scrape-launcher-topic" {
   name = "scrape-launcher"
 }
@@ -104,7 +123,7 @@ module "appengine" {
   name       = "web-app"
   source_dir = abspath("../web")
   runtime    = "nodejs20"
-  env_vars   = {
+  env_vars = {
     DISCORD_CLIENT_SECRET = var.DISCORD_CLIENT_SECRET
     STRIPE_API_KEY        = var.STRIPE_API_KEY
     STRIPE_SIGNING_SECRET = var.STRIPE_SIGNING_SECRET

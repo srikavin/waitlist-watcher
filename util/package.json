@@ -12,11 +12,14 @@
     "create_discord_server": "npm run build && node create_discord_server.js",
     "migrate_discord_server": "npm run build && node migrate_discord_server.js",
     "move_files": "npm run build && node move_files.js",
+    "ingest_events_to_bigquery": "node ingest_events_to_bigquery.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/bigquery": "^7.8.0",
+    "@google-cloud/storage": "^7.16.0",
     "axios": "^0.27.2",
     "discord.js": "^14.6.0",
     "fast-json-patch": "^3.1.1",

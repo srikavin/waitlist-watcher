@@ -1,0 +1,62 @@
+[
+  {
+    "name": "event_id",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "type",
+    "type": "STRING",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "course",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "department",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "title",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "section",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "semester",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "old_value",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "new_value",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "scrape_event_id",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "scrape_published_at",
+    "type": "TIMESTAMP",
+    "mode": "NULLABLE"
+  }
+]
