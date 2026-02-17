@@ -24,8 +24,10 @@
           ".validate": "newData.hasChildren(['endpoint', 'keys']) && newData.child('keys').hasChildren()"
         },
         "subscriptions": {
-          "$sub_name": {
-            ".validate": true
+          "$semester": {
+            "$sub_name": {
+              ".validate": true
+            }
           }
         },
         "paid_plan": {
@@ -40,8 +42,21 @@
     },
 
     "section_subscriptions": {
-      "$course": {
-        "$section": {
+      "$semester": {
+        "$course": {
+          "$section": {
+            "$user_id": {
+              ".write": "$user_id == auth.uid",
+              ".read": "$user_id == auth.uid",
+              ".validate": "newData.hasChildren([])"
+            }
+          }
+        }
+      }
+    },
+    "department_subscriptions": {
+      "$semester": {
+        "$department": {
           "$user_id": {
             ".write": "$user_id == auth.uid",
             ".read": "$user_id == auth.uid",
@@ -50,29 +65,24 @@
         }
       }
     },
-    "department_subscriptions": {
-      "$department": {
-        "$user_id": {
-          ".write": "$user_id == auth.uid",
-          ".read": "$user_id == auth.uid",
-          ".validate": "newData.hasChildren([])"
-        }
-      }
-    },
     "course_subscriptions": {
-      "$course": {
-        "$user_id": {
-          ".write": "$user_id == auth.uid",
-          ".read": "$user_id == auth.uid",
-          ".validate": "newData.hasChildren([])"
+      "$semester": {
+        "$course": {
+          "$user_id": {
+            ".write": "$user_id == auth.uid",
+            ".read": "$user_id == auth.uid",
+            ".validate": "newData.hasChildren([])"
+          }
         }
       }
     },
     "everything_subscriptions": {
-      "$user_id": {
-        ".write": "$user_id == auth.uid",
-        ".read": "$user_id == auth.uid",
-        ".validate": "newData.hasChildren([])"
+      "$semester": {
+        "$user_id": {
+          ".write": "$user_id == auth.uid",
+          ".read": "$user_id == auth.uid",
+          ".validate": "newData.hasChildren([])"
+        }
       }
     }
   }

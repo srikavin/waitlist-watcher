@@ -1,11 +1,11 @@
 import {createContext} from "react";
 
 type UserSubscriptions = {
-    userSubscriptions: Record<string, any>
+    subscriptionsBySemester: Record<string, Record<string, any>>
     subscriptionMethods: string[]
 };
 
 export const UserSubscriptionsContext = createContext<UserSubscriptions>({
-    userSubscriptions: {},
+    subscriptionsBySemester: {},
     subscriptionMethods: []
 });

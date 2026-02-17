@@ -252,8 +252,8 @@ export function HistoryChart(props: { name: string }) {
 
 export function HistoryScreen(props: HistoryScreenProps) {
     const {name, minimal = false} = props;
-    const {courseListing} = useSemesterContext();
-    const {userSubscriptions} = useContext(UserSubscriptionsContext);
+    const {courseListing, semester} = useSemesterContext();
+    const {subscriptionsBySemester} = useContext(UserSubscriptionsContext);
 
     const isSection = name.includes('-');
     const courseName = name.split('-')[0];
@@ -262,11 +262,11 @@ export function HistoryScreen(props: HistoryScreenProps) {
     const [numberOfWatchers, setNumberOfWatchers] = useState(0);
 
     useEffect(() => {
-        countWatchersFunction({course: courseName, section: sectionName}).then((r: any) => {
+        countWatchersFunction({course: courseName, section: sectionName, semester: semester.id}).then((r: any) => {
             if (r.data.success)
                 setNumberOfWatchers(r.data.count);
         });
-    }, [name, userSubscriptions])
+    }, [name, semester.id, subscriptionsBySemester])
 
     useTitle(`${name} Course History`);
 

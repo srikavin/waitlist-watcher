@@ -11,6 +11,7 @@
     "move_to_cloud_storage": "npm run build && node move_to_cloud_storage.js",
     "create_discord_server": "npm run build && node create_discord_server.js",
     "migrate_discord_server": "npm run build && node migrate_discord_server.js",
+    "migrate_rtdb_subscriptions": "node migrate_rtdb_subscriptions.js",
     "move_files": "npm run build && node move_files.js",
     "ingest_events_to_bigquery": "node ingest_events_to_bigquery.js",
     "ingest_snapshots_to_bigquery": "node ingest_snapshots_to_bigquery.js",

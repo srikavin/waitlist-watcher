@@ -19,6 +19,7 @@ interface CourseListingProps {
 }
 interface WatchButtonBaseProps {
     id: string,
+    semesterId?: string,
     subscriptionState: Record<string, boolean>;
     updateSubscriptionState: (newState: any) => any;
     subscriptionLabels: Record<string, string>;
@@ -34,6 +35,7 @@ interface WatchButtonBaseProps {
 export function WatchButtonBase(props: WatchButtonBaseProps) {
     const {
         id,
+        semesterId,
         subscriptionState,
         updateSubscriptionState,
         subscriptionLabels,
@@ -46,7 +48,13 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
     } = props;
 
     const {isAuthed} = useContext(AuthContext);
-    const {userSubscriptions, subscriptionMethods} = useContext(UserSubscriptionsContext);
+    const {subscriptionsBySemester, subscriptionMethods} = useContext(UserSubscriptionsContext);
+    const {semester, semesters} = useSemesterContext();
+    const effectiveSemesterId = semesterId ?? semester.id;
+    const effectiveSemesterName = semesters[effectiveSemesterId]?.name ?? effectiveSemesterId;
+    const latestSemesterId = Object.keys(semesters).sort((a, b) => Number(a) - Number(b)).at(-1) ?? effectiveSemesterId;
+    const isPastSemester = Number(effectiveSemesterId) < Number(latestSemesterId);
+    const isSubscribed = Boolean(subscriptionsBySemester[effectiveSemesterId]?.[id]);
 
     return (
         <Popover
@@ -73,6 +81,12 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
                         {!isAuthed && (
                             <Alert intent="danger" title="You aren't logged in." marginY={12}>
                                 An account is required to watch courses.
+                            </Alert>
+                        )}
+
+                        {isPastSemester && (
+                            <Alert intent="warning" title="Past semester subscription" marginY={8}>
+                                <Text size={300}>Applies to {effectiveSemesterName}, not the latest semester.</Text>
                             </Alert>
                         )}
 
@@ -110,7 +124,7 @@ export function WatchButtonBase(props: WatchButtonBaseProps) {
                 </Pane>
             )}
         >
-            <Button appearance={(id in userSubscriptions) ? "primary" : "default"}>{label}</Button>
+            <Button appearance={isSubscribed ? "primary" : "default"}>{label}</Button>
         </Popover>
     );
 }
@@ -119,22 +133,32 @@ interface WatchButtonProps {
     courseName: string;
     sectionName: string;
     label?: string;
+    semesterId?: string;
 }
 
 interface WatchCourseButtonProps {
     courseName: string,
     label?: string;
+    semesterId?: string;
 }
 
 interface WatchDepartmentButtonProps {
     departmentName: string,
     label?: string;
+    semesterId?: string;
+}
+
+interface WatchEverythingButtonProps {
+    label?: string;
+    semesterId?: string;
 }
 
 export function WatchButton(props: WatchButtonProps) {
-    const {courseName, sectionName} = props;
+    const {courseName, sectionName, semesterId} = props;
 
     const {isAuthed, getUser} = useContext(AuthContext);
+    const {semester} = useSemesterContext();
+    const effectiveSemesterId = semesterId ?? semester.id;
 
     const [isSaving, setIsSaving] = useState(false);
     const [isErrored, setIsErrored] = useState(false);
@@ -168,7 +192,7 @@ export function WatchButton(props: WatchButtonProps) {
     const onPopoverOpen = useCallback(() => {
         if (!isAuthed) return;
 
-        const subscriptionsRef = ref(realtime_db, `section_subscriptions/${courseName}/${sectionName}/${getUser()?.uid}`);
+        const subscriptionsRef = ref(realtime_db, `section_subscriptions/${effectiveSemesterId}/${courseName}/${sectionName}/${getUser()?.uid}`);
 
         get(subscriptionsRef).then((snapshot) => {
             if (!snapshot.exists()) {
@@ -177,7 +201,7 @@ export function WatchButton(props: WatchButtonProps) {
 
             setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
         });
-    }, [isAuthed, courseName, sectionName, getUser, setSubscriptions]);
+    }, [isAuthed, courseName, sectionName, getUser, effectiveSemesterId, setSubscriptions]);
 
     const onSave = useCallback((closePopover: () => void) => {
         if (!isAuthed) return;
@@ -186,8 +210,8 @@ export function WatchButton(props: WatchButtonProps) {
 
         const filteredEntries = Object.fromEntries(Object.entries(subscriptions).filter(([_, val]) => val));
 
-        updates[`section_subscriptions/${courseName}/${sectionName}/${getUser()!.uid}`] = filteredEntries;
-        updates[`user_settings/${getUser()!.uid}/subscriptions/${courseName}-${sectionName}`] = filteredEntries;
+        updates[`section_subscriptions/${effectiveSemesterId}/${courseName}/${sectionName}/${getUser()!.uid}`] = filteredEntries;
+        updates[`user_settings/${getUser()!.uid}/subscriptions/${effectiveSemesterId}/${courseName}-${sectionName}`] = filteredEntries;
 
         setIsSaving(true);
         setIsErrored(false);
@@ -202,10 +226,10 @@ export function WatchButton(props: WatchButtonProps) {
                 setIsErrored(true);
                 console.error(e);
             })
-    }, [courseName, sectionName, subscriptions])
+    }, [courseName, sectionName, effectiveSemesterId, subscriptions])
 
     return (
-        <WatchButtonBase id={`${courseName}-${sectionName}`} subscriptionState={subscriptions}
+        <WatchButtonBase id={`${courseName}-${sectionName}`} semesterId={effectiveSemesterId} subscriptionState={subscriptions}
                          updateSubscriptionState={setSubscriptions} subscriptionLabels={subscriptionLabels}
                          onOpen={onPopoverOpen} isLoading={isSaving} isErrored={isErrored}
                          title={`Watch ${courseName}-${sectionName}`} onSave={onSave}
@@ -214,9 +238,11 @@ export function WatchButton(props: WatchButtonProps) {
 }
 
 export function WatchCourseButton(props: WatchCourseButtonProps) {
-    const {courseName} = props;
+    const {courseName, semesterId} = props;
 
     const {isAuthed, getUser} = useContext(AuthContext);
+    const {semester} = useSemesterContext();
+    const effectiveSemesterId = semesterId ?? semester.id;
 
     const [isSaving, setIsSaving] = useState(false);
     const [isErrored, setIsErrored] = useState(false);
@@ -258,7 +284,7 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
     const onPopoverOpen = useCallback(() => {
         if (!isAuthed) return;
 
-        const subscriptionsRef = ref(realtime_db, `course_subscriptions/${courseName}/${getUser()?.uid}`);
+        const subscriptionsRef = ref(realtime_db, `course_subscriptions/${effectiveSemesterId}/${courseName}/${getUser()?.uid}`);
 
         get(subscriptionsRef).then((snapshot) => {
             if (!snapshot.exists()) {
@@ -267,7 +293,7 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
 
             setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
         });
-    }, [isAuthed, courseName, getUser, setSubscriptions]);
+    }, [isAuthed, courseName, getUser, effectiveSemesterId, setSubscriptions]);
 
     const onSave = useCallback((closePopover: () => void) => {
         if (!isAuthed) return;
@@ -276,8 +302,8 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
 
         const filteredEntries = Object.fromEntries(Object.entries(subscriptions).filter(([_, val]) => val));
 
-        updates[`course_subscriptions/${courseName}/${getUser()!.uid}`] = filteredEntries;
-        updates[`user_settings/${getUser()!.uid}/subscriptions/${courseName}`] = filteredEntries;
+        updates[`course_subscriptions/${effectiveSemesterId}/${courseName}/${getUser()!.uid}`] = filteredEntries;
+        updates[`user_settings/${getUser()!.uid}/subscriptions/${effectiveSemesterId}/${courseName}`] = filteredEntries;
 
         setIsSaving(true);
         setIsErrored(false);
@@ -292,10 +318,10 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
                 setIsErrored(true);
                 console.error(e);
             })
-    }, [courseName, subscriptions])
+    }, [courseName, effectiveSemesterId, subscriptions])
 
     return (
-        <WatchButtonBase id={courseName} subscriptionState={subscriptions} updateSubscriptionState={setSubscriptions}
+        <WatchButtonBase id={courseName} semesterId={effectiveSemesterId} subscriptionState={subscriptions} updateSubscriptionState={setSubscriptions}
                          subscriptionLabels={subscriptionLabels} onOpen={onPopoverOpen} isLoading={isSaving}
                          isErrored={isErrored} title={`Watch ${courseName}`} onSave={onSave}
                          label={props.label || 'Watch'}/>
@@ -303,9 +329,11 @@ export function WatchCourseButton(props: WatchCourseButtonProps) {
 }
 
 export function WatchDepartmentButton(props: WatchDepartmentButtonProps) {
-    const {departmentName} = props;
+    const {departmentName, semesterId} = props;
 
     const {isAuthed, getUser} = useContext(AuthContext);
+    const {semester} = useSemesterContext();
+    const effectiveSemesterId = semesterId ?? semester.id;
 
     const [isSaving, setIsSaving] = useState(false);
     const [isErrored, setIsErrored] = useState(false);
@@ -347,7 +375,7 @@ export function WatchDepartmentButton(props: WatchDepartmentButtonProps) {
     const onPopoverOpen = useCallback(() => {
         if (!isAuthed) return;
 
-        const subscriptionsRef = ref(realtime_db, `department_subscriptions/${departmentName}/${getUser()?.uid}`);
+        const subscriptionsRef = ref(realtime_db, `department_subscriptions/${effectiveSemesterId}/${departmentName}/${getUser()?.uid}`);
 
         get(subscriptionsRef).then((snapshot) => {
             if (!snapshot.exists()) {
@@ -356,7 +384,7 @@ export function WatchDepartmentButton(props: WatchDepartmentButtonProps) {
 
             setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
         });
-    }, [isAuthed, departmentName, getUser, setSubscriptions]);
+    }, [isAuthed, departmentName, getUser, effectiveSemesterId, setSubscriptions]);
 
     const onSave = useCallback((closePopover: () => void) => {
         if (!isAuthed) return;
@@ -365,8 +393,8 @@ export function WatchDepartmentButton(props: WatchDepartmentButtonProps) {
 
         const filteredEntries = Object.fromEntries(Object.entries(subscriptions).filter(([_, val]) => val));
 
-        updates[`department_subscriptions/${departmentName}/${getUser()!.uid}`] = filteredEntries;
-        updates[`user_settings/${getUser()!.uid}/subscriptions/${departmentName}`] = filteredEntries;
+        updates[`department_subscriptions/${effectiveSemesterId}/${departmentName}/${getUser()!.uid}`] = filteredEntries;
+        updates[`user_settings/${getUser()!.uid}/subscriptions/${effectiveSemesterId}/${departmentName}`] = filteredEntries;
 
         setIsSaving(true);
         setIsErrored(false);
@@ -381,14 +409,95 @@ export function WatchDepartmentButton(props: WatchDepartmentButtonProps) {
                 setIsErrored(true);
                 console.error(e);
             })
-    }, [departmentName, subscriptions])
+    }, [departmentName, effectiveSemesterId, subscriptions])
 
     return (
-        <WatchButtonBase id={departmentName} subscriptionState={subscriptions}
+        <WatchButtonBase id={departmentName} semesterId={effectiveSemesterId} subscriptionState={subscriptions}
                          updateSubscriptionState={setSubscriptions}
                          subscriptionLabels={subscriptionLabels} onOpen={onPopoverOpen} isLoading={isSaving}
                          isErrored={isErrored} title={`Watch ${departmentName}`} onSave={onSave}
                          label={props.label || 'Watch Department'}/>
+    )
+}
+
+export function WatchEverythingButton(props: WatchEverythingButtonProps) {
+    const {semesterId} = props;
+
+    const {isAuthed, getUser} = useContext(AuthContext);
+    const {semester} = useSemesterContext();
+    const effectiveSemesterId = semesterId ?? semester.id;
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [isErrored, setIsErrored] = useState(false);
+
+    const subscriptionDefaults = {
+        course_removed: true,
+        section_added: true,
+        instructor_changed: true,
+        open_seat_available: true,
+        open_seats_changed: true,
+        section_removed: true,
+        course_name_changed: true,
+        total_seats_changed: true,
+    };
+
+    const subscriptionLabels = {
+        course_removed: "Course removed",
+        section_added: "Section added",
+        instructor_changed: "Section instructor changed",
+        open_seat_available: "Open seat available",
+        open_seats_changed: "Section open seats changed",
+        section_removed: "Section removed",
+        course_name_changed: "Course name changed",
+        total_seats_changed: "Section total seats changed",
+    };
+
+    const [subscriptions, setSubscriptions] = useState(subscriptionDefaults);
+
+    const onPopoverOpen = useCallback(() => {
+        if (!isAuthed) return;
+
+        const subscriptionsRef = ref(realtime_db, `everything_subscriptions/${effectiveSemesterId}/${getUser()?.uid}`);
+
+        get(subscriptionsRef).then((snapshot) => {
+            if (!snapshot.exists()) {
+                return;
+            }
+
+            setSubscriptions({...subscriptionDefaults, ...snapshot.val()});
+        });
+    }, [isAuthed, getUser, effectiveSemesterId, setSubscriptions]);
+
+    const onSave = useCallback((closePopover: () => void) => {
+        if (!isAuthed) return;
+
+        const updates: any = {};
+        const filteredEntries = Object.fromEntries(Object.entries(subscriptions).filter(([_, val]) => val));
+
+        updates[`everything_subscriptions/${effectiveSemesterId}/${getUser()!.uid}`] = filteredEntries;
+        updates[`user_settings/${getUser()!.uid}/subscriptions/${effectiveSemesterId}/everything`] = filteredEntries;
+
+        setIsSaving(true);
+        setIsErrored(false);
+
+        update(ref(realtime_db), updates)
+            .then(() => {
+                setIsSaving(false);
+                closePopover();
+            })
+            .catch((e) => {
+                setIsSaving(false);
+                setIsErrored(true);
+                console.error(e);
+            });
+    }, [effectiveSemesterId, isAuthed, subscriptions]);
+
+    return (
+        <WatchButtonBase id={"everything"} semesterId={effectiveSemesterId} subscriptionState={subscriptions}
+                         updateSubscriptionState={setSubscriptions}
+                         subscriptionLabels={subscriptionLabels} onOpen={onPopoverOpen} isLoading={isSaving}
+                         isErrored={isErrored} title={`Watch everything`} onSave={onSave}
+                         label={props.label || 'Edit'}/>
     )
 }
 

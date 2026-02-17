@@ -15,7 +15,10 @@ const realtime_db = getDatabase();
             return;
         }
 
-        let subs = Object.keys(settings['subscriptions']);
+        const subscriptionsBySemester = settings['subscriptions'] ?? {};
+        const semester = Object.keys(subscriptionsBySemester)[0];
+        if (!semester) return;
+        let subs = Object.keys(subscriptionsBySemester[semester] ?? {});
         if (subs.length != 1) throw Error("> 1 subscription");
 
         let prefix = subs[0];
@@ -23,7 +26,7 @@ const realtime_db = getDatabase();
         if (prefix === 'everything') return;
 
         await realtime_db.ref("discord_server_channels/" + prefix).set([settings['discord']])
-        await realtime_db.ref("department_subscriptions/" + prefix + "/" + user).remove();
+        await realtime_db.ref("department_subscriptions/" + semester + "/" + prefix + "/" + user).remove();
         await realtime_db.ref("user_settings/" + user).remove();
 
         console.log(user, subs[0], settings['discord']);

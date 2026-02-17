@@ -8,7 +8,7 @@ import {notify_discord_server} from "./discord_server_notifier";
 export const sendNotifications = async (event: CloudEvent<MessagePublishedData>) => {
     const parsedData = JSON.parse(Buffer.from(event.data.message.data, 'base64').toString());
 
-    const {prefix, events} = parsedData.data;
+    const {prefix, events, semester: batchSemester} = parsedData.data;
 
     if (events === undefined) {
         console.log("Likely got old message. Skipping.")
@@ -24,30 +24,36 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
 
     const cachePromises = [];
     const cacheSeen = new Set();
+    const semester = batchSemester ?? events[0]?.semester;
+    if (!semester) {
+        console.warn("Missing semester for event batch. Skipping notifications.");
+        return;
+    }
 
     for (const event of events) {
-        let key = event.course;
+        let key = `${semester}:${event.course}`;
         if (event.section) {
             key += '-' + event.section;
         }
 
         if (!cacheSeen.has(key) && event.section) {
             cachePromises.push((async () => {
-                sectionSubscribersCache[key] = await rtdb.ref(`section_subscriptions/${event.course}/${event.section}`).once('value');
+                sectionSubscribersCache[key] = await rtdb.ref(`section_subscriptions/${semester}/${event.course}/${event.section}`).once('value');
             })())
             cacheSeen.add(key);
         }
 
-        if (!cacheSeen.has(event.course)) {
+        const courseKey = `${semester}:${event.course}`;
+        if (!cacheSeen.has(courseKey)) {
             cachePromises.push((async () => {
-                courseSubscribersCache[event.course] = await rtdb.ref(`course_subscriptions/${event.course}/`).once('value');
+                courseSubscribersCache[courseKey] = await rtdb.ref(`course_subscriptions/${semester}/${event.course}/`).once('value');
             })());
-            cacheSeen.add(key);
+            cacheSeen.add(courseKey);
         }
     }
 
-    const departmentSubscribers = (await rtdb.ref(`department_subscriptions/${prefix}`).once('value')).val() || {};
-    const everythingSubscribers = (await rtdb.ref(`everything_subscriptions/`).once('value')).val() || {};
+    const departmentSubscribers = (await rtdb.ref(`department_subscriptions/${semester}/${prefix}`).once('value')).val() || {};
+    const everythingSubscribers = (await rtdb.ref(`everything_subscriptions/${semester}`).once('value')).val() || {};
 
     await Promise.all(cachePromises);
 
@@ -61,11 +67,11 @@ export const sendNotifications = async (event: CloudEvent<MessagePublishedData>)
 
         let sectionSubscribers: any = {};
         if (event.section) {
-            sectionSubscribers = sectionSubscribersCache[event.course + '-' + event.section];
+            sectionSubscribers = sectionSubscribersCache[`${semester}:${event.course}-${event.section}`];
             sectionSubscribers = sectionSubscribers.val() || {};
         }
 
-        let courseSubscribers = courseSubscribersCache[event.course];
+        let courseSubscribers = courseSubscribersCache[`${semester}:${event.course}`];
         courseSubscribers = courseSubscribers.val() || {};
 
         let subscribers: any = [];

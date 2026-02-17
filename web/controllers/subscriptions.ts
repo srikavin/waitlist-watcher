@@ -69,38 +69,38 @@ export const updateDiscordNotificationSettings = async (userId: string, channelI
         .set(`https://discord.com/api/v8/channels/${channelId}/messages`);
 }
 
-export const subscribeToCourseSection = async (userId: string, courseName: string, section: string, channels: Record<string, boolean> = sectionSubscriptionDefaults) => {
+export const subscribeToCourseSection = async (userId: string, semester: string, courseName: string, section: string, channels: Record<string, boolean> = sectionSubscriptionDefaults) => {
     const updates: Record<string, any> = {}
 
-    updates[`section_subscriptions/${courseName}/${section}/${userId}`] = channels;
-    updates[`user_settings/${userId}/subscriptions/${courseName}-${section}`] = channels;
+    updates[`section_subscriptions/${semester}/${courseName}/${section}/${userId}`] = channels;
+    updates[`user_settings/${userId}/subscriptions/${semester}/${courseName}-${section}`] = channels;
 
     await realtime_db.ref('/').update(updates);
 }
 
-export const subscribeToCourse = async (userId: string, courseName: string, channels: Record<string, boolean> = courseSubscriptionDefaults) => {
+export const subscribeToCourse = async (userId: string, semester: string, courseName: string, channels: Record<string, boolean> = courseSubscriptionDefaults) => {
     const updates: Record<string, any> = {}
 
-    updates[`course_subscriptions/${courseName}/${userId}`] = channels;
-    updates[`user_settings/${userId}/subscriptions/${courseName}`] = channels;
+    updates[`course_subscriptions/${semester}/${courseName}/${userId}`] = channels;
+    updates[`user_settings/${userId}/subscriptions/${semester}/${courseName}`] = channels;
 
     await realtime_db.ref('/').update(updates);
 }
 
-export const subscribeToEverything = async (userId: string, channels: Record<string, boolean> = everythingSubscriptionDefaults) => {
+export const subscribeToEverything = async (userId: string, semester: string, channels: Record<string, boolean> = everythingSubscriptionDefaults) => {
     const updates: Record<string, any> = {}
 
-    updates[`everything_subscriptions/${userId}`] = channels;
-    updates[`user_settings/${userId}/subscriptions/everything`] = channels;
+    updates[`everything_subscriptions/${semester}/${userId}`] = channels;
+    updates[`user_settings/${userId}/subscriptions/${semester}/everything`] = channels;
 
     await realtime_db.ref('/').update(updates);
 }
 
-export const subscribeToDepartment = async (userId: string, department: string, channels: Record<string, boolean> = departmentSubscriptionDefaults) => {
+export const subscribeToDepartment = async (userId: string, semester: string, department: string, channels: Record<string, boolean> = departmentSubscriptionDefaults) => {
     const updates: Record<string, any> = {}
 
-    updates[`department_subscriptions/${department}/${userId}`] = channels;
-    updates[`user_settings/${userId}/subscriptions/${department}`] = channels;
+    updates[`department_subscriptions/${semester}/${department}/${userId}`] = channels;
+    updates[`user_settings/${userId}/subscriptions/${semester}/${department}`] = channels;
 
     await realtime_db.ref('/').update(updates);
 }

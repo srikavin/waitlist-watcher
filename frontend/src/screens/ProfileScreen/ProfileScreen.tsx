@@ -18,7 +18,7 @@ import {
 import {auth, realtime_db, testNotifyFunction} from "../../firebase";
 import {get, onValue, ref, remove, set} from "firebase/database";
 import {notifWorker} from "../../main";
-import {WatchButton, WatchCourseButton} from "../../components/CourseListing/CourseListing";
+import {WatchButton, WatchCourseButton, WatchDepartmentButton, WatchEverythingButton} from "../../components/CourseListing/CourseListing";
 import {useTitle} from "../../util/useTitle";
 import {UserSubscriptionsContext} from "../../context/UserSubscriptions";
 import {useSemesterContext} from "../../context/SemesterContext";
@@ -139,9 +139,18 @@ function EnableNotificationsButton() {
 }
 
 function CurrentSubscriptions() {
-    const {userSubscriptions} = useContext(UserSubscriptionsContext);
+    const {subscriptionsBySemester: allSubscriptionsBySemester} = useContext(UserSubscriptionsContext);
+    const {semesters} = useSemesterContext();
+    const semesterRows = Object.entries(allSubscriptionsBySemester)
+        .map(([semesterId, subscriptions]) => ({
+            semester: semesterId,
+            title: semesters[semesterId]?.name ?? semesterId,
+            entries: Object.entries(subscriptions),
+        }))
+        .filter((group) => group.entries.length > 0)
+        .sort((a, b) => Number(b.semester) - Number(a.semester));
 
-    if (Object.keys(userSubscriptions).length === 0) {
+    if (semesterRows.length === 0) {
         return (
             <EmptyState
                 title="You have no subscriptions"
@@ -154,17 +163,41 @@ function CurrentSubscriptions() {
 
     return (
         <Pane display="flex" flexDirection="column">
-            {
-                Object.entries(userSubscriptions).map(([k, v]) => (
-                    <Pane key={k} display="flex" gap={10} marginY={5}>
-                        <Text>{k}</Text>
-                        {k.includes('-') ? (
-                            <WatchButton courseName={k.split('-')[0]} sectionName={k.split('-')[1]} label={"Edit"}/>
-                        ) : (
-                            <WatchCourseButton courseName={k} label={"Edit"}/>
-                        )}
-                    </Pane>
-                ))}
+            {semesterRows.map((group) => (
+                <Pane key={group.semester} marginBottom={12}>
+                    <Heading size={500} marginBottom={6}>{group.title}</Heading>
+                    {group.entries.map(([k]) => (
+                        <Pane key={`${group.semester}-${k}`} display="flex" gap={10} marginY={5}>
+                            <Text>{k}</Text>
+                            {k.includes('-') ? (
+                                <WatchButton
+                                    courseName={k.split('-')[0]}
+                                    sectionName={k.split('-')[1]}
+                                    semesterId={group.semester}
+                                    label={"Edit"}
+                                />
+                            ) : k === "everything" ? (
+                                <WatchEverythingButton
+                                    semesterId={group.semester}
+                                    label={"Edit"}
+                                />
+                            ) : /^[A-Z]+$/.test(k) ? (
+                                <WatchDepartmentButton
+                                    departmentName={k}
+                                    semesterId={group.semester}
+                                    label={"Edit"}
+                                />
+                            ) : (
+                                <WatchCourseButton
+                                    courseName={k}
+                                    semesterId={group.semester}
+                                    label={"Edit"}
+                                />
+                            )}
+                        </Pane>
+                    ))}
+                </Pane>
+            ))}
         </Pane>
     )
 }
@@ -275,10 +308,11 @@ export function NotificationSettingsBody() {
                     onChange={(e: any) => setWebhookUrl(e.target.value)}
                 />
                 <TextInputField
-                    label="Email Notifications"
-                    description={`Receive email notifications`}
+                    label="Email Notifications (Currently disabled)"
+                    description={`Email notifications are currently disabled.`}
                     placeholder={getUser()?.email ?? "Email"}
                     value={email}
+                    disabled
                     isInvalid={!isEmailValid}
                     validationMessage={!isEmailValid ? "Enter a valid email" : null}
                     onChange={(e: any) => setEmail(e.target.value)}

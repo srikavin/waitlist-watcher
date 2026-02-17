@@ -111,7 +111,7 @@ function App() {
     const navigate = useNavigate();
     let [searchParams, _] = useSearchParams({semester: "202601"});
     const [semester, setSemester] = useState(searchParams.get("semester")!);
-    const [userSubscriptions, setUserSubscriptions] = useState({});
+    const [subscriptionsBySemester, setSubscriptionsBySemester] = useState<Record<string, Record<string, any>>>({});
     const [subscriptionMethods, setSubscriptionMethods] = useState<string[]>([]);
 
     useEffect(() => {
@@ -166,7 +166,8 @@ function App() {
     useEffect(() => {
         if (!user) return;
         return onValue(ref(realtime_db, "user_settings/" + user!.uid), e => {
-            setUserSubscriptions(e.child("subscriptions").val() ?? {})
+            const allSubs = (e.child("subscriptions").val() ?? {}) as Record<string, Record<string, any>>;
+            setSubscriptionsBySemester(allSubs);
             setIsPro(e.child("paid_plan/" + semester).val() === "pro");
             setSubscriptionMethods([
                 ...((e.child("email").val() ?? "") ? ["email"] : []),
@@ -201,7 +202,7 @@ function App() {
     return (
         <AuthContext.Provider value={authCtx}>
             <SemesterContextProvider value={semesterCtx}>
-                <UserSubscriptionsContext.Provider value={{userSubscriptions, subscriptionMethods}}>
+                <UserSubscriptionsContext.Provider value={{subscriptionsBySemester, subscriptionMethods}}>
                     <Navigation/>
                     <Routes>
                         <Route path="/" element={<LandingPageScreen/>}/>
