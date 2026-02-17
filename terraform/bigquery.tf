@@ -1,7 +1,7 @@
 locals {
   scheduled_query_sa_name = "bq-scheduled-query-runner"
   scheduled_query_files   = fileset("${path.module}/scheduled_queries", "*.sql")
-  business_hours_schedule = "every 30 minutes from 06:00 to 23:30 on mon,tue,wed,thu,fri"
+  business_hours_schedule = "every 30 minutes from 11:00 to 04:30 on mon,tue,wed,thu,fri"
   scheduled_query_schedules = {
     export_stats_events_bundle    = local.business_hours_schedule
     export_stats_snapshots_bundle = local.business_hours_schedule
