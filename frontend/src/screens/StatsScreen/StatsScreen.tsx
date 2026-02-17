@@ -34,8 +34,8 @@ function mixChannel(a: number, b: number, t: number): number {
 
 function heatColor(score: number): string {
     const norm = Math.max(0, Math.min(1, score));
-    const low = [226, 232, 240];  // slate-200
-    const high = [127, 29, 29];   // red-900
+    const low = [226, 232, 240];
+    const high = [127, 29, 29];
     const r = mixChannel(low[0], high[0], norm);
     const g = mixChannel(low[1], high[1], norm);
     const b = mixChannel(low[2], high[2], norm);
@@ -82,14 +82,29 @@ function TreemapLabelContent(props: any) {
     if (width <= 1 || height <= 1) return null;
 
     const fill = String(payload?.fill ?? props?.fill ?? "#dbeafe");
-    const label = String(name ?? payload?.name ?? "");
+    const rawLabel = String(name ?? payload?.name ?? "");
     const textColor = fill === "#b91c1c" ? "#ffffff" : "#0f172a";
+    const fontSize = 13;
+    const horizontalPadding = 8;
+    const avgCharWidth = 7.2;
+    const maxChars = Math.floor((width - horizontalPadding) / avgCharWidth);
+    const canRender = height >= 16 && maxChars >= 4;
+    const label = rawLabel.length > maxChars ? `…${rawLabel.slice(Math.max(0, rawLabel.length - (maxChars - 1)))}` : rawLabel;
 
     return (
         <g>
             <rect x={x} y={y} width={width} height={height} fill={fill} stroke="#ffffff" strokeWidth={1}/>
-            {width > 70 && height > 18 ? (
-                <text x={x + 5} y={y + 13} fill={textColor} fontSize={11}>
+            {canRender ? (
+                <text
+                    x={x + width / 2}
+                    y={y + height / 2}
+                    fill={textColor}
+                    fontSize={fontSize}
+                    fontWeight={600}
+                    stroke="none"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                >
                     {label}
                 </text>
             ) : null}
@@ -117,6 +132,16 @@ function courseCode(department: string, course: string): string {
     return normalizedCourse.startsWith(normalizedDepartment)
         ? normalizedCourse
         : `${normalizedDepartment}${normalizedCourse}`;
+}
+
+function courseTreemapLabel(department: string, course: string): string {
+    const normalizedDepartment = department.trim().toUpperCase();
+    const normalizedCourse = course.trim().toUpperCase();
+    if (normalizedCourse.startsWith(normalizedDepartment)) {
+        const stripped = normalizedCourse.slice(normalizedDepartment.length);
+        return stripped || normalizedCourse;
+    }
+    return normalizedCourse;
 }
 
 function periodMetric(period: TimePeriod, values: { h24?: number; d7?: number; semester?: number }): number | undefined {
@@ -206,7 +231,7 @@ export function StatsScreen() {
                 const courseSize = sectionNodes.reduce((sum, node) => sum + Number(node.size ?? 0), 0);
                 const courseSectionCount = sectionNodes.reduce((sum, node) => sum + Number(node.section_count ?? 0), 0);
                 return {
-                    name: courseCode(department, course),
+                    name: courseTreemapLabel(department, course),
                     size: Math.max(1, courseSize),
                     pressure: coursePressure,
                     filled_seats: courseFilledSeats,
@@ -328,16 +353,17 @@ export function StatsScreen() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
             <div className="flex items-end justify-between gap-4 flex-wrap">
                 <div>
-                    <h1 className="h2 text-slate-900">Live Stats</h1>
-                    <p className="text-slate-600">Semester {semester.name} · refreshed every 10 minutes</p>
+                    <h1 className="h2 text-slate-900">Stats</h1>
+                    <p className="text-slate-600">{semester.name}</p>
                 </div>
                 {overview?.generatedAt ? (
                     <p className="text-sm text-slate-500">Generated {formatGeneratedAt(overview.generatedAt)}</p>
                 ) : null}
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-3">
+            <section className="space-y-4">
+                <div className="grid lg:grid-cols-3 gap-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-3">
                     <style>
                         {`
                         .recharts-treemap-nest-index-wrapper {
@@ -418,129 +444,7 @@ export function StatsScreen() {
                         <span className="px-2 py-0.5 rounded bg-red-800 text-white">High</span>
                     </div>
                 </div>
-                <div className="lg:col-span-3 flex items-center gap-3 flex-wrap">
-                    <span className="text-sm text-slate-600">Time range:</span>
-                    {(["24h", "7d", "semester"] as TimePeriod[]).map((option) => (
-                        <button
-                            key={option}
-                            type="button"
-                            onClick={() => setPeriod(option)}
-                            className={`px-4 py-2 rounded-full text-sm border ${period === option ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300"}`}
-                        >
-                            {option}
-                        </button>
-                    ))}
-                </div>
-                <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Events (${period})`}</p>
-                        <p className="text-2xl font-semibold text-slate-900">
-                            {eventsByPeriod === undefined ? "—" : formatInt(eventsByPeriod)}
-                        </p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Open Seat Alerts (${period})`}</p>
-                        <p className="text-2xl font-semibold text-slate-900">
-                            {openSeatAlertsByPeriod === undefined ? "—" : formatInt(openSeatAlertsByPeriod)}
-                        </p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Active Sections (${period})`}</p>
-                        <p className="text-2xl font-semibold text-slate-900">
-                            {activeSectionsByPeriod === undefined ? "—" : formatInt(activeSectionsByPeriod)}
-                        </p>
-                    </div>
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Active Departments (${period})`}</p>
-                        <p className="text-2xl font-semibold text-slate-900">
-                            {activeDepartmentsByPeriod === undefined ? "—" : formatInt(activeDepartmentsByPeriod)}
-                        </p>
-                    </div>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <h2 className="text-lg font-semibold text-slate-900 mb-3">Most Active Courses ({period})</h2>
-                    <div className="overflow-auto rounded-lg border border-slate-100">
-                        <table className="w-full text-sm">
-                            <thead>
-                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
-                                <th className="px-3 py-2 pr-2">Course</th>
-                                <th className="px-3 py-2 pr-2 text-right">Events</th>
-                                <th className="px-3 py-2 text-right">Seat Churn</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {topActiveCourses.map((row) => (
-                                <tr key={`${row.semester}-${row.period}-${row.department}-${row.course}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
-                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
-                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(courseCode(row.department, row.course))}`}>
-                                            {courseCode(row.department, row.course)}
-                                        </NavLink>
-                                    </td>
-                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(Number(row.events ?? 0))}</td>
-                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(Number(row.seat_churn ?? 0))}</td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <h2 className="text-lg font-semibold text-slate-900 mb-3">Fastest Filling Sections ({period})</h2>
-                    <div className="overflow-auto rounded-lg border border-slate-100">
-                        <table className="w-full text-sm">
-                            <thead>
-                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
-                                <th className="px-3 py-2 pr-2">Section</th>
-                                <th className="px-3 py-2 pr-2 text-right">Seats Filled</th>
-                                <th className="px-3 py-2 text-right">Events</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {fastestFillingSectionsInPeriod.map((row) => (
-                                <tr key={`fillsec-${row.semester}-${row.period}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
-                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
-                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
-                                            {sectionCode(row.department, row.course, row.section)}
-                                        </NavLink>
-                                    </td>
-                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.seats_filled))}</td>
-                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.events))}</td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <h2 className="text-lg font-semibold text-slate-900 mb-3">Most Waitlisted Sections</h2>
-                    <div className="overflow-auto rounded-lg border border-slate-100">
-                        <table className="w-full text-sm">
-                            <thead>
-                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
-                                <th className="px-3 py-2 pr-2">Section</th>
-                                <th className="px-3 py-2 pr-2 text-right">Waitlist</th>
-                                <th className="px-3 py-2 text-right">Seats</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {topWaitlistedSections.map((row) => (
-                                <tr key={`${row.semester}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
-                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
-                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
-                                            {sectionCode(row.department, row.course, row.section)}
-                                        </NavLink>
-                                    </td>
-                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(Number(row.waitlist ?? 0))}</td>
-                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(Number(row.open_seats ?? 0))}/{formatInt(Number(row.total_seats ?? 0))}</td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <h2 className="text-lg font-semibold text-slate-900 mb-3">Most Waitlisted Courses</h2>
                     <div className="overflow-auto rounded-lg border border-slate-100">
                         <table className="w-full text-sm">
@@ -567,7 +471,130 @@ export function StatsScreen() {
                         </table>
                     </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <h2 className="text-lg font-semibold text-slate-900 mb-3">Most Waitlisted Sections</h2>
+                    <div className="overflow-auto rounded-lg border border-slate-100">
+                        <table className="w-full text-sm">
+                            <thead>
+                            <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
+                                <th className="px-3 py-2 pr-2">Section</th>
+                                <th className="px-3 py-2 pr-2 text-right">Waitlist</th>
+                                <th className="px-3 py-2 text-right">Seats</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {topWaitlistedSections.map((row) => (
+                                <tr key={`${row.semester}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
+                                    <td className="px-3 py-2.5 pr-2 text-slate-700">
+                                        <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
+                                            {sectionCode(row.department, row.course, row.section)}
+                                        </NavLink>
+                                    </td>
+                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(Number(row.waitlist ?? 0))}</td>
+                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(Number(row.open_seats ?? 0))}/{formatInt(Number(row.total_seats ?? 0))}</td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                </div>
+            </section>
+
+            <section className="space-y-4">
+                <h2 className="text-lg font-semibold text-slate-900">Activity Over Time</h2>
+                <div className="flex items-center gap-3 flex-wrap">
+                    {(["24h", "7d", "semester"] as TimePeriod[]).map((option) => (
+                        <button
+                            key={option}
+                            type="button"
+                            onClick={() => setPeriod(option)}
+                            className={`px-4 py-2 rounded-full text-sm border ${period === option ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-slate-300"}`}
+                        >
+                            {option}
+                        </button>
+                    ))}
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Events (${period})`}</p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                            {eventsByPeriod === undefined ? "—" : formatInt(eventsByPeriod)}
+                        </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Open Seat Alerts (${period})`}</p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                            {openSeatAlertsByPeriod === undefined ? "—" : formatInt(openSeatAlertsByPeriod)}
+                        </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Active Sections (${period})`}</p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                            {activeSectionsByPeriod === undefined ? "—" : formatInt(activeSectionsByPeriod)}
+                        </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">{`Active Departments (${period})`}</p>
+                        <p className="text-2xl font-semibold text-slate-900">
+                            {activeDepartmentsByPeriod === undefined ? "—" : formatInt(activeDepartmentsByPeriod)}
+                        </p>
+                    </div>
+                </div>
+                <div className="grid lg:grid-cols-3 gap-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h2 className="text-lg font-semibold text-slate-900 mb-3">Most Active Courses ({period})</h2>
+                        <div className="overflow-auto rounded-lg border border-slate-100">
+                            <table className="w-full text-sm">
+                                <thead>
+                                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
+                                    <th className="px-3 py-2 pr-2">Course</th>
+                                    <th className="px-3 py-2 pr-2 text-right">Events</th>
+                                    <th className="px-3 py-2 text-right">Seat Churn</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {topActiveCourses.map((row) => (
+                                    <tr key={`${row.semester}-${row.period}-${row.department}-${row.course}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
+                                        <td className="px-3 py-2.5 pr-2 text-slate-700">
+                                            <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(courseCode(row.department, row.course))}`}>
+                                                {courseCode(row.department, row.course)}
+                                            </NavLink>
+                                        </td>
+                                        <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(Number(row.events ?? 0))}</td>
+                                        <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(Number(row.seat_churn ?? 0))}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h2 className="text-lg font-semibold text-slate-900 mb-3">Fastest Filling Sections ({period})</h2>
+                        <div className="overflow-auto rounded-lg border border-slate-100">
+                            <table className="w-full text-sm">
+                                <thead>
+                                <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
+                                    <th className="px-3 py-2 pr-2">Section</th>
+                                    <th className="px-3 py-2 pr-2 text-right">Seats Filled</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {fastestFillingSectionsInPeriod.map((row) => (
+                                    <tr key={`fillsec-${row.semester}-${row.period}-${row.department}-${row.course}-${row.section}`} className="border-b border-slate-50 odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/40 transition-colors">
+                                        <td className="px-3 py-2.5 pr-2 text-slate-700">
+                                            <NavLink className="text-slate-800 hover:text-blue-700 no-underline hover:underline decoration-slate-300" to={`/history/${encodeURIComponent(sectionCode(row.department, row.course, row.section))}`}>
+                                                {sectionCode(row.department, row.course, row.section)}
+                                            </NavLink>
+                                        </td>
+                                        <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.seats_filled))}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <h2 className="text-lg font-semibold text-slate-900 mb-3">Quickest Filled Sections</h2>
                     <div className="overflow-auto rounded-lg border border-slate-100">
                         <table className="w-full text-sm">
@@ -575,7 +602,6 @@ export function StatsScreen() {
                             <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
                                 <th className="px-3 py-2 pr-2">Section</th>
                                 <th className="px-3 py-2 pr-2 text-right">Minutes to 0 Seats</th>
-                                <th className="px-3 py-2 text-right">Events</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -587,14 +613,14 @@ export function StatsScreen() {
                                         </NavLink>
                                     </td>
                                     <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.quickest_minutes))}</td>
-                                    <td className="px-3 py-2.5 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.events))}</td>
                                 </tr>
                             ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
-            </div>
+                </div>
+            </section>
         </div>
     );
 }

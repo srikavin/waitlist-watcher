@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from "react";
+import {useMemo} from "react";
 import {
     ChatIcon,
     CodeIcon,
@@ -11,7 +11,7 @@ import {
 } from "evergreen-ui";
 import {useTitle} from "../../util/useTitle";
 import {HistoryScreen} from "../HistoryScreen/HistoryScreen";
-import {NavLink, useNavigate} from "react-router-dom";
+import {NavLink} from "react-router-dom";
 import {useSemesterContext} from "@/frontend/src/context/SemesterContext";
 import {useBucketStats} from "@/frontend/src/util/useBucketStats";
 import {LiveStreamEvent, useLiveEventStream} from "@/frontend/src/util/useLiveEventStream";
@@ -108,16 +108,23 @@ function eventAccentClass(type: string | undefined): string {
     }
 }
 
-function eventTargetPath(event: LiveStreamEvent): string | null {
-    if (!event.department || !event.course) return null;
-    if (event.section) {
-        return `/history/${encodeURIComponent(toSectionCode(event.department, event.course, event.section))}`;
-    }
-    return `/history/${encodeURIComponent(toCourseCode(event.department, event.course))}`;
-}
-
 function eventRenderKey(event: LiveStreamEvent): string {
     return `${event.event_id ?? "evt"}-${event.timestamp_ms ?? 0}`;
+}
+
+function relativeTimeLabel(timestamp: string | undefined): string {
+    if (!timestamp) return "";
+    const ms = Date.parse(timestamp);
+    if (!Number.isFinite(ms)) return "";
+    const deltaMs = Date.now() - ms;
+    if (deltaMs < 0) return "just now";
+    const minutes = Math.floor(deltaMs / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
 }
 
 function NotificationInfo(props: { icon: any, title: string, description: string }) {
@@ -139,12 +146,9 @@ function NotificationInfo(props: { icon: any, title: string, description: string
 }
 
 export function LandingPageScreen() {
-    const {courseListing, semester} = useSemesterContext();
-    const {overview, topCourses} = useBucketStats(semester.id);
-    const {events: liveEvents, loading: liveLoading} = useLiveEventStream(semester.id, 40);
-    const navigate = useNavigate();
-    const [newEventKeys, setNewEventKeys] = useState<Set<string>>(new Set());
-    const seenKeysRef = useRef<Set<string>>(new Set());
+    const {courseListing, semester, semesters} = useSemesterContext();
+    const {overview, fastestFillingSections} = useBucketStats(semester.id);
+    const {events: liveEvents} = useLiveEventStream(semester.id, 40);
 
     const randomCourseName = useMemo(() => {
         if (courseListing.length === 0) {
@@ -156,51 +160,64 @@ export function LandingPageScreen() {
     }, [courseListing])
 
     useTitle("Waitlist Watcher");
-
-    const topCourseChips = topCourses
-        .filter(row => !row.period || row.period === "24h")
-        .slice(0, 6);
     const formatInt = (value: number) => new Intl.NumberFormat().format(value);
-    const courseCode = (department: string, course: string) => toCourseCode(department, course);
+
     const filteredLiveEvents = useMemo(() => {
         return liveEvents
             .filter((event) => SIGNAL_EVENT_TYPES.has(event.type ?? ""))
             .filter((event) => Boolean(event.department && event.course))
             .slice(0, 30);
     }, [liveEvents]);
-
-    useEffect(() => {
-        const currentKeys = filteredLiveEvents.map(eventRenderKey);
-        const seenKeys = seenKeysRef.current;
-        const freshKeys = currentKeys.filter((key) => !seenKeys.has(key));
-
-        seenKeysRef.current = new Set(currentKeys);
-        if (freshKeys.length === 0) {
-            return;
-        }
-
-        setNewEventKeys((previous) => {
-            const next = new Set(previous);
-            for (const key of freshKeys) next.add(key);
-            return next;
+    const liveBackdropEvents = useMemo(() => {
+        if (filteredLiveEvents.length === 0) return [];
+        return [...filteredLiveEvents, ...filteredLiveEvents];
+    }, [filteredLiveEvents]);
+    const trackedSectionIds = useMemo(
+        () => courseListing.filter((value) => value.includes("-")),
+        [courseListing],
+    );
+    const trackedCoursesCount = useMemo(
+        () => new Set(trackedSectionIds.map((value) => value.split("-")[0])).size,
+        [trackedSectionIds],
+    );
+    const trackedDepartmentsCount = useMemo(
+        () => new Set(trackedSectionIds.map((value) => {
+            const courseCode = value.split("-")[0] ?? "";
+            const match = courseCode.toUpperCase().match(/^[A-Z]+/);
+            return match ? match[0] : "";
+        }).filter(Boolean)).size,
+        [trackedSectionIds],
+    );
+    const latestSemesterId = useMemo(
+        () => Object.keys(semesters).sort((a, b) => Number(a) - Number(b)).at(-1) ?? semester.id,
+        [semesters, semester.id],
+    );
+    const mostActiveSectionsPeriod = Number(semester.id) < Number(latestSemesterId) ? "semester" : "24h";
+    const mostActiveSections = useMemo(() => {
+        return [...fastestFillingSections]
+            .filter((row) => row.period === mostActiveSectionsPeriod)
+            .sort((a, b) => {
+                const eventsDiff = Number(b.events ?? 0) - Number(a.events ?? 0);
+                if (eventsDiff !== 0) return eventsDiff;
+                return Number(b.seats_filled ?? 0) - Number(a.seats_filled ?? 0);
+            })
+            .filter((row) => row.department && row.course && row.section)
+            .slice(0, 10);
+    }, [fastestFillingSections, mostActiveSectionsPeriod]);
+    const hasFreshLiveEvents = useMemo(() => {
+        const oneHourMs = 60 * 60 * 1000;
+        const now = Date.now();
+        return filteredLiveEvents.some((event) => {
+            const ms = event.timestamp ? Date.parse(event.timestamp) : NaN;
+            return Number.isFinite(ms) && now - ms <= oneHourMs;
         });
-
-        const timeout = window.setTimeout(() => {
-            setNewEventKeys((previous) => {
-                const next = new Set(previous);
-                for (const key of freshKeys) next.delete(key);
-                return next;
-            });
-        }, 1200);
-
-        return () => window.clearTimeout(timeout);
     }, [filteredLiveEvents]);
 
     return (
         <>
             <section className="relative z-10">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6">
-                    <div className="pt-16 pb-24 md:pt-16 md:pb-32">
+                    <div className="relative z-10 pt-16 pb-24 md:pt-16 md:pb-32">
                         <div className="text-center pb-12 md:pb-16">
                             <h1 className="text-5xl md:text-6xl font-extrabold leading-tighter tracking-tighter mb-4 text-slate-900"
                                 data-aos="zoom-y-out">Never miss an <span
@@ -233,114 +250,62 @@ export function LandingPageScreen() {
                             </div>
                         </div>
                         <div className="relative flex justify-center flex-col w-10/12 mx-auto">
-                            <div className="shadow-2xl shadow-slate-200/70">
+                            <div className="relative shadow-2xl shadow-slate-200/70">
                                 <HistoryScreen name={randomCourseName} minimal landing={true}/>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
-            <section className="relative -mt-6">
-                <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pb-12">
-                    <div className="rounded-2xl border border-slate-200 bg-white shadow-lg p-6">
-                        <div className="flex justify-between items-center gap-4 flex-wrap mb-4">
-                            <h2 className="h3 text-slate-900">Live Overview</h2>
-                            <NavLink to={"/stats"} className="text-sm font-semibold text-blue-600">View full stats</NavLink>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div className="rounded-lg border border-slate-100 p-3">
-                                <p className="text-xs uppercase tracking-wide text-slate-500">Events</p>
-                                <p className="text-xl font-semibold text-slate-900">{formatInt(overview?.events24h ?? 0)}</p>
-                            </div>
-                            <div className="rounded-lg border border-slate-100 p-3">
-                                <p className="text-xs uppercase tracking-wide text-slate-500">Open Seat Alerts</p>
-                                <p className="text-xl font-semibold text-slate-900">{formatInt(overview?.openSeatAlerts24h ?? 0)}</p>
-                            </div>
-                            <div className="rounded-lg border border-slate-100 p-3">
-                                <p className="text-xs uppercase tracking-wide text-slate-500">Active Sections</p>
-                                <p className="text-xl font-semibold text-slate-900">{formatInt(overview?.activeSections24h ?? 0)}</p>
-                            </div>
-                            <div className="rounded-lg border border-slate-100 p-3">
-                                <p className="text-xs uppercase tracking-wide text-slate-500">Active Departments</p>
-                                <p className="text-xl font-semibold text-slate-900">{formatInt(overview?.activeDepartments24h ?? 0)}</p>
-                            </div>
-                        </div>
-                        <div className="mt-4">
-                            <p className="text-sm text-slate-500 mb-2">Most active courses (24h)</p>
-                            <div className="flex gap-2 flex-wrap">
-                                {topCourseChips.map((row) => (
-                                    <button
-                                        key={`${row.department}-${row.course}`}
-                                        type="button"
-                                        onClick={() => navigate(`/history/${encodeURIComponent(courseCode(row.department, row.course))}`)}
-                                        className="border border-red-200 bg-red-50 text-red-900 px-3 py-1 rounded-full text-sm"
-                                    >
-                                        {courseCode(row.department, row.course)}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="mt-6">
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                                <p className="text-sm text-slate-500">Recent Events</p>
-                                <p className="text-xs text-slate-400">latest 30</p>
-                            </div>
-                            {liveLoading && filteredLiveEvents.length === 0 ? (
-                                <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-                                    Loading live stream...
-                                </div>
-                            ) : filteredLiveEvents.length === 0 ? (
-                                <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-                                    No recent events yet.
-                                </div>
-                            ) : (
-                                <div className={styles.liveRailViewport}>
-                                    <div className={styles.liveRailTrack}>
-                                        {filteredLiveEvents.map((event) => {
-                                            const key = eventRenderKey(event);
-                                            const course = event.department && event.course ? toCourseCode(event.department, event.course) : "";
-                                            const section = event.department && event.course && event.section ?
-                                                toSectionCode(event.department, event.course, event.section) : null;
-                                            const targetPath = eventTargetPath(event);
-                                            const time = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : "";
-                                            const label = compactEventLabel(event);
-                                            const accentClass = eventAccentClass(event.type);
-                                            const card = (
-                                                <div className={`${styles.liveEventCard} ${newEventKeys.has(key) ? styles.liveEventNew : ""}`}>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`text-[11px] px-2 py-0.5 rounded-full border ${accentClass}`}>
-                                                            {label}
-                                                        </span>
-                                                        <span className="text-[11px] text-slate-500">{time}</span>
-                                                    </div>
-                                                    <div className="mt-1 text-sm font-semibold text-slate-800">
-                                                        {section ?? course}
-                                                    </div>
-                                                </div>
-                                            );
-                                            if (!targetPath) {
-                                                return <div key={key}>{card}</div>;
-                                            }
-                                            return (
-                                                <NavLink
-                                                    key={key}
-                                                    to={targetPath}
-                                                    className={styles.liveEventLink}
-                                                >
-                                                    {card}
-                                                </NavLink>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
             <section className="relative">
                 <div className="absolute inset-0 bg-slate-50 pointer-events-none" aria-hidden="true"></div>
-                <div className="h-36"></div>
+                {hasFreshLiveEvents ? (
+                    <div className={`${styles.heroLiveBackdropWrap} hidden lg:block`}>
+                        <div className={styles.heroLiveBackdropRow}>
+                            <div className={styles.heroLiveBackdropTrack}>
+                                {liveBackdropEvents.map((event, idx) => {
+                                    const key = `${eventRenderKey(event)}-hero-${idx}`;
+                                    const course = event.department && event.course ? toCourseCode(event.department, event.course) : "";
+                                    const section = event.department && event.course && event.section ?
+                                        toSectionCode(event.department, event.course, event.section) : null;
+                                    const label = compactEventLabel(event);
+                                    const accentClass = eventAccentClass(event.type);
+                                    const relativeTime = relativeTimeLabel(event.timestamp);
+                                    const targetPath = event.department && event.course
+                                        ? `/history/${encodeURIComponent(section ? section : course)}`
+                                        : null;
+
+                                    const card = (
+                                        <div className={styles.heroLiveBackdropCard}>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${accentClass}`}>
+                                                    {label}
+                                                </span>
+                                                {relativeTime ? (
+                                                    <span className="text-[10px] text-slate-500">{relativeTime}</span>
+                                                ) : null}
+                                            </div>
+                                            <div className="mt-1 text-xs font-semibold text-slate-700">
+                                                {section ?? course}
+                                            </div>
+                                        </div>
+                                    );
+
+                                    if (!targetPath) {
+                                        return <div key={key}>{card}</div>;
+                                    }
+
+                                    return (
+                                        <NavLink key={key} to={targetPath} className={styles.heroLiveBackdropLink}>
+                                            {card}
+                                        </NavLink>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
+                <div className="h-24"></div>
 
                 <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pb-12">
                     <div className="pt-12">
@@ -393,6 +358,57 @@ export function LandingPageScreen() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+            <section className="relative pt-8">
+                <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pb-10">
+                    <div className="max-w-4xl">
+                        <h2 className="h2 mb-3 text-slate-900">Stats</h2>
+                        <p className="text-xl text-slate-600 mb-4">
+                            Explore live-derived analytics across courses and sections.
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-slate-500">Course Events</p>
+                                <p className="text-2xl font-semibold text-slate-900">{formatInt(overview?.eventsSemester ?? 0)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-slate-500">Tracked Sections</p>
+                                <p className="text-2xl font-semibold text-slate-900">{formatInt(trackedSectionIds.length)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-slate-500">Tracked Courses</p>
+                                <p className="text-2xl font-semibold text-slate-900">{formatInt(trackedCoursesCount)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-slate-500">Tracked Departments</p>
+                                <p className="text-2xl font-semibold text-slate-900">{formatInt(trackedDepartmentsCount)}</p>
+                            </div>
+                        </div>
+                        {mostActiveSections.length > 0 ? (
+                            <div className="mb-5">
+                                <p className="text-sm text-slate-500 mb-2">{`Most Active Sections (${mostActiveSectionsPeriod})`}</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {mostActiveSections.map((row) => (
+                                        <NavLink
+                                            key={`active-${row.department}-${row.course}-${row.section}-${row.period}`}
+                                            to={`/history/${encodeURIComponent(toSectionCode(row.department, row.course, row.section))}`}
+                                            className="border border-blue-200 bg-blue-50 text-blue-900 px-2.5 py-0.5 rounded-full text-xs font-medium hover:bg-blue-100 no-underline"
+                                        >
+                                            {toSectionCode(row.department, row.course, row.section)}
+                                        </NavLink>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
+                        <NavLink to={"/stats"}>
+                            <button
+                                className="btn text-white bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-200/60"
+                            >
+                                View Stats
+                            </button>
+                        </NavLink>
                     </div>
                 </div>
             </section>

@@ -1,67 +1,62 @@
-.liveRailViewport {
-    position: relative;
-    overflow-x: auto;
-    overflow-y: hidden;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    background:
-        linear-gradient(180deg, rgba(248, 250, 252, 0.95), rgba(255, 255, 255, 0.98));
+.heroLiveBackdropWrap {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    opacity: 1;
+    filter: none;
+    overflow: hidden;
+    border-top: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+    background: #f1f5f9;
+    padding: 0.55rem 0;
 }
 
-.liveRailTrack {
+.heroLiveBackdropRow {
+    overflow: hidden;
+}
+
+.heroLiveBackdropTrack {
     display: flex;
-    align-items: stretch;
     gap: 0.6rem;
-    padding: 0.55rem;
-    min-width: max-content;
+    width: max-content;
+    animation: heroLiveBackdropScroll 96s linear infinite;
 }
 
-.liveEventLink {
-    text-decoration: none;
-}
-
-.liveEventCard {
+.heroLiveBackdropCard {
     min-width: 176px;
     max-width: 220px;
-    height: 68px;
+    height: 60px;
     border: 1px solid #dbe3ef;
     border-radius: 0.65rem;
     background: #ffffff;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-    padding: 0.5rem 0.6rem;
-    transition: transform 180ms ease, box-shadow 180ms ease;
+    padding: 0.45rem 0.55rem;
 }
 
-.liveEventCard:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+.heroLiveBackdropLink {
+    text-decoration: none;
 }
 
-.liveEventNew {
-    animation: liveEventIn 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-@keyframes liveEventIn {
+@keyframes heroLiveBackdropScroll {
     0% {
-        transform: translateY(8px) scale(0.97);
-        opacity: 0;
+        transform: translateX(0);
     }
     100% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
+        transform: translateX(-50%);
     }
 }
 
 @media (max-width: 640px) {
-    .liveEventCard {
-        min-width: 158px;
-        max-width: 190px;
-        height: 64px;
+    .heroLiveBackdropCard {
+        min-width: 148px;
+        max-width: 178px;
+        height: 56px;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .liveEventNew {
+    .heroLiveBackdropTrack {
         animation: none;
     }
 }
