@@ -6,6 +6,8 @@ on:
     paths:
       - "frontend/**"
       - "functions/**"
+      - "database.default.rules.json"
+      - "database.live.rules.json"
       - "firebase.json"
       - ".firebaserc"
 jobs:
@@ -26,5 +28,11 @@ jobs:
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only functions
+        env:
+          GCP_SA_KEY: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_WAITLIST_WATCHER }}'
+      - name: Deploy Firebase RTDB Rules
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only database:default-rtdb,database:live-stream-rtdb
         env:
           GCP_SA_KEY: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_WAITLIST_WATCHER }}'
