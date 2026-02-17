@@ -17,7 +17,7 @@ type IngestEventPayload = {
     scrape_published_at?: string;
 };
 
-const LIVE_STREAM_RETENTION_MS = 24 * 60 * 60 * 1000;
+const LIVE_STREAM_MAX_EVENTS_PER_SEMESTER = 300;
 const CLEANUP_SAMPLE_RATE = 0.02;
 const LIVE_STREAM_RTDB_URL = "https://waitlist-watcher-live-events.firebaseio.com";
 
@@ -73,20 +73,27 @@ export async function streamEventsToLiveRtdb(event: CloudEvent<MessagePublishedD
         return;
     }
 
-    const cutoffMs = nowMs - LIVE_STREAM_RETENTION_MS;
-    const oldEventsSnapshot = await semesterRef
+    const snapshot = await semesterRef
         .orderByChild("timestamp_ms")
-        .endAt(cutoffMs)
-        .limitToFirst(500)
+        .limitToLast(LIVE_STREAM_MAX_EVENTS_PER_SEMESTER + 1)
         .get();
 
-    if (!oldEventsSnapshot.exists()) {
+    if (!snapshot.exists()) {
+        return;
+    }
+
+    const overflow = snapshot.numChildren() - LIVE_STREAM_MAX_EVENTS_PER_SEMESTER;
+    if (overflow === 0) {
         return;
     }
 
     const removals: Promise<void>[] = [];
-    oldEventsSnapshot.forEach((child) => {
-        removals.push(child.ref.remove());
+    let seen = 0;
+    snapshot.forEach((child) => {
+        if (seen < overflow) {
+            removals.push(child.ref.remove());
+            seen++;
+        }
     });
     await Promise.all(removals);
 }
