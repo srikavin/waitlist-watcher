@@ -26,5 +26,5 @@ Output caps:
 - Most waitlisted sections: top 20,000 sections per semester.
 
 Schedules:
-- `export_stats_events_bundle`: every 10 minutes
-- `export_stats_snapshots_bundle`: every 30 minutes
+- `export_stats_events_bundle`: every 30 minutes on weekdays from 6:00 AM to 11:30 PM
+- `export_stats_snapshots_bundle`: every 30 minutes on weekdays from 6:00 AM to 11:30 PM
