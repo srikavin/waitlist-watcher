@@ -43,14 +43,14 @@ function EnableNotificationsButton() {
     })
 
     const enablePushNotifications = useCallback(() => {
-        if (!supportsWebPush) return;
+        if (!supportsWebPush && notifWorker) return;
 
         setIsLoading(true);
 
         void async function () {
             await window.Notification.requestPermission();
 
-            const worker = await notifWorker;
+            const worker = (await notifWorker) as ServiceWorkerRegistration;
 
             const subscription = await worker.pushManager.subscribe({
                 userVisibleOnly: true,
