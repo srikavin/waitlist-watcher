@@ -10,6 +10,17 @@ function formatInt(value: number): string {
     return new Intl.NumberFormat().format(value);
 }
 
+function formatMinutesHuman(value: number): string {
+    const minutes = Math.max(0, Math.floor(value));
+    if (minutes < 60) return `${minutes}m`;
+    const days = Math.floor(minutes / (60 * 24));
+    const hours = Math.floor((minutes % (60 * 24)) / 60);
+    const remMinutes = minutes % 60;
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return remMinutes > 0 ? `${hours}h ${remMinutes}m` : `${hours}h`;
+    return `${minutes}m`;
+}
+
 function parseNumber(value: number | string | undefined): number {
     if (typeof value === "number") return value;
     if (typeof value === "string") {
@@ -601,7 +612,7 @@ export function StatsScreen() {
                             <thead>
                             <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500 border-b border-slate-100 bg-slate-50">
                                 <th className="px-3 py-2 pr-2">Section</th>
-                                <th className="px-3 py-2 pr-2 text-right">Minutes to 0 Seats</th>
+                                <th className="px-3 py-2 pr-2 text-right">Time to 0 Seats</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -612,7 +623,7 @@ export function StatsScreen() {
                                             {sectionCode(row.department, row.course, row.section)}
                                         </NavLink>
                                     </td>
-                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatInt(parseNumber(row.quickest_minutes))}</td>
+                                    <td className="px-3 py-2.5 pr-2 text-slate-600 text-right tabular-nums">{formatMinutesHuman(parseNumber(row.quickest_minutes))}</td>
                                 </tr>
                             ))}
                             </tbody>
