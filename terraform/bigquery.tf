@@ -1,23 +1,31 @@
 locals {
-  scheduled_query_sa_name = "bq-scheduled-query-runner"
-  scheduled_query_files   = fileset("${path.module}/scheduled_queries", "*.sql")
-  business_hours_schedule = "every 30 minutes from 11:00 to 04:30 on mon,tue,wed,thu,fri"
-  scheduled_query_schedules = {
-    export_stats_events_bundle    = local.business_hours_schedule
-    export_stats_snapshots_bundle = local.business_hours_schedule
-  }
+  scheduled_query_sa_name    = "bq-scheduled-query-runner"
+  scheduled_query_files      = fileset("${path.module}/scheduled_queries", "*.sql")
+  business_hours_schedule    = "every 30 minutes from 11:00 to 04:30 on mon,tue,wed,thu,fri"
+  historical_weekly_schedule = "every sunday 08:00"
+  sorted_stats_semesters     = sort(var.stats_semesters)
+  latest_stats_semester      = local.sorted_stats_semesters[length(local.sorted_stats_semesters) - 1]
+  scheduled_query_definitions = flatten([
+    for f in local.scheduled_query_files : [
+      for semester in var.stats_semesters : {
+        base_name = trimsuffix(f, ".sql")
+        key       = "${trimsuffix(f, ".sql")}_${semester}"
+        semester  = semester
+        query = templatefile("${path.module}/scheduled_queries/${f}", {
+          project         = var.project
+          dataset         = google_bigquery_dataset.waitlist.dataset_id
+          events_table    = google_bigquery_table.events.table_id
+          snapshots_table = google_bigquery_table.snapshots.table_id
+          output_bucket   = google_storage_bucket.scheduled_query_outputs.name
+          semester        = semester
+        })
+        schedule = semester == local.latest_stats_semester ? local.business_hours_schedule : local.historical_weekly_schedule
+      }
+    ]
+  ])
   scheduled_queries = {
-    for f in local.scheduled_query_files :
-    trimsuffix(f, ".sql") => {
-      query = templatefile("${path.module}/scheduled_queries/${f}", {
-        project         = var.project
-        dataset         = google_bigquery_dataset.waitlist.dataset_id
-        events_table    = google_bigquery_table.events.table_id
-        snapshots_table = google_bigquery_table.snapshots.table_id
-        output_bucket   = google_storage_bucket.scheduled_query_outputs.name
-      })
-      schedule = lookup(local.scheduled_query_schedules, trimsuffix(f, ".sql"), "every 10 minutes")
-    }
+    for cfg in local.scheduled_query_definitions :
+    cfg.key => cfg
   }
 }
 
@@ -188,7 +196,7 @@ resource "google_storage_bucket_iam_member" "scheduled_query_output_public_read"
 resource "google_bigquery_data_transfer_config" "scheduled_queries" {
   for_each = local.scheduled_queries
 
-  display_name         = each.key
+  display_name         = "${each.value.base_name}-${each.value.semester}"
   location             = var.bigquery_location
   data_source_id       = "scheduled_query"
   schedule             = each.value.schedule

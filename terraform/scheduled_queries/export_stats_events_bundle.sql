@@ -1,3 +1,5 @@
+DECLARE target_semester STRING DEFAULT '${semester}';
+
 CREATE TEMP TABLE dedup_events AS
 SELECT * EXCEPT(rn)
 FROM (
@@ -18,15 +20,14 @@ FROM (
     ) AS rn
   FROM `${project}.${dataset}.${events_table}`
   WHERE timestamp IS NOT NULL
-    AND semester IS NOT NULL
+    AND semester = target_semester
 )
 WHERE rn = 1;
 
-CREATE OR REPLACE TABLE `${project}.${dataset}.stats_overview_latest`
-AS
+CREATE TEMP TABLE stats_overview AS
 SELECT
   CURRENT_TIMESTAMP() AS generated_at,
-  semester,
+  target_semester AS semester,
   COUNT(*) AS events_semester,
   COUNTIF(timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)) AS events_24h,
   COUNTIF(timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)) AS events_7d,
@@ -75,13 +76,9 @@ SELECT
     department,
     NULL
   )) AS active_departments_7d
-FROM dedup_events
-GROUP BY semester
-ORDER BY semester DESC
-LIMIT 24;
+FROM dedup_events;
 
-CREATE OR REPLACE TABLE `${project}.${dataset}.stats_top_courses_latest`
-AS
+CREATE TEMP TABLE stats_top_courses AS
 WITH periodized AS (
   SELECT '24h' AS period, * FROM dedup_events
   WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
@@ -98,7 +95,7 @@ WITH periodized AS (
     AND course IS NOT NULL
 )
 SELECT
-  semester,
+  target_semester AS semester,
   period,
   department,
   course,
@@ -107,11 +104,10 @@ SELECT
   SUM(CASE WHEN type = 'open_seats_changed' THEN ABS(IFNULL(SAFE_CAST(new_value AS INT64), 0) - IFNULL(SAFE_CAST(old_value AS INT64), 0)) ELSE 0 END) AS seat_churn,
   SUM(CASE WHEN type = 'waitlist_changed' THEN ABS(IFNULL(SAFE_CAST(new_value AS INT64), 0) - IFNULL(SAFE_CAST(old_value AS INT64), 0)) ELSE 0 END) AS waitlist_churn
 FROM periodized
-GROUP BY semester, period, department, course
-QUALIFY ROW_NUMBER() OVER (PARTITION BY semester, period ORDER BY events DESC, seat_churn DESC) <= 120;
+GROUP BY period, department, course
+QUALIFY ROW_NUMBER() OVER (PARTITION BY period ORDER BY events DESC, seat_churn DESC) <= 120;
 
-CREATE OR REPLACE TABLE `${project}.${dataset}.stats_fastest_filling_sections_latest`
-AS
+CREATE TEMP TABLE stats_fastest_filling_sections AS
 WITH periodized AS (
   SELECT '24h' AS period, * FROM dedup_events
   WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
@@ -131,7 +127,7 @@ WITH periodized AS (
     AND section IS NOT NULL
 )
 SELECT
-  semester,
+  target_semester AS semester,
   period,
   department,
   course,
@@ -152,17 +148,15 @@ SELECT
     END
   ) AS seat_churn
 FROM periodized
-GROUP BY semester, period, department, course, section
+GROUP BY period, department, course, section
 QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY semester, period
+  PARTITION BY period
   ORDER BY seats_filled DESC, seat_churn DESC, events DESC
 ) <= 200;
 
-CREATE OR REPLACE TABLE `${project}.${dataset}.stats_quickest_filled_sections_latest`
-AS
+CREATE TEMP TABLE stats_quickest_filled_sections AS
 WITH section_timings AS (
   SELECT
-    semester,
     department,
     course,
     section,
@@ -181,10 +175,10 @@ WITH section_timings AS (
   WHERE department IS NOT NULL
     AND course IS NOT NULL
     AND section IS NOT NULL
-  GROUP BY semester, department, course, section
+  GROUP BY department, course, section
 )
 SELECT
-  semester,
+  target_semester AS semester,
   department,
   course,
   section,
@@ -193,35 +187,33 @@ SELECT
 FROM section_timings
 WHERE first_zero_open_ts IS NOT NULL
   AND first_zero_open_ts >= first_event_ts
-QUALIFY ROW_NUMBER() OVER (
-  PARTITION BY semester
-  ORDER BY quickest_minutes ASC, events DESC
-) <= 200;
+ORDER BY quickest_minutes ASC, events DESC
+LIMIT 200;
 
 EXPORT DATA OPTIONS (
-  uri = 'gs://${output_bucket}/stats/overview/overview-*.json',
+  uri = 'gs://${output_bucket}/stats/overview/${semester}/overview-*.json',
   format = 'JSON',
   overwrite = true
 ) AS
-SELECT * FROM `${project}.${dataset}.stats_overview_latest`;
+SELECT * FROM stats_overview;
 
 EXPORT DATA OPTIONS (
-  uri = 'gs://${output_bucket}/stats/top_courses/top-courses-*.json',
+  uri = 'gs://${output_bucket}/stats/top_courses/${semester}/top-courses-*.json',
   format = 'JSON',
   overwrite = true
 ) AS
-SELECT * FROM `${project}.${dataset}.stats_top_courses_latest`;
+SELECT * FROM stats_top_courses;
 
 EXPORT DATA OPTIONS (
-  uri = 'gs://${output_bucket}/stats/fastest_filling_sections/fastest-filling-sections-*.json',
+  uri = 'gs://${output_bucket}/stats/fastest_filling_sections/${semester}/fastest-filling-sections-*.json',
   format = 'JSON',
   overwrite = true
 ) AS
-SELECT * FROM `${project}.${dataset}.stats_fastest_filling_sections_latest`;
+SELECT * FROM stats_fastest_filling_sections;
 
 EXPORT DATA OPTIONS (
-  uri = 'gs://${output_bucket}/stats/quickest_filled_sections/quickest-filled-sections-*.json',
+  uri = 'gs://${output_bucket}/stats/quickest_filled_sections/${semester}/quickest-filled-sections-*.json',
   format = 'JSON',
   overwrite = true
 ) AS
-SELECT * FROM `${project}.${dataset}.stats_quickest_filled_sections_latest`;
+SELECT * FROM stats_quickest_filled_sections;

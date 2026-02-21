@@ -181,12 +181,12 @@ export function useBucketStats(semesterId: string): StatsData {
             setError(undefined);
             try {
                 const [overviewRows, topCourseRows, waitlistedRows, waitlistedSectionRows, fastestFillingSectionRows, quickestFilledSectionRows] = await Promise.all([
-                    fetchExportJson<OverviewRow>("stats/overview/overview-000000000000.json"),
-                    fetchExportJson<TopCourseRow>("stats/top_courses/top-courses-000000000000.json"),
-                    fetchExportJson<WaitlistedCourseRow>("stats/most_waitlisted_courses/most-waitlisted-courses-000000000000.json"),
-                    fetchExportJson<WaitlistedSectionRow>("stats/most_waitlisted_sections/most-waitlisted-sections-000000000000.json"),
-                    fetchExportJson<FastestFillingSectionRow>("stats/fastest_filling_sections/fastest-filling-sections-000000000000.json"),
-                    fetchExportJson<QuickestFilledSectionRow>("stats/quickest_filled_sections/quickest-filled-sections-000000000000.json"),
+                    fetchExportJson<OverviewRow>(`stats/overview/${semesterId}/overview-000000000000.json`),
+                    fetchExportJson<TopCourseRow>(`stats/top_courses/${semesterId}/top-courses-000000000000.json`),
+                    fetchExportJson<WaitlistedCourseRow>(`stats/most_waitlisted_courses/${semesterId}/most-waitlisted-courses-000000000000.json`),
+                    fetchExportJson<WaitlistedSectionRow>(`stats/most_waitlisted_sections/${semesterId}/most-waitlisted-sections-000000000000.json`),
+                    fetchExportJson<FastestFillingSectionRow>(`stats/fastest_filling_sections/${semesterId}/fastest-filling-sections-000000000000.json`),
+                    fetchExportJson<QuickestFilledSectionRow>(`stats/quickest_filled_sections/${semesterId}/quickest-filled-sections-000000000000.json`),
                 ]);
 
                 if (cancelled) return;
