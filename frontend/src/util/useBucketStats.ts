@@ -191,7 +191,7 @@ export function useBucketStats(semesterId: string): StatsData {
 
                 if (cancelled) return;
 
-                const first = overviewRows.find(row => String(row.semester) === semesterId) ?? overviewRows[0];
+                const first = overviewRows.find(row => String(row.semester) === semesterId);
                 setOverview(first ? {
                     generatedAt: first.generated_at ?? "",
                     eventsSemester: parseNumber(first.events_semester),
