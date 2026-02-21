@@ -9,17 +9,17 @@ import {countWatchers} from './count_watchers';
 import {emailUnsubscribe} from "./email_unsubscribe";
 import {streamEventsToLiveRtdb} from "./live_event_stream";
 
-export const onCourseAddition202601 =
+export const onCourseAddition202608 =
     functions
         .region('us-east4')
         .runWith({memory: "128MB"})
-        .firestore.document("events202601/{course_name}").onCreate(onNewCourse("202601"));
+        .firestore.document("events202608/{course_name}").onCreate(onNewCourse("202608"));
 
-export const onCourseRemove202601 =
+export const onCourseRemove202608 =
     functions
         .region('us-east4')
         .runWith({memory: "256MB"})
-        .firestore.document("events202601/{course_name}").onDelete(onRemoveCourse("202601"));
+        .firestore.document("events202608/{course_name}").onDelete(onRemoveCourse("202608"));
 
 export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,

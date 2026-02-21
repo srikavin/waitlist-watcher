@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 
-const DEFAULT_SEMESTER = "202508";
+const DEFAULT_SEMESTER = "202608";
 const DEFAULT_CONFIG_PATH = path.resolve(__dirname, "../functions/src/config.json");
 
 function parseArgs(argv) {
@@ -43,7 +43,7 @@ function parseArgs(argv) {
     }
 
     if (!/^\d{6}$/.test(options.semester)) {
-        throw new Error("--semester must be in YYYYTT format, e.g. 202508");
+        throw new Error("--semester must be in YYYYTT format, e.g. 202608");
     }
 
     return options;
@@ -52,7 +52,7 @@ function parseArgs(argv) {
 function usage() {
     return [
         "Usage:",
-        "  node fetch_prefixes_from_testudo.js [--semester 202508] [--write-config]",
+        "  node fetch_prefixes_from_testudo.js [--semester 202608] [--write-config]",
         "    [--config ../functions/src/config.json]",
         "",
         "Notes:",
@@ -82,7 +82,7 @@ function extractPrefixesFromHtml(html, semester) {
 
     // Department tiles: <div id="VMSC" class="course-prefix row">
     addMatches(prefixes, html, /<div\s+id="([A-Z]{3,8})"\s+class="course-prefix\b[^"]*"/g);
-    // Relative links used on SOC landing pages: href="202508/VMSC"
+    // Relative links used on SOC landing pages: href="202608/VMSC"
     addMatches(prefixes, html, new RegExp(`${semester}/([A-Z]{3,8})\\b`, "g"));
 
     return Array.from(prefixes).sort();

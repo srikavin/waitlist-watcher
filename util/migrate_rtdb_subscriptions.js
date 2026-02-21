@@ -38,7 +38,7 @@ function parseArgs(argv) {
     }
 
     if (!options.semester || !SEMESTER_RE.test(options.semester)) {
-        throw new Error("--semester is required in YYYYTT format, e.g. 202601");
+        throw new Error("--semester is required in YYYYTT format, e.g. 202608");
     }
 
     return options;

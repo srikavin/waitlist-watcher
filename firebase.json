@@ -9,6 +9,9 @@
       "rules": "database.live.rules.json"
     }
   ],
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "functions": {
     "ignore": [
       "node_modules",

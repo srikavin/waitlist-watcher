@@ -1,7 +1,7 @@
 {
   "batch_size": 10,
   "semesters": [
-    "202601"
+    "202608"
   ],
   "prefix_weights": {
     "BMGT": 4,
@@ -107,7 +107,6 @@
     "EDCP",
     "EDHD",
     "EDHI",
-    "EDMS",
     "EDSP",
     "EDUC",
     "EMBA",
@@ -143,6 +142,7 @@
     "GEOG",
     "GEOL",
     "GERS",
+    "GFPL",
     "GREK",
     "GVPT",
     "HACS",
@@ -207,9 +207,11 @@
     "PLSC",
     "PORT",
     "PSYC",
+    "QMMS",
     "RDEV",
     "RELS",
     "RUSS",
+    "SDSB",
     "SLAA",
     "SLLC",
     "SMLP",

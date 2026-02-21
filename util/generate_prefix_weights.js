@@ -81,7 +81,7 @@ function parseArgs(argv) {
 function usage() {
     return [
         "Usage:",
-        "  node generate_prefix_weights.js [--semester 202601] [--write]",
+        "  node generate_prefix_weights.js [--semester 202608] [--write]",
         "    [--project-id waitlist-watcher]",
         "    [--dataset waitlist_watcher_course_data]",
         "    [--table events]",
