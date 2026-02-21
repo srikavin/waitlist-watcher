@@ -11,6 +11,11 @@
         "live-stream-rtdb": [
           "waitlist-watcher-live-events"
         ]
+      },
+      "firestore": {
+        "default-firestore": [
+          "(default)"
+        ]
       }
     }
   }

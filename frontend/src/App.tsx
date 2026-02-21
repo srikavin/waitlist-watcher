@@ -22,64 +22,25 @@ import {onValue, ref} from "firebase/database";
 import {UserSubscriptionsContext} from "./context/UserSubscriptions";
 import {OnboardingScreen} from "./screens/OnboardingScreen/OnboardingScreen";
 import {FSCourseDataConverter, FSEventsConverter} from "@/common/firestore";
+import {CURRENT_SEMESTER_ID, FALLBACK_SEMESTER_ID, SEMESTER_DEFINITIONS} from "@/common/config";
 import {StatsScreen} from "./screens/StatsScreen/StatsScreen";
 
-const semesters: Record<string, SemesterInfo> = {
-    "202208": {
-        name: "Fall 2022",
-        id: "202208",
-        courseDataCollection: collection(db, "course_data").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events").withConverter(FSEventsConverter)
-    },
-    "202301": {
-        name: "Spring 2023",
-        id: "202301",
-        courseDataCollection: collection(db, "course_data202301").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events202301").withConverter(FSEventsConverter)
-    },
-    "202308": {
-        name: "Fall 2023",
-        id: "202308",
-        courseDataCollection: collection(db, "course_data202308").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events202308").withConverter(FSEventsConverter)
-    },
-    "202401": {
-        name: "Spring 2024",
-        id: "202401",
-        courseDataCollection: collection(db, "course_data202401").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events202401").withConverter(FSEventsConverter)
-    },
-    "202408": {
-        name: "Fall 2024",
-        id: "202408",
-        courseDataCollection: collection(db, "course_data202408").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events202408").withConverter(FSEventsConverter)
-    },
-    "202501": {
-        name: "Spring 2025",
-        id: "202501",
-        courseDataCollection: collection(db, "course_data202501").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events202501").withConverter(FSEventsConverter)
-    },
-    "202508": {
-        name: "Fall 2025",
-        id: "202508",
-        courseDataCollection: collection(db, "course_data202508").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events202508").withConverter(FSEventsConverter)
-    },
-    "202601": {
-        name: "Spring 2026",
-        id: "202601",
-        courseDataCollection: collection(db, "course_data202601").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events202601").withConverter(FSEventsConverter)
-    },
-    "202608": {
-        name: "Fall 2026",
-        id: "202608",
-        courseDataCollection: collection(db, "course_data202608").withConverter(FSCourseDataConverter),
-        eventsCollection: collection(db, "events202608").withConverter(FSEventsConverter)
-    }
-};
+const semesters: Record<string, SemesterInfo> = Object.fromEntries(
+    SEMESTER_DEFINITIONS.map((semester) => {
+        const suffix = semester.suffix;
+        const courseDataCollectionName = `course_data${suffix}`;
+        const eventsCollectionName = `events${suffix}`;
+        return [
+            semester.id,
+            {
+                name: semester.name,
+                id: semester.id,
+                courseDataCollection: collection(db, courseDataCollectionName).withConverter(FSCourseDataConverter),
+                eventsCollection: collection(db, eventsCollectionName).withConverter(FSEventsConverter),
+            },
+        ];
+    }),
+);
 
 function PrefixRenderer() {
     let {prefix} = useParams();
@@ -115,7 +76,7 @@ function App() {
     const [courseListing, setCourseListing] = useState([]);
     const location = useLocation();
     const navigate = useNavigate();
-    let [searchParams, _] = useSearchParams({semester: "202608"});
+    let [searchParams, _] = useSearchParams({semester: CURRENT_SEMESTER_ID});
     const [semester, setSemester] = useState(searchParams.get("semester")!);
     const [subscriptionsBySemester, setSubscriptionsBySemester] = useState<Record<string, Record<string, any>>>({});
     const [subscriptionMethods, setSubscriptionMethods] = useState<string[]>([]);
@@ -144,8 +105,8 @@ function App() {
 
     useEffect(() => {
         if (!(semester in semesters)) {
-            setSemester("202308");
-            navigate(location.pathname + "?" + new URLSearchParams({semester: "202308"}), {replace: true});
+            setSemester(FALLBACK_SEMESTER_ID);
+            navigate(location.pathname + "?" + new URLSearchParams({semester: FALLBACK_SEMESTER_ID}), {replace: true});
         } else if (new URLSearchParams(location.search).get("semester") !== semester)
             navigate(location.pathname + "?" + new URLSearchParams({semester}), {replace: true});
     }, [semester, location])

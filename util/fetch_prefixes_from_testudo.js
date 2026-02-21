@@ -3,7 +3,7 @@ const path = require("path");
 const axios = require("axios");
 
 const DEFAULT_SEMESTER = "202608";
-const DEFAULT_CONFIG_PATH = path.resolve(__dirname, "../functions/src/config.json");
+const DEFAULT_CONFIG_PATH = path.resolve(__dirname, "../common/config.json");
 
 function parseArgs(argv) {
     const options = {
@@ -53,12 +53,12 @@ function usage() {
     return [
         "Usage:",
         "  node fetch_prefixes_from_testudo.js [--semester 202608] [--write-config]",
-        "    [--config ../functions/src/config.json]",
+        "    [--config ../common/config.json]",
         "",
         "Notes:",
         "  - Extracts prefixes from SOC course-prefix rows / links.",
         "  - Prints prefixes as JSON to stdout.",
-        "  - --write-config replaces functions/src/config.json prefixes with scraped list.",
+        "  - --write-config replaces scraper.prefixes in common/config.json.",
     ].join("\n");
 }
 
@@ -91,7 +91,8 @@ function extractPrefixesFromHtml(html, semester) {
 function updateConfigPrefixes(configPath, prefixes) {
     const raw = fs.readFileSync(configPath, "utf8");
     const config = JSON.parse(raw);
-    config.prefixes = prefixes;
+    config.scraper = config.scraper ?? {};
+    config.scraper.prefixes = prefixes;
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 }
 

@@ -8,18 +8,25 @@ import {testNotify} from "./notifier/test_notify";
 import {countWatchers} from './count_watchers';
 import {emailUnsubscribe} from "./email_unsubscribe";
 import {streamEventsToLiveRtdb} from "./live_event_stream";
+import {SEMESTER_DEFINITIONS} from "./common/config";
 
-export const onCourseAddition202608 =
-    functions
-        .region('us-east4')
-        .runWith({memory: "128MB"})
-        .firestore.document("events202608/{course_name}").onCreate(onNewCourse("202608"));
+const dynamicExports = exports as Record<string, unknown>;
 
-export const onCourseRemove202608 =
-    functions
-        .region('us-east4')
-        .runWith({memory: "256MB"})
-        .firestore.document("events202608/{course_name}").onDelete(onRemoveCourse("202608"));
+for (const semester of SEMESTER_DEFINITIONS) {
+    const eventsCollection = `events${semester.suffix}/{course_name}`;
+
+    dynamicExports[`onCourseAddition_${semester.id}`] =
+        functions
+            .region('us-east4')
+            .runWith({memory: "128MB"})
+            .firestore.document(eventsCollection).onCreate(onNewCourse(semester.id));
+
+    dynamicExports[`onCourseRemove_${semester.id}`] =
+        functions
+            .region('us-east4')
+            .runWith({memory: "256MB"})
+            .firestore.document(eventsCollection).onDelete(onRemoveCourse(semester.id));
+}
 
 export const notifierfunction = onMessagePublished({
     topic: updateTopic.name,

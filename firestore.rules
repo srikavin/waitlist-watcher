@@ -1,63 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    allow read;
-    match /course_data/{course} {
-      allow read;
-    }
-    match /events/{course} {
-      allow read;
-    }
-    match /course_data202301/{course} {
-      allow read;
-    }
-    match /events202301/{course} {
-      allow read;
-    }
-    match /course_data202308/{course} {
-      allow read;
-    }
-    match /events202308/{course} {
-      allow read;
-    }
-    match /course_data202401/{course} {
-      allow read;
-    }
-    match /events202401/{course} {
-      allow read;
-    }
-    match /course_data202408/{course} {
-      allow read;
-    }
-    match /events202408/{course} {
-      allow read;
-    }
-    match /course_data202501/{course} {
-      allow read;
-    }
-    match /course_data202508/{course} {
-      allow read;
-    }
-    match /events202501/{course} {
-      allow read;
-    }
-    match /events202508/{course} {
-      allow read;
-    }
-    match /course_data202601/{course} {
-      allow read;
-    }
-    match /events202601/{course} {
-      allow read;
-    }
-    match /course_data202608/{course} {
-      allow read;
-    }
-    match /events202608/{course} {
-      allow read;
-    }
-    match /course_listing/{semester} {
-      allow read;
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }

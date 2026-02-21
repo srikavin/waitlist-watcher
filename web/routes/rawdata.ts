@@ -12,42 +12,13 @@ const historical_bucket = storage.bucket('waitlist-watcher-historical-data')
 
 const firestore = getFirestore();
 
-const semesters = {
-    "202208": {
-        suffix: ''
-    },
-    "202301": {
-        suffix: "202301"
-    },
-    "202308": {
-        suffix: "202308"
-    },
-    "202401": {
-        suffix: "202401"
-    },
-    "202408": {
-        suffix: "202408"
-    },
-    "202501": {
-        suffix: "202501"
-    },
-    "202508": {
-        suffix: "202508"
-    },
-    "202601": {
-        suffix: "202601"
-    },
-    "202608": {
-        suffix: "202608"
-    }
-}
+const validateSemester = (semester: string): boolean => {
+    return /^\d{6}$/.test(semester);
+};
 
-const validateSemester = (semester: string): semester is keyof typeof semesters => {
-    return semester in semesters;
-}
-
-const fs_course_data_path = (semester: keyof typeof semesters) => {
-    return 'course_data' + semesters[semester].suffix;
+const fs_course_data_path = (semester: string) => {
+    // Historical 202208 uses unsuffixed course_data; newer semesters use course_data{semester}.
+    return semester === "202208" ? "course_data" : `course_data${semester}`;
 }
 
 function constructFileResponse(file: File) {
@@ -67,7 +38,7 @@ function constructFileResponse(file: File) {
     }
 }
 
-async function getDepartments(semester: keyof typeof semesters): Promise<Array<string>> {
+async function getDepartments(semester: string): Promise<Array<string>> {
     const cachedDepts = cache.get('departments' + semester);
     if (cachedDepts !== undefined) {
         return cachedDepts as Array<string>;
@@ -99,7 +70,7 @@ type FileListingResponse = {
     events: FileListingItem[]
 };
 
-async function getFileListing(dept: string, semester: keyof typeof semesters): Promise<FileListingResponse> {
+async function getFileListing(dept: string, semester: string): Promise<FileListingResponse> {
     const cachedResponse = cache.get(dept + semester);
     if (cachedResponse !== undefined) {
         return cachedResponse as FileListingResponse;
@@ -152,7 +123,7 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
         if (!validateSemester(semester)) {
             return {
                 error: `Unknown semester: '${semester}'`,
-                known_semesters: Object.keys(semesters)
+                known_semesters: "expected 6-digit semester code"
             };
         }
 
@@ -175,7 +146,7 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
         if (!validateSemester(semester)) {
             return {
                 error: `Unknown semester: '${semester}'`,
-                known_semesters: Object.keys(semesters)
+                known_semesters: "expected 6-digit semester code"
             };
         }
 
@@ -203,7 +174,7 @@ export const rawDataRoute = async (fastify: FastifyInstance, options: FastifyPlu
         if (!validateSemester(semester)) {
             return {
                 error: `Unknown semester: '${semester}'`,
-                known_semesters: Object.keys(semesters)
+                known_semesters: "expected 6-digit semester code"
             };
         }
 

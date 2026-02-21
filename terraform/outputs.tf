@@ -45,3 +45,15 @@ output "live_stream_rtdb_instance_id" {
 output "live_stream_rtdb_resource_name" {
   value = google_firebase_database_instance.live_stream.id
 }
+
+output "default_rtdb_instance_id" {
+  value = google_firebase_database_instance.default.instance_id
+}
+
+output "default_rtdb_resource_name" {
+  value = google_firebase_database_instance.default.id
+}
+
+output "firestore_database_name" {
+  value = google_firestore_database.default.name
+}

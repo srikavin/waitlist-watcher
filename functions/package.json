@@ -12,7 +12,7 @@
   "engines": {
     "node": "20"
   },
-  "main": "lib/functions/src/index.js",
+  "main": "lib/index.js",
   "dependencies": {
     "@google-cloud/pubsub": "^2.19.3",
     "@google-cloud/secret-manager": "^4.1.3",

@@ -1,10 +1,5 @@
 {
   "compilerOptions": {
-    "paths": {
-      "@/*": [
-        "../*"
-      ]
-    },
     "module": "commonjs",
     "noImplicitReturns": true,
     "noUnusedLocals": true,

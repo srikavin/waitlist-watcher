@@ -1,5 +1,5 @@
 import {ChannelType, Client, GatewayIntentBits} from "discord.js";
-import config from '../functions/src/config.json'
+import config from "../common/config.json";
 
 import {getDatabase} from "firebase-admin/database";
 import {initializeApp} from "firebase-admin/app";
@@ -15,7 +15,7 @@ const APPLICATION_ID = "973034033669894165";
 const CLIENT_PUB_KEY = "3b6baac3bd23cfa27ce6d45652d0c0c93b1f61900fe1a0986f0323323cff4030";
 
 const GUILD_ID = process.env.GUILD_ID as string;
-const DEFAULT_SEMESTER = config.semesters[0];
+const DEFAULT_SEMESTER = config.semesters.current;
 
 const client = new Client({intents: [GatewayIntentBits.Guilds]});
 
@@ -52,7 +52,7 @@ const subscribeToDepartment = async (userId: string, department: string, channel
 
     await guild.channels.fetch();
 
-    for (const prefix of config.prefixes) {
+    for (const prefix of config.scraper.prefixes) {
         let existing = guild.channels.cache.find(e => e.name.toUpperCase() === prefix);
         while (existing) {
             const discordUserId = `${guild.id}@${existing.id}@guild@discord`;

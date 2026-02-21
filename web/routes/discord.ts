@@ -26,13 +26,46 @@ import {FieldPath, getFirestore} from "firebase-admin/firestore";
 
 const realtime_db = getDatabase();
 const firestore = getFirestore();
-
-const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+let cachedDiscordClientSecret: string | undefined;
 const APPLICATION_ID = "973034033669894165";
 const CLIENT_PUB_KEY = "3b6baac3bd23cfa27ce6d45652d0c0c93b1f61900fe1a0986f0323323cff4030";
 const DEFAULT_SEMESTER_TTL_MS = 10 * 60 * 1000;
 let cachedDefaultSemester: string | undefined;
 let cachedDefaultSemesterAt = 0;
+
+async function getDiscordClientSecret(): Promise<string> {
+    if (cachedDiscordClientSecret) {
+        return cachedDiscordClientSecret;
+    }
+
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+    if (!projectId) {
+        throw new Error("Missing GOOGLE_CLOUD_PROJECT/GCLOUD_PROJECT for Secret Manager access.");
+    }
+
+    const tokenResponse = await axios.get<{access_token: string}>(
+        "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+        {headers: {"Metadata-Flavor": "Google"}},
+    );
+    const accessToken = tokenResponse.data.access_token;
+
+    const secretResponse = await axios.get<{payload?: {data?: string}}>(
+        `https://secretmanager.googleapis.com/v1/projects/${projectId}/secrets/DISCORD_CLIENT_SECRET/versions/latest:access`,
+        {headers: {Authorization: `Bearer ${accessToken}`}},
+    );
+
+    const encodedData = secretResponse.data.payload?.data;
+    if (!encodedData) {
+        throw new Error("DISCORD_CLIENT_SECRET payload is empty.");
+    }
+    const data = Buffer.from(encodedData, "base64").toString("utf8").trim();
+    if (!data) {
+        throw new Error("DISCORD_CLIENT_SECRET payload decoded empty.");
+    }
+
+    cachedDiscordClientSecret = data;
+    return data;
+}
 
 async function resolveDefaultSemester(): Promise<string> {
     if (cachedDefaultSemester && Date.now() - cachedDefaultSemesterAt < DEFAULT_SEMESTER_TTL_MS) {
@@ -53,7 +86,8 @@ async function resolveDefaultSemester(): Promise<string> {
     return latestSemester;
 }
 
-const registerCommands = () => {
+const registerCommands = async () => {
+    const clientSecret = await getDiscordClientSecret();
     const endpoint = `https://discord.com/api/v8/applications/${APPLICATION_ID}/commands`
 
     const payload: RESTPostAPIApplicationCommandsJSONBody = {
@@ -107,7 +141,7 @@ const registerCommands = () => {
 
     return axios.post(endpoint, payload, {
         headers: {
-            "Authorization": `Bot ${CLIENT_SECRET}`
+            "Authorization": `Bot ${clientSecret}`
         }
     });
 }

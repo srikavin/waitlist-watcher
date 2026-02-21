@@ -1,5 +1,5 @@
-import * as config from "../config.json";
 import {eventsIngestTopic, fsdb, historical_bucket, snapshotsIngestTopic, updateTopic} from "../common";
+import {CURRENT_SEMESTER_ID, SCRAPER_CONFIG} from "../common/config";
 
 import type {CloudEvent} from "firebase-functions/v2";
 import type {CollectionReference} from "firebase-admin/firestore";
@@ -7,11 +7,11 @@ import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 import {compare} from "fast-json-patch";
 import {generateEvents} from "./generate_events";
 import {getSectionInformation} from "./scraper";
-import {FSCourseDataDocument, FSEventsDocument} from "@/common/firestore";
+import {FSCourseDataDocument, FSEventsDocument} from "../common/firestore";
 
 const BUCKET_SNAPSHOT_PREFIX = (semester: string, department: string) => `${semester}/snapshots/${department}/`
 const BUCKET_EVENTS_PREFIX = (semester: string, department: string) => `${semester}/events/${department}/`
-const PREFIX_WEIGHTS: Record<string, number> = (config as any).prefix_weights ?? {};
+const PREFIX_WEIGHTS: Record<string, number> = SCRAPER_CONFIG.prefix_weights ?? {};
 
 const getPrefixWeight = (prefix: string): number => {
     const rawWeight = Number(PREFIX_WEIGHTS[prefix] ?? 1);
@@ -56,7 +56,8 @@ const buildWeightedPrefixSchedule = (prefixes: string[]): string[] => {
     return schedule;
 };
 
-const WEIGHTED_PREFIXES: string[] = buildWeightedPrefixSchedule(config.prefixes);
+const WEIGHTED_PREFIXES: string[] = buildWeightedPrefixSchedule(SCRAPER_CONFIG.prefixes);
+const SCRAPE_SEMESTERS: string[] = [CURRENT_SEMESTER_ID];
 
 const stringifyEventValue = (event: any, key: "old" | "new") => {
     if (!(key in event)) {
@@ -270,18 +271,18 @@ export const scraperLauncher = async (event: CloudEvent<MessagePublishedData>) =
         return;
     }
     state.prefixIndex = state.prefixIndex % WEIGHTED_PREFIXES.length;
-    console.log("Scraping batch of size ", config.batch_size, " at index ", state.prefixIndex, " weighted pool size ", WEIGHTED_PREFIXES.length);
+    console.log("Scraping batch of size ", SCRAPER_CONFIG.batch_size, " at index ", state.prefixIndex, " weighted pool size ", WEIGHTED_PREFIXES.length);
 
     const prefixPromises = [];
-    for (let semester of config.semesters) {
-        for (let i = 0; i < config.batch_size; ++i) {
+    for (const semester of SCRAPE_SEMESTERS) {
+        for (let i = 0; i < SCRAPER_CONFIG.batch_size; ++i) {
             const prefix = WEIGHTED_PREFIXES[(state.prefixIndex + i) % WEIGHTED_PREFIXES.length];
             prefixPromises.push(runScraper(semester, prefix, event.time, event.id))
             console.log("Started scraper for ", prefix);
         }
     }
 
-    state.prefixIndex = (state.prefixIndex + config.batch_size) % WEIGHTED_PREFIXES.length;
+    state.prefixIndex = (state.prefixIndex + SCRAPER_CONFIG.batch_size) % WEIGHTED_PREFIXES.length;
     await triggerDataRef.set(state);
 
     console.log("Waiting for scraper completion");

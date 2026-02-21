@@ -5,7 +5,7 @@ const {BigQuery} = require("@google-cloud/bigquery");
 const DEFAULT_PROJECT_ID = "waitlist-watcher";
 const DEFAULT_DATASET = "waitlist_watcher_course_data";
 const DEFAULT_TABLE = "events";
-const DEFAULT_CONFIG_PATH = path.resolve(__dirname, "../functions/src/config.json");
+const DEFAULT_CONFIG_PATH = path.resolve(__dirname, "../common/config.json");
 
 function parseArgs(argv) {
     const options = {
@@ -85,7 +85,7 @@ function usage() {
         "    [--project-id waitlist-watcher]",
         "    [--dataset waitlist_watcher_course_data]",
         "    [--table events]",
-        "    [--config ../functions/src/config.json]",
+        "    [--config ../common/config.json]",
         "    [--top4 6] [--top3 11] [--top2 25]",
         "",
         "Notes:",
@@ -95,7 +95,7 @@ function usage() {
         "      rank <= top3 => 3",
         "      rank <= top2 => 2",
         "      otherwise => 1",
-        "  - --write updates prefix_weights in config.json.",
+        "  - --write updates scraper.prefix_weights in config.json.",
     ].join("\n");
 }
 
@@ -173,7 +173,8 @@ function buildWeights(rows, prefixes, options) {
 function writeConfig(configPath, prefixWeights) {
     const raw = fs.readFileSync(configPath, "utf8");
     const parsed = JSON.parse(raw);
-    parsed.prefix_weights = prefixWeights;
+    parsed.scraper = parsed.scraper ?? {};
+    parsed.scraper.prefix_weights = prefixWeights;
     fs.writeFileSync(configPath, `${JSON.stringify(parsed, null, 2)}\n`);
 }
 
@@ -195,7 +196,7 @@ async function main() {
     const bigquery = new BigQuery(options.projectId ? {projectId: options.projectId} : {});
 
     const config = JSON.parse(fs.readFileSync(options.configPath, "utf8"));
-    const prefixes = Array.isArray(config.prefixes) ? config.prefixes : [];
+    const prefixes = Array.isArray(config.scraper?.prefixes) ? config.scraper.prefixes : [];
     if (prefixes.length === 0) {
         throw new Error(`No prefixes found in ${options.configPath}`);
     }
@@ -211,7 +212,7 @@ async function main() {
 
     if (options.write) {
         writeConfig(options.configPath, weights);
-        console.log(`Updated ${options.configPath} with prefix_weights`);
+        console.log(`Updated ${options.configPath} with scraper.prefix_weights`);
     } else {
         console.log("\nGenerated prefix_weights:");
         console.log(JSON.stringify(weights, null, 2));

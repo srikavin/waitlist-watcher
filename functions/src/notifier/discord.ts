@@ -7,7 +7,8 @@ import {
     ICourseEvent,
     ICourseSectionEvent,
     TestNotificationEvent
-} from "@/common/events";
+} from "../common/events";
+import {SEMESTER_NAME_BY_ID} from "../common/config";
 
 const generateFooter = (event: CourseEvent) => {
     return {
@@ -20,16 +21,7 @@ const generateUrl = (event: ICourseEvent<any> | ICourseSectionEvent<any>) => {
 }
 
 const mapSemester = (semester: string) => {
-    if (semester === "202208") return "Fall 2022";
-    if (semester === "202301") return "Spring 2023";
-    if (semester === "202308") return "Fall 2023";
-    if (semester === "202401") return "Spring 2024";
-    if (semester === "202408") return "Fall 2024";
-    if (semester === "202501") return "Spring 2025";
-    if (semester === "202508") return "Fall 2025";
-    if (semester === "202601") return "Spring 2026";
-    if (semester === "202608") return "Fall 2026";
-    return semester;
+    return SEMESTER_NAME_BY_ID[semester] ?? semester;
 }
 
 const discordFieldValue = (x: string) => {
