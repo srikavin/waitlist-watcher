@@ -1,6 +1,6 @@
 {
   "semesters": {
-    "current": "202608",
+    "current": "202701",
     "fallback": "202308",
     "semesters": [
       {
@@ -47,6 +47,11 @@
         "id": "202608",
         "name": "Fall 2026",
         "suffix": "202608"
+      },
+      {
+        "id": "202701",
+        "name": "Spring 2027",
+        "suffix": "202701"
       }
     ]
   },

@@ -90,6 +90,16 @@
       "collectionGroup": "course_data202608",
       "fieldPath": "latest",
       "indexes": []
+    },
+    {
+      "collectionGroup": "events202701",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202701",
+      "fieldPath": "latest",
+      "indexes": []
     }
   ]
 }
