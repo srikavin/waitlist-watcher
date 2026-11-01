@@ -6,7 +6,7 @@ FROM (
   SELECT
     event_id,
     timestamp,
-    semester,
+    CAST(semester AS STRING) AS semester,
     department,
     course,
     section,
@@ -20,7 +20,7 @@ FROM (
     ) AS rn
   FROM `${project}.${dataset}.${events_table}`
   WHERE timestamp IS NOT NULL
-    AND semester = target_semester
+    AND semester = CAST(target_semester AS INT64)
 )
 WHERE rn = 1;
 

@@ -10,7 +10,7 @@ type IngestEventPayload = {
     department?: string;
     title?: string;
     section?: string | null;
-    semester?: string;
+    semester?: string | number;
     old_value?: string | null;
     new_value?: string | null;
     scrape_event_id?: string;
@@ -56,7 +56,7 @@ export async function streamEventsToLiveRtdb(event: CloudEvent<MessagePublishedD
         timestamp_ms: nowMs,
         event_timestamp: payload.timestamp,
         event_timestamp_ms: Number.isFinite(originalTimestampMs) ? originalTimestampMs : null,
-        semester: payload.semester,
+        semester: String(payload.semester),
         department: payload.department ?? null,
         course: payload.course,
         section: payload.section ?? null,

@@ -36,12 +36,16 @@ resource "google_bigquery_table" "events" {
   deletion_protection = true
   schema              = file("${path.module}/schemas/events_pubsub.json")
 
-  time_partitioning {
-    type  = "DAY"
-    field = "timestamp"
+  range_partitioning {
+    field = "semester"
+    range {
+      start    = 202001
+      end      = 204001
+      interval = 1
+    }
   }
 
-  clustering = ["semester", "department", "course", "section"]
+  clustering = ["department", "course", "section"]
 }
 
 resource "google_bigquery_table" "snapshots" {
@@ -50,12 +54,16 @@ resource "google_bigquery_table" "snapshots" {
   deletion_protection = true
   schema              = file("${path.module}/schemas/snapshots_pubsub.json")
 
-  time_partitioning {
-    type  = "DAY"
-    field = "timestamp"
+  range_partitioning {
+    field = "semester"
+    range {
+      start    = 202001
+      end      = 204001
+      interval = 1
+    }
   }
 
-  clustering = ["semester", "department", "course", "section"]
+  clustering = ["department", "course", "section"]
 }
 
 resource "google_bigquery_dataset_iam_member" "pubsub_bigquery_editor" {

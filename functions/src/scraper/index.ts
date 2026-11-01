@@ -182,7 +182,7 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
                 data: Buffer.from(JSON.stringify({
                     snapshot_id: `${semester}:${prefix}:${timestamp}:${courseCode}:${sectionCode}`,
                     timestamp: timestamp,
-                    semester: semester,
+                    semester: Number(semester),
                     department: prefix,
                     course: courseCode,
                     course_name: course.name || null,
@@ -223,7 +223,7 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
                 department: prefix,
                 title: event.title,
                 section: event.section || null,
-                semester: event.semester,
+                semester: Number(event.semester),
                 old_value: stringifyEventValue(event, "old"),
                 new_value: stringifyEventValue(event, "new"),
                 scrape_event_id: eventId,

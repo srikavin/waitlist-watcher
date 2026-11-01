@@ -19,7 +19,7 @@ FROM (
       ORDER BY timestamp DESC, scrape_published_at DESC
     ) AS rn
   FROM `${project}.${dataset}.${snapshots_table}`
-  WHERE semester = target_semester
+  WHERE semester = CAST(target_semester AS INT64)
     AND department IS NOT NULL
     AND course IS NOT NULL
     AND section IS NOT NULL

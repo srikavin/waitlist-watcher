@@ -2,27 +2,27 @@
   {
     "name": "event_id",
     "type": "STRING",
-    "mode": "NULLABLE"
+    "mode": "REQUIRED"
   },
   {
     "name": "timestamp",
     "type": "TIMESTAMP",
-    "mode": "NULLABLE"
+    "mode": "REQUIRED"
   },
   {
     "name": "type",
     "type": "STRING",
-    "mode": "NULLABLE"
+    "mode": "REQUIRED"
   },
   {
     "name": "course",
     "type": "STRING",
-    "mode": "NULLABLE"
+    "mode": "REQUIRED"
   },
   {
     "name": "department",
     "type": "STRING",
-    "mode": "NULLABLE"
+    "mode": "REQUIRED"
   },
   {
     "name": "title",
@@ -36,8 +36,8 @@
   },
   {
     "name": "semester",
-    "type": "STRING",
-    "mode": "NULLABLE"
+    "type": "INTEGER",
+    "mode": "REQUIRED"
   },
   {
     "name": "old_value",
@@ -50,13 +50,13 @@
     "mode": "NULLABLE"
   },
   {
-    "name": "scrape_event_id",
-    "type": "STRING",
-    "mode": "NULLABLE"
-  },
-  {
     "name": "scrape_published_at",
     "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "scrape_event_id",
+    "type": "STRING",
     "mode": "NULLABLE"
   }
 ]

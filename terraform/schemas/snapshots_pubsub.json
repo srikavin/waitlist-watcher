@@ -1,17 +1,12 @@
 [
   {
-    "name": "snapshot_id",
-    "type": "STRING",
-    "mode": "REQUIRED"
-  },
-  {
     "name": "timestamp",
     "type": "TIMESTAMP",
     "mode": "REQUIRED"
   },
   {
     "name": "semester",
-    "type": "STRING",
+    "type": "INTEGER",
     "mode": "REQUIRED"
   },
   {
@@ -46,22 +41,22 @@
   },
   {
     "name": "open_seats",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "NULLABLE"
   },
   {
     "name": "total_seats",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "NULLABLE"
   },
   {
     "name": "waitlist",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "NULLABLE"
   },
   {
     "name": "holdfile",
-    "type": "INT64",
+    "type": "INTEGER",
     "mode": "NULLABLE"
   },
   {
@@ -70,13 +65,18 @@
     "mode": "NULLABLE"
   },
   {
-    "name": "scrape_event_id",
+    "name": "scrape_published_at",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "snapshot_id",
     "type": "STRING",
     "mode": "NULLABLE"
   },
   {
-    "name": "scrape_published_at",
-    "type": "TIMESTAMP",
+    "name": "scrape_event_id",
+    "type": "STRING",
     "mode": "NULLABLE"
   }
 ]
