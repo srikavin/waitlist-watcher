@@ -1,5 +1,5 @@
 import {rtdb} from "./common";
-import {Request, Response} from "firebase-functions";
+import {Request, Response} from "firebase-functions/v1";
 
 export const emailUnsubscribe = async (req: Request, res: Response) => {
     if (!req.query['id'] || !req.query['email'] || typeof req.query['id'] !== "string" || typeof req.query['email'] !== "string") {

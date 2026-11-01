@@ -1,4 +1,4 @@
-import type {EventContext} from "firebase-functions";
+import type {EventContext} from "firebase-functions/v1";
 import type {QueryDocumentSnapshot} from "firebase-admin/firestore";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 

@@ -1,4 +1,4 @@
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import {onNewCourse, onRemoveCourse} from "./course_listing";
 import {onMessagePublished} from "firebase-functions/v2/pubsub";
 import {onRequest} from "firebase-functions/v2/https";
