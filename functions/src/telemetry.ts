@@ -20,7 +20,7 @@ if (process.env.FUNCTION_TARGET === "scraperhttp" || process.env.K_SERVICE === "
         headers: async () => Object.fromEntries((await auth.getRequestHeaders()).entries()),
     }), {maxQueueSize: 512, maxExportBatchSize: 512, exportTimeoutMillis: 2500});
     new NodeSDK({
-        sampler: new TraceIdRatioBasedSampler(0.1),
+        sampler: new TraceIdRatioBasedSampler(1),
         resource: resourceFromAttributes({
             "service.name": "scraperhttp",
             "service.version": process.env.K_REVISION ?? "unknown",
