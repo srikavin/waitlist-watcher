@@ -1,5 +1,8 @@
-import {rtdb} from "./common";
+import {app} from "./common/app";
+import {getDatabase} from "firebase-admin/database";
 import {Request, Response} from "firebase-functions/v1";
+
+const rtdb = getDatabase(app);
 
 export const emailUnsubscribe = async (req: Request, res: Response) => {
     if (!req.query['id'] || !req.query['email'] || typeof req.query['id'] !== "string" || typeof req.query['email'] !== "string") {

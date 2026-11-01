@@ -1,5 +1,8 @@
-import {rtdb} from "./common";
+import {app} from "./common/app";
+import {getDatabase} from "firebase-admin/database";
 import {CallableContext} from "firebase-functions/v1/https";
+
+const rtdb = getDatabase(app);
 
 export async function countWatchers(data: any, context: CallableContext) {
     const semester: string | undefined = data.semester;

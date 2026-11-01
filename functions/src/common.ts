@@ -1,16 +1,12 @@
-import {initializeApp} from "firebase-admin/app";
+import {app} from "./common/app";
 import {getDatabase} from "firebase-admin/database";
 import {getFirestore} from "firebase-admin/firestore";
 import {CloudTasksClient} from "@google-cloud/tasks";
 import {Storage} from "@google-cloud/storage";
 import {PubSub} from "@google-cloud/pubsub";
 
-initializeApp({
-    databaseURL: "https://waitlist-watcher-default-rtdb.firebaseio.com"
-});
-
-export const rtdb = getDatabase();
-export const fsdb = getFirestore();
+export const rtdb = getDatabase(app);
+export const fsdb = getFirestore(app);
 fsdb.settings({ignoreUndefinedProperties: true});
 export const tasksClient = new CloudTasksClient();
 export const pubsub = new PubSub({projectId: "waitlist-watcher"});

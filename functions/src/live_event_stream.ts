@@ -1,3 +1,4 @@
+import {app} from "./common/app";
 import type {CloudEvent} from "firebase-functions/v2";
 import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 import {getDatabaseWithUrl} from "firebase-admin/database";
@@ -45,7 +46,7 @@ export async function streamEventsToLiveRtdb(event: CloudEvent<MessagePublishedD
 
     const nowMs = Date.now();
     const originalTimestampMs = Date.parse(payload.timestamp);
-    const liveDb = getDatabaseWithUrl(LIVE_STREAM_RTDB_URL);
+    const liveDb = getDatabaseWithUrl(LIVE_STREAM_RTDB_URL, app);
     const semesterRef = liveDb.ref(`live_event_stream/${payload.semester}`);
     const eventRef = semesterRef.child(`${nowMs}_${payload.event_id.slice(0, 12)}`);
 

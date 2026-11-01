@@ -1,15 +1,6 @@
-import {withScraperTelemetry} from "./telemetry";
 import * as functions from "firebase-functions/v1";
-import {onNewCourse, onRemoveCourse} from "./course_listing";
 import {onMessagePublished} from "firebase-functions/v2/pubsub";
 import {onRequest} from "firebase-functions/v2/https";
-import {sendNotifications} from "./notifier/notifier";
-import {updateTopic} from "./common";
-import {scraperLauncher} from "./scraper";
-import {testNotify} from "./notifier/test_notify";
-import {countWatchers} from './count_watchers';
-import {emailUnsubscribe} from "./email_unsubscribe";
-import {streamEventsToLiveRtdb} from "./live_event_stream";
 import {SEMESTER_DEFINITIONS} from "./common/config";
 
 const dynamicExports = exports as Record<string, unknown>;
@@ -20,23 +11,32 @@ for (const semester of SEMESTER_DEFINITIONS) {
     dynamicExports[`onCourseAddition_${semester.id}`] =
         functions
             .region('us-east4')
-            .runWith({memory: "128MB"})
-            .firestore.document(eventsCollection).onCreate(onNewCourse(semester.id));
+            .runWith({memory: "256MB"})
+            .firestore.document(eventsCollection).onCreate(async (snapshot, context) => {
+                const {onNewCourse} = await import("./course_listing");
+                return onNewCourse(semester.id)(snapshot, context);
+            });
 
     dynamicExports[`onCourseRemove_${semester.id}`] =
         functions
             .region('us-east4')
             .runWith({memory: "256MB"})
-            .firestore.document(eventsCollection).onDelete(onRemoveCourse(semester.id));
+            .firestore.document(eventsCollection).onDelete(async (snapshot, context) => {
+                const {onRemoveCourse} = await import("./course_listing");
+                return onRemoveCourse(semester.id)(snapshot, context);
+            });
 }
 
 export const notifierfunction = onMessagePublished({
-    topic: updateTopic.name,
+    topic: "prefix-update",
     memory: "256MiB",
     cpu: 'gcf_gen1',
     secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "EMAIL_SECRET"],
     region: "us-east1"
-}, sendNotifications);
+}, async event => {
+    const {sendNotifications} = await import("./notifier/notifier");
+    return sendNotifications(event);
+});
 
 export const scraperhttp = onRequest({
     invoker: "scraper-scheduler@waitlist-watcher.iam.gserviceaccount.com",
@@ -49,7 +49,11 @@ export const scraperhttp = onRequest({
     timeoutSeconds: 5 * 60
 }, async (request, response) => {
     try {
-        const result = await withScraperTelemetry(request, () => scraperLauncher(request));
+        const {withScraperTelemetry} = await import("./telemetry");
+        const result = await withScraperTelemetry(request, async () => {
+            const {scraperLauncher} = await import("./scraper");
+            return scraperLauncher(request);
+        });
         if (result.status === 405) response.set("Allow", "POST");
         response.status(result.status).send(result.body);
     } catch (error) {
@@ -64,18 +68,24 @@ export const live_event_stream = onMessagePublished({
     cpu: "gcf_gen1",
     region: "us-east1",
     maxInstances: 1,
-}, streamEventsToLiveRtdb);
+}, async event => {
+    const {streamEventsToLiveRtdb} = await import("./live_event_stream");
+    return streamEventsToLiveRtdb(event);
+});
 
 export const test_notification =
     functions
         .region('us-east4')
         .runWith({
             invoker: "public",
-            memory: "128MB",
+            memory: "256MB",
             timeoutSeconds: 30,
             secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY", "EMAIL_SECRET"],
         })
-        .https.onCall(testNotify);
+        .https.onCall(async (data, context) => {
+            const {testNotify} = await import("./notifier/test_notify");
+            return testNotify(data, context);
+        });
 
 
 export const email_unsubscribe =
@@ -87,7 +97,10 @@ export const email_unsubscribe =
             timeoutSeconds: 30,
             maxInstances: 2
         })
-        .https.onRequest(emailUnsubscribe);
+        .https.onRequest(async (request, response) => {
+            const {emailUnsubscribe} = await import("./email_unsubscribe");
+            return emailUnsubscribe(request, response);
+        });
 
 export const count_watchers =
     functions
@@ -98,4 +111,7 @@ export const count_watchers =
             timeoutSeconds: 30,
             maxInstances: 2
         })
-        .https.onCall(countWatchers);
+        .https.onCall(async (data, context) => {
+            const {countWatchers} = await import("./count_watchers");
+            return countWatchers(data, context);
+        });
