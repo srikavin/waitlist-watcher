@@ -1,5 +1,12 @@
 name: Deploy to Firebase Hosting
 on:
+  workflow_call:
+    inputs:
+      source_ref:
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -11,13 +18,19 @@ on:
       - "database.default.rules.json"
       - "database.live.rules.json"
       - "firestore.rules"
+      - "firestore.indexes.json"
       - "firebase.json"
       - ".firebaserc"
 jobs:
   build_and_preview:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - run: npm ci && npm run build
         working-directory: ./frontend
       - run: npm ci && npm run build
@@ -56,7 +69,7 @@ jobs:
       - name: Render App Engine config with env vars
         run: |
           cat > web/app.generated.yaml <<EOF
-          runtime: nodejs20
+          runtime: nodejs22
           entrypoint: node build/index.js
           EOF
       - name: Deploy Web App Engine Service

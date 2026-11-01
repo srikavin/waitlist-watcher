@@ -14,6 +14,7 @@ const httpsAgent = new https.Agent({keepAlive: true});
 const axiosInstance = axios.create({
     httpAgent,
     httpsAgent,
+    timeout: 30000,
 });
 
 fsdb.settings({ignoreUndefinedProperties: true})

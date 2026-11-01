@@ -1,0 +1,95 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "events",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202301",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202301",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202308",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202308",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202401",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202401",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202408",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202408",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202501",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202501",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202508",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202508",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202601",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202601",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202608",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202608",
+      "fieldPath": "latest",
+      "indexes": []
+    }
+  ]
+}

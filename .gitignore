@@ -3,3 +3,4 @@
 .google-creds.json
 **/build/
 **/lib/
+*.tsbuildinfo
