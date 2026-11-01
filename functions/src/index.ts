@@ -1,3 +1,4 @@
+import {withScraperTelemetry} from "./telemetry";
 import * as functions from "firebase-functions/v1";
 import {onNewCourse, onRemoveCourse} from "./course_listing";
 import {onMessagePublished} from "firebase-functions/v2/pubsub";
@@ -48,7 +49,9 @@ export const scraperhttp = onRequest({
     timeoutSeconds: 5 * 60
 }, async (request, response) => {
     try {
-        await scraperLauncher(request, response);
+        const result = await withScraperTelemetry(request, () => scraperLauncher(request));
+        if (result.status === 405) response.set("Allow", "POST");
+        response.status(result.status).send(result.body);
     } catch (error) {
         console.error("Scraper batch failed", error);
         response.status(500).send("Scraper batch failed");

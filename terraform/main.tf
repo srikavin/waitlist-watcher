@@ -20,6 +20,8 @@ resource "google_project_service" "enabled_apis" {
     "storage.googleapis.com",
     "cloudscheduler.googleapis.com",
     "run.googleapis.com",
+    "cloudtrace.googleapis.com",
+    "telemetry.googleapis.com",
   ])
 
   project = var.project
@@ -124,4 +126,10 @@ resource "google_cloud_tasks_queue" "webhook-queue" {
   stackdriver_logging_config {
     sampling_ratio = 0.1
   }
+}
+
+resource "google_project_iam_member" "scraper_trace_writer" {
+  project = var.project
+  role    = "roles/telemetry.tracesWriter"
+  member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 }

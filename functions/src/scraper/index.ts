@@ -1,8 +1,8 @@
+import {measure} from "../telemetry";
 import {eventsIngestTopic, fsdb, historical_bucket, snapshotsIngestTopic, updateTopic} from "../common";
 import {CURRENT_SEMESTER_ID, SCRAPER_CONFIG} from "../common/config";
 
 import type {Request} from "firebase-functions/v2/https";
-import type {Response} from "express";
 import type {CollectionReference} from "firebase-admin/firestore";
 import {compare} from "fast-json-patch";
 import {generateEvents} from "./generate_events";
@@ -75,7 +75,7 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
 
     const events_collection = fsdb.collection("events" + semester_code) as CollectionReference<FSEventsDocument>;
     const docRef = (fsdb.collection("course_data" + semester_code) as CollectionReference<FSCourseDataDocument>).doc(prefix)
-    const currentDoc = await docRef.get();
+    const currentDoc = await measure("firestore.read_course_state", () => docRef.get());
 
     let previous: any = {
         latest: [],
@@ -101,34 +101,34 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
         return;
     }
 
-    const diff = compare(previous.latest, data, true);
+    const diff = await measure("scraper.diff", () => compare(previous.latest, data, true));
     const newUpdateCount = previous.updateCount + 1;
 
     console.log("Scraped ", semester, prefix, " and found ", Object.entries(data).length, " courses with ", diff.length, " changes");
 
     if (diff.length === 0) {
         if (currentDoc.exists) {
-            await docRef.update({
+            await measure("firestore.mark_checked", () => docRef.update({
                 lastRun: publishedAt
-            });
+            }));
         }
         return;
     }
 
-    const events = generateEvents(previous.latest, data, timestamp, semester);
+    const events = await measure("scraper.generate_events", () => generateEvents(previous.latest, data, timestamp, semester));
 
-    await historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(data), {
+    await measure("gcs.save_snapshot", () => historical_bucket.file(BUCKET_SNAPSHOT_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(data), {
         contentType: "application/json",
         resumable: false,
         gzip: true
-    });
-    await historical_bucket.file(BUCKET_EVENTS_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(events), {
+    }));
+    await measure("gcs.save_events", () => historical_bucket.file(BUCKET_EVENTS_PREFIX(semester, prefix) + timestamp + '.json').save(JSON.stringify(events), {
         contentType: "application/json",
         resumable: false,
         gzip: true
-    });
+    }));
 
-    const updates = [];
+    const updates: (() => Promise<unknown>)[] = [];
 
     for (let event of events) {
         if (!event.course) {
@@ -139,14 +139,14 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
         let docname = event.course + (event.section ? '-' + event.section : '')
 
         if (event.type === 'section_added' || event.type === 'section_removed') {
-            updates.push(events_collection.doc(event.course).set({
+            updates.push(() => events_collection.doc(event.course).set({
                 events: {
                     [event.id]: event
                 }
             }, {merge: true}));
         }
 
-        updates.push(events_collection.doc(docname).set({
+        updates.push(() => events_collection.doc(docname).set({
             events: {
                 [event.id]: event
             }
@@ -155,17 +155,17 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
 
     console.log("Updated historical state for ", prefix)
 
-    await Promise.all(updates);
+    await measure("firestore.write_events", () => Promise.all(updates.map(update => update())), {count: updates.length});
 
-    await docRef.set({
+    await measure("firestore.write_course_state", () => docRef.set({
         latest: data,
         timestamp: timestamp,
         lastRun: publishedAt,
         updateCount: newUpdateCount,
         version: 2
-    });
+    }));
 
-    const snapshotPublishes: Promise<string>[] = [];
+    const snapshotPublishes: (() => Promise<string>)[] = [];
     for (const courseCode of Object.keys(data)) {
         const course = data[courseCode];
         if (!course || !course.sections) {
@@ -178,7 +178,7 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
                 continue;
             }
 
-            snapshotPublishes.push(snapshotsIngestTopic.publishMessage({
+            snapshotPublishes.push(() => snapshotsIngestTopic.publishMessage({
                 data: Buffer.from(JSON.stringify({
                     snapshot_id: `${semester}:${prefix}:${timestamp}:${courseCode}:${sectionCode}`,
                     timestamp: timestamp,
@@ -202,19 +202,19 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
     }
     if (snapshotPublishes.length > 0) {
         try {
-            await Promise.all(snapshotPublishes);
+            await measure("pubsub.publish_snapshots", () => Promise.all(snapshotPublishes.map(publish => publish())), {count: snapshotPublishes.length});
         } catch (e) {
             console.error("Failed publishing snapshot ingest for", prefix, e);
         }
     }
 
-    const ingestPublishes: Promise<string>[] = [];
+    const ingestPublishes: (() => Promise<string>)[] = [];
     for (const event of events) {
         if (!event.id || !event.type || !event.course) {
             continue;
         }
 
-        ingestPublishes.push(eventsIngestTopic.publishMessage({
+        ingestPublishes.push(() => eventsIngestTopic.publishMessage({
             data: Buffer.from(JSON.stringify({
                 event_id: event.id,
                 timestamp: event.timestamp,
@@ -233,7 +233,7 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
     }
     if (ingestPublishes.length > 0) {
         try {
-            await Promise.all(ingestPublishes);
+            await measure("pubsub.publish_events", () => Promise.all(ingestPublishes.map(publish => publish())), {count: ingestPublishes.length});
         } catch (e) {
             console.error("Failed publishing ingest events for", prefix, e);
         }
@@ -250,31 +250,28 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
             id: eventId
         }
     }), 'utf8');
-    await updateTopic.publishMessage({data: messageBuffer});
+    await measure("pubsub.publish_notifications", () => updateTopic.publishMessage({data: messageBuffer}));
 }
 
 
-export const scraperLauncher = async (request: Request, response: Response) => {
+export const scraperLauncher = async (request: Request) => {
     if (request.method !== "POST") {
-        response.set("Allow", "POST").status(405).send("Use POST");
-        return;
+        return {status: 405, body: "Use POST"};
     }
     const scheduledAt = request.get("X-CloudScheduler-ScheduleTime");
     const jobName = request.get("X-CloudScheduler-JobName");
     if (!scheduledAt || !Number.isFinite(Date.parse(scheduledAt)) || !jobName) {
-        response.status(400).send("Missing or invalid Scheduler headers");
-        return;
+        return {status: 400, body: "Missing or invalid Scheduler headers"};
     }
     const publishedAt = new Date(Date.parse(scheduledAt)).toISOString();
     const eventId = `${jobName}:${publishedAt}`;
     console.log("Scraper triggered", {eventId, scheduledAt: publishedAt});
     if (WEIGHTED_PREFIXES.length === 0) {
-        response.status(503).send("No prefixes configured");
-        return;
+        return {status: 503, body: "No prefixes configured"};
     }
 
     const triggerDataRef = fsdb.collection("trigger_data").doc("state");
-    const prefixIndex = await fsdb.runTransaction(async transaction => {
+    const prefixIndex = await measure("firestore.claim_batch", () => fsdb.runTransaction(async transaction => {
         const snapshot = await transaction.get(triggerDataRef);
         const state = snapshot.exists ? snapshot.data()! : {};
         if (Date.parse(state.lastScheduledTime) >= Date.parse(publishedAt)) {
@@ -287,10 +284,9 @@ export const scraperLauncher = async (request: Request, response: Response) => {
             lastScheduledTime: publishedAt,
         });
         return index;
-    });
+    }));
     if (prefixIndex === null) {
-        response.status(200).json({skipped: "Already claimed scheduled run"});
-        return;
+        return {status: 200, body: {skipped: "Already claimed scheduled run"}};
     }
     console.log("Scraping batch of size", SCRAPER_CONFIG.batch_size, "at index", prefixIndex);
 
@@ -305,7 +301,7 @@ export const scraperLauncher = async (request: Request, response: Response) => {
     console.log("Waiting for scraper completion");
     const results = await Promise.allSettled(batch.map(({semester, prefix}) => {
         console.log("Started scraper for ", prefix);
-        return runScraper(semester, prefix, publishedAt, eventId);
+        return measure("scraper.department", () => runScraper(semester, prefix, publishedAt, eventId), {semester, department: prefix});
     }));
     let failed = 0;
     results.forEach((result, index) => {
@@ -317,5 +313,5 @@ export const scraperLauncher = async (request: Request, response: Response) => {
     });
     const summary = {succeeded: results.length - failed, failed};
     console.log("Scrapers finished", summary);
-    response.status(failed > 0 ? 500 : 200).json(summary);
+    return {status: failed > 0 ? 500 : 200, body: summary};
 }

@@ -11,6 +11,7 @@ initializeApp({
 
 export const rtdb = getDatabase();
 export const fsdb = getFirestore();
+fsdb.settings({ignoreUndefinedProperties: true});
 export const tasksClient = new CloudTasksClient();
 export const pubsub = new PubSub({projectId: "waitlist-watcher"});
 export const storage = new Storage({retryOptions: {autoRetry: true}});
