@@ -18,6 +18,8 @@ resource "google_project_service" "enabled_apis" {
     "firebasedatabase.googleapis.com",
     "pubsub.googleapis.com",
     "storage.googleapis.com",
+    "cloudscheduler.googleapis.com",
+    "run.googleapis.com",
   ])
 
   project = var.project
@@ -34,8 +36,18 @@ resource "google_app_engine_application" "app" {
   depends_on = [google_project_service.enabled_apis]
 }
 
-resource "google_pubsub_topic" "scrape-launcher-topic" {
-  name = "scrape-launcher"
+resource "google_service_account" "scraper_scheduler" {
+  account_id   = "scraper-scheduler"
+  display_name = "Scraper Scheduler"
+}
+
+data "google_project" "current" {
+  project_id = var.project
+}
+
+locals {
+  scraper_http_host = "scraperhttp-${data.google_project.current.number}.us-east1.run.app"
+  scraper_http_uri  = "https://${local.scraper_http_host}"
 }
 
 resource "google_pubsub_topic" "prefix-update-topic" {
@@ -47,9 +59,22 @@ resource "google_cloud_scheduler_job" "job" {
   description = "Cycles through course prefixes to scrape"
   schedule    = "*/5 0-5,11-23 * * *"
 
-  pubsub_target {
-    topic_name = google_pubsub_topic.scrape-launcher-topic.id
-    data       = base64encode("--")
+  attempt_deadline = "320s"
+  time_zone        = "Etc/UTC"
+
+  retry_config {
+    retry_count        = 0
+    max_retry_duration = "0s"
+  }
+
+  http_target {
+    uri         = local.scraper_http_uri
+    http_method = "POST"
+
+    oidc_token {
+      service_account_email = google_service_account.scraper_scheduler.email
+      audience              = local.scraper_http_uri
+    }
   }
 }
 

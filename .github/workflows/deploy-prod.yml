@@ -45,7 +45,7 @@ jobs:
       - name: Deploy Firebase Functions
         uses: w9jds/firebase-action@master
         with:
-          args: deploy --only functions
+          args: deploy --only functions --force --non-interactive
         env:
           GCP_SA_KEY: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_WAITLIST_WATCHER }}'
       - name: Deploy Firebase RTDB Rules

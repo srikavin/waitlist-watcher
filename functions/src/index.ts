@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import {onNewCourse, onRemoveCourse} from "./course_listing";
 import {onMessagePublished} from "firebase-functions/v2/pubsub";
+import {onRequest} from "firebase-functions/v2/https";
 import {sendNotifications} from "./notifier/notifier";
 import {updateTopic} from "./common";
 import {scraperLauncher} from "./scraper";
@@ -36,15 +37,23 @@ export const notifierfunction = onMessagePublished({
     region: "us-east1"
 }, sendNotifications);
 
-export const scraperfunction = onMessagePublished({
-    topic: "scrape-launcher",
+export const scraperhttp = onRequest({
+    invoker: "scraper-scheduler@waitlist-watcher.iam.gserviceaccount.com",
     memory: "512MiB",
     cpu: 'gcf_gen1',
     secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY"],
     region: "us-east1",
     maxInstances: 1,
+    concurrency: 1,
     timeoutSeconds: 5 * 60
-}, scraperLauncher);
+}, async (request, response) => {
+    try {
+        await scraperLauncher(request, response);
+    } catch (error) {
+        console.error("Scraper batch failed", error);
+        response.status(500).send("Scraper batch failed");
+    }
+});
 
 export const live_event_stream = onMessagePublished({
     topic: "events-ingest",

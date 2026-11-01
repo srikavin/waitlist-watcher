@@ -1,9 +1,9 @@
 import {eventsIngestTopic, fsdb, historical_bucket, snapshotsIngestTopic, updateTopic} from "../common";
 import {CURRENT_SEMESTER_ID, SCRAPER_CONFIG} from "../common/config";
 
-import type {CloudEvent} from "firebase-functions/v2";
+import type {Request} from "firebase-functions/v2/https";
+import type {Response} from "express";
 import type {CollectionReference} from "firebase-admin/firestore";
-import type {MessagePublishedData} from "firebase-functions/v2/pubsub";
 import {compare} from "fast-json-patch";
 import {generateEvents} from "./generate_events";
 import {getSectionInformation} from "./scraper";
@@ -70,7 +70,7 @@ const stringifyEventValue = (event: any, key: "old" | "new") => {
     return String(value);
 }
 
-const runScraper = async (semester: string, prefix: string, timestamp: string, eventId: string) => {
+const runScraper = async (semester: string, prefix: string, publishedAt: string, eventId: string) => {
     const semester_code = semester === "202208" ? "" : semester;
 
     const events_collection = fsdb.collection("events" + semester_code) as CollectionReference<FSEventsDocument>;
@@ -88,12 +88,13 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
         previous = currentDoc.data() as any;
     }
 
-    if (previous.lastRun === timestamp) {
-        console.log("Skipping ", semester, prefix, " since lastRun is same as current timestamp: ", timestamp);
+    if (previous.lastRun === publishedAt) {
+        console.log("Skipping ", semester, prefix, " since lastRun is same as trigger timestamp: ", publishedAt);
         return;
     }
 
     const data = await getSectionInformation(semester, prefix);
+    const timestamp = new Date().toISOString();
 
     if (Object.entries(data).length === 0) {
         console.warn("Scraping", semester, prefix, "had 0 courses. Ignoring results.");
@@ -108,7 +109,7 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
     if (diff.length === 0) {
         if (currentDoc.exists) {
             await docRef.update({
-                lastRun: timestamp
+                lastRun: publishedAt
             });
         }
         return;
@@ -159,12 +160,11 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
     await docRef.set({
         latest: data,
         timestamp: timestamp,
-        lastRun: timestamp,
+        lastRun: publishedAt,
         updateCount: newUpdateCount,
         version: 2
     });
 
-    const ingestedAt = new Date().toISOString();
     const snapshotPublishes: Promise<string>[] = [];
     for (const courseCode of Object.keys(data)) {
         const course = data[courseCode];
@@ -195,7 +195,7 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
                     holdfile: section.holdfile ?? null,
                     meetings_json: JSON.stringify(section.meetings || []),
                     scrape_event_id: eventId,
-                    scrape_published_at: ingestedAt,
+                    scrape_published_at: publishedAt,
                 }))
             }));
         }
@@ -227,7 +227,7 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
                 old_value: stringifyEventValue(event, "old"),
                 new_value: stringifyEventValue(event, "new"),
                 scrape_event_id: eventId,
-                scrape_published_at: ingestedAt
+                scrape_published_at: publishedAt
             }))
         }));
     }
@@ -254,40 +254,58 @@ const runScraper = async (semester: string, prefix: string, timestamp: string, e
 }
 
 
-export const scraperLauncher = async (event: CloudEvent<MessagePublishedData>) => {
-    console.log("Scraper triggered");
-    const triggerDataRef = fsdb.collection("trigger_data").doc("state");
-
-    let state: any = {
-        prefixIndex: 0
-    };
-    const currentStateDoc = await triggerDataRef.get();
-    if (currentStateDoc.exists) {
-        state = currentStateDoc.data();
-    }
-
-    if (WEIGHTED_PREFIXES.length === 0) {
-        console.error("No prefixes configured for scraper.");
+export const scraperLauncher = async (request: Request, response: Response) => {
+    if (request.method !== "POST") {
+        response.set("Allow", "POST").status(405).send("Use POST");
         return;
     }
-    state.prefixIndex = state.prefixIndex % WEIGHTED_PREFIXES.length;
-    console.log("Scraping batch of size ", SCRAPER_CONFIG.batch_size, " at index ", state.prefixIndex, " weighted pool size ", WEIGHTED_PREFIXES.length);
+    const scheduledAt = request.get("X-CloudScheduler-ScheduleTime");
+    const jobName = request.get("X-CloudScheduler-JobName");
+    if (!scheduledAt || !Number.isFinite(Date.parse(scheduledAt)) || !jobName) {
+        response.status(400).send("Missing or invalid Scheduler headers");
+        return;
+    }
+    const publishedAt = new Date(Date.parse(scheduledAt)).toISOString();
+    const eventId = `${jobName}:${publishedAt}`;
+    console.log("Scraper triggered", {eventId, scheduledAt: publishedAt});
+    if (WEIGHTED_PREFIXES.length === 0) {
+        response.status(503).send("No prefixes configured");
+        return;
+    }
+
+    const triggerDataRef = fsdb.collection("trigger_data").doc("state");
+    const prefixIndex = await fsdb.runTransaction(async transaction => {
+        const snapshot = await transaction.get(triggerDataRef);
+        const state = snapshot.exists ? snapshot.data()! : {};
+        if (Date.parse(state.lastScheduledTime) >= Date.parse(publishedAt)) {
+            return null;
+        }
+        const index = Number(state.prefixIndex ?? 0) % WEIGHTED_PREFIXES.length;
+        transaction.set(triggerDataRef, {
+            ...state,
+            prefixIndex: (index + SCRAPER_CONFIG.batch_size) % WEIGHTED_PREFIXES.length,
+            lastScheduledTime: publishedAt,
+        });
+        return index;
+    });
+    if (prefixIndex === null) {
+        response.status(200).json({skipped: "Already claimed scheduled run"});
+        return;
+    }
+    console.log("Scraping batch of size", SCRAPER_CONFIG.batch_size, "at index", prefixIndex);
 
     const batch: {semester: string; prefix: string}[] = [];
     for (const semester of SCRAPE_SEMESTERS) {
         for (let i = 0; i < SCRAPER_CONFIG.batch_size; ++i) {
-            const prefix = WEIGHTED_PREFIXES[(state.prefixIndex + i) % WEIGHTED_PREFIXES.length];
+            const prefix = WEIGHTED_PREFIXES[(prefixIndex + i) % WEIGHTED_PREFIXES.length];
             batch.push({semester, prefix});
         }
     }
 
-    state.prefixIndex = (state.prefixIndex + SCRAPER_CONFIG.batch_size) % WEIGHTED_PREFIXES.length;
-    await triggerDataRef.set(state);
-
     console.log("Waiting for scraper completion");
     const results = await Promise.allSettled(batch.map(({semester, prefix}) => {
         console.log("Started scraper for ", prefix);
-        return runScraper(semester, prefix, event.time, event.id);
+        return runScraper(semester, prefix, publishedAt, eventId);
     }));
     let failed = 0;
     results.forEach((result, index) => {
@@ -297,5 +315,7 @@ export const scraperLauncher = async (event: CloudEvent<MessagePublishedData>) =
             console.error("Scraper failed for", semester, prefix, result.reason);
         }
     });
-    console.log("Scrapers finished", {succeeded: results.length - failed, failed});
+    const summary = {succeeded: results.length - failed, failed};
+    console.log("Scrapers finished", summary);
+    response.status(failed > 0 ? 500 : 200).json(summary);
 }
