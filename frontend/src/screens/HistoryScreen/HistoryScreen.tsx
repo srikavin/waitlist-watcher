@@ -1,3 +1,4 @@
+import {deriveRecordedState, LastRecordedState} from "./LastRecordedState";
 import {useContext, useEffect, useId, useRef, useState} from "react";
 import {Card, EmptyState, Heading, Pane, SearchTemplateIcon, Text} from "evergreen-ui";
 import dayjs from "dayjs";
@@ -198,7 +199,7 @@ function transformEventsToChart(events: Array<any>) {
     return Array.from(points.values());
 }
 
-export function HistoryChart(props: { name: string, onTimeHover?: (time: number | null) => void }) {
+export function HistoryChart(props: { name: string, dockSummary?: boolean, onTimeHover?: (time: number | null) => void }) {
     const events = useCourseEvents(props.name);
     const syncId = useId();
     const [selectedTime, setSelectedTime] = useState<number | null>(null);
@@ -226,7 +227,7 @@ export function HistoryChart(props: { name: string, onTimeHover?: (time: number 
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
         .filter((event, index, changes) => index === 0 || event.new !== changes[index - 1].new);
 
-    const plotWidth = Math.max(1, chartWidth - 80);
+    const plotWidth = Math.max(1, chartWidth - 64);
     const rowEnds: number[] = [];
     const instructorLabels = [...instructorChanges]
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
@@ -235,10 +236,10 @@ export function HistoryChart(props: { name: string, onTimeHover?: (time: number 
             return time >= domain[0] && time <= domain[1];
         })
         .map(event => {
-            const x = 56 + (new Date(event.timestamp).getTime() - domain[0]) / (domain[1] - domain[0]) * plotWidth;
+            const x = 40 + (new Date(event.timestamp).getTime() - domain[0]) / (domain[1] - domain[0]) * plotWidth;
             const label = String(event.new);
-            const width = Math.min(label.length * 7 + 16, plotWidth, 2 * Math.min(x, chartWidth - x));
-            const left = x - width / 2;
+            const width = Math.min(label.length * 7 + 16, plotWidth);
+            const left = Math.max(8, Math.min(chartWidth - 8 - width, x - width / 2));
             let row = rowEnds.findIndex(end => end + 12 <= left);
             if (row < 0) row = rowEnds.length;
             rowEnds[row] = left + width;
@@ -279,7 +280,7 @@ export function HistoryChart(props: { name: string, onTimeHover?: (time: number 
                 </div>
             ))}
             {!queue && <p className="absolute text-xs font-semibold text-slate-600"
-                          style={{left: 32, top: annotationHeight + 8}}>Seats</p>}
+                          style={{left: 8, top: annotationHeight + 8}}>Seats</p>}
         <ResponsiveContainer width="100%" height={queue ? 180 : 304 + annotationHeight}>
             <ComposedChart data={timeseriesData} syncId={syncId}
                            onMouseMove={(state: any) => {
@@ -299,7 +300,7 @@ export function HistoryChart(props: { name: string, onTimeHover?: (time: number 
                                : {month: 'short', day: 'numeric'})}
                        fontSize={12}/>
                 <YAxis name={queue ? "People waiting" : "Seats"} domain={[0, 'auto']}
-                       width={48} allowDecimals={false} fontSize={12}/>
+                       width={32} allowDecimals={false} fontSize={12}/>
                 <Tooltip content={() => null} cursor={{stroke: '#94a3b8', strokeDasharray: '3 3'}}/>
                 <Legend wrapperStyle={{fontSize: 12}}/>
                 {queue ? (
@@ -331,9 +332,9 @@ export function HistoryChart(props: { name: string, onTimeHover?: (time: number 
     );
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_220px] gap-4 items-start">
+        <div className={`grid grid-cols-1 gap-4 items-start ${props.dockSummary ? "" : "lg:grid-cols-[minmax(0,1fr)_220px]"}`}>
             <aside aria-label="History summary" aria-hidden={!isInspecting}
-                   className={`fixed bottom-4 left-4 right-4 z-30 pointer-events-none rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg lg:pointer-events-auto lg:shadow-none lg:min-h-[160px] lg:order-2 lg:sticky lg:top-4 lg:bottom-auto lg:left-auto lg:right-auto ${isInspecting ? "visible" : "invisible"}`}>
+                   className={`fixed bottom-4 left-4 right-4 z-30 pointer-events-none rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-lg ${props.dockSummary ? "sm:left-auto sm:w-[260px]" : "lg:pointer-events-auto lg:shadow-none lg:min-h-[160px] lg:order-2 lg:sticky lg:top-4 lg:bottom-auto lg:left-auto lg:right-auto"} ${isInspecting ? "visible" : "invisible"}`}>
                 <p className="text-xs font-semibold text-slate-900 truncate">
                     {new Date(selectedPoint.time).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}
                     <span className="font-normal text-slate-500"> · {new Date(selectedPoint.time).toLocaleTimeString(undefined,
@@ -355,7 +356,7 @@ export function HistoryChart(props: { name: string, onTimeHover?: (time: number 
             </aside>
             <div className="min-w-0 lg:order-1">
                 {renderChart(false)}
-                <p className="ml-8 mt-6 mb-1 text-xs font-semibold text-slate-600">People waiting</p>
+                <p className="ml-2 mt-4 mb-1 text-xs font-semibold text-slate-600">People waiting</p>
                 {renderChart(true)}
             </div>
         </div>
@@ -383,6 +384,9 @@ export function HistoryScreen(props: HistoryScreenProps) {
     useTitle(`${name} Course History`);
 
     const events = useCourseEvents(name);
+    const courseNameEvent = !isSection ? events.find(event => event.type === 'course_name_changed') : undefined;
+    const recordedCourseName = typeof courseNameEvent?.new === 'string' ? courseNameEvent.new : undefined;
+    const headingSubtitle = isSection ? deriveRecordedState(events).instructor : recordedCourseName;
     const [activeTime, setActiveTime] = useState<number | null>(null);
     const timelineRef = useRef<HTMLDivElement>(null);
     const hoverGroupRef = useRef<HTMLDetailsElement | null>(null);
@@ -434,7 +438,11 @@ export function HistoryScreen(props: HistoryScreenProps) {
                             <WatchCourseButton courseName={name}/>}
                     </Pane>
 
-                    <Pane marginTop={4}>
+                    {headingSubtitle && (
+                        <p className="mt-0 mb-1 max-w-3xl text-lg leading-6 text-slate-600">{headingSubtitle}</p>
+                    )}
+                    {isSection && <LastRecordedState events={events}/>}
+                    <Pane marginTop={0}>
                         <Text className="text-slate-600">{WatchingInfo}</Text>
                     </Pane>
 
@@ -473,8 +481,8 @@ export function HistoryScreen(props: HistoryScreenProps) {
                                             <Text>{WatchingInfo}</Text>
                                         </div>
                                     )}
-                                    <Pane marginLeft={-40} marginTop={32}>
-                                        <HistoryChart name={name} onTimeHover={setActiveTime}/>
+                                    <Pane marginTop={12}>
+                                        <HistoryChart name={name} dockSummary={props.landing} onTimeHover={setActiveTime}/>
                                     </Pane>
                                 </Pane>
                             )}

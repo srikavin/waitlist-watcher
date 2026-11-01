@@ -204,20 +204,12 @@ export function LandingPageScreen() {
             .filter((row) => row.department && row.course && row.section)
             .slice(0, 10);
     }, [fastestFillingSections, mostActiveSectionsPeriod]);
-    const hasFreshLiveEvents = useMemo(() => {
-        const oneHourMs = 60 * 60 * 1000;
-        const now = Date.now();
-        return filteredLiveEvents.some((event) => {
-            const ms = event.timestamp ? Date.parse(event.timestamp) : NaN;
-            return Number.isFinite(ms) && now - ms <= oneHourMs;
-        });
-    }, [filteredLiveEvents]);
 
     return (
         <>
-            <section className="relative z-10">
+            <section className="relative z-10 bg-white">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6">
-                    <div className="relative z-10 pt-16 pb-24 md:pt-16 md:pb-32">
+                    <div className="relative z-10 pt-16 pb-16 md:pt-16 md:pb-16">
                         <div className="text-center pb-12 md:pb-16">
                             <h1 className="text-5xl md:text-6xl font-extrabold leading-tighter tracking-tighter mb-4 text-slate-900"
                                 data-aos="zoom-y-out">Never miss an <span
@@ -259,8 +251,8 @@ export function LandingPageScreen() {
             </section>
             <section className="relative">
                 <div className="absolute inset-0 bg-slate-50 pointer-events-none" aria-hidden="true"></div>
-                {hasFreshLiveEvents ? (
-                    <div className={`${styles.heroLiveBackdropWrap} hidden lg:block`}>
+                {liveBackdropEvents.length > 0 ? (
+                    <div className={styles.heroLiveBackdropWrap}>
                         <div className={styles.heroLiveBackdropRow}>
                             <div className={styles.heroLiveBackdropTrack}>
                                 {liveBackdropEvents.map((event, idx) => {
@@ -305,7 +297,6 @@ export function LandingPageScreen() {
                         </div>
                     </div>
                 ) : null}
-                <div className="h-24"></div>
 
                 <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pb-12">
                     <div className="pt-12">

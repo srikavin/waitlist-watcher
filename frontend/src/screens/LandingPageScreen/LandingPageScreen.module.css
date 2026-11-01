@@ -1,6 +1,6 @@
 .heroLiveBackdropWrap {
-    position: absolute;
-    top: -40px;
+    position: relative;
+    top: 0;
     left: 0;
     right: 0;
     z-index: 2;
@@ -59,4 +59,9 @@
     .heroLiveBackdropTrack {
         animation: none;
     }
+}
+
+.heroLiveBackdropWrap:hover .heroLiveBackdropTrack,
+.heroLiveBackdropWrap:focus-within .heroLiveBackdropTrack {
+    animation-play-state: paused;
 }
