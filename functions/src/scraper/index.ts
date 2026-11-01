@@ -3,7 +3,8 @@ import {eventsIngestTopic, fsdb, historical_bucket, snapshotsIngestTopic, update
 import {CURRENT_SEMESTER_ID, SCRAPER_CONFIG} from "../common/config";
 
 import type {Request} from "firebase-functions/v2/https";
-import type {CollectionReference} from "firebase-admin/firestore";
+import type {CourseEvent} from "../common/events";
+import type {BulkWriter, CollectionReference} from "firebase-admin/firestore";
 import {compare} from "fast-json-patch";
 import {generateEvents} from "./generate_events";
 import {getSectionInformation} from "./scraper";
@@ -70,7 +71,7 @@ const stringifyEventValue = (event: any, key: "old" | "new") => {
     return String(value);
 }
 
-const runScraper = async (semester: string, prefix: string, publishedAt: string, eventId: string) => {
+const runScraper = async (semester: string, prefix: string, publishedAt: string, eventId: string, writer: BulkWriter) => {
     const semester_code = semester === "202208" ? "" : semester;
 
     const events_collection = fsdb.collection("events" + semester_code) as CollectionReference<FSEventsDocument>;
@@ -128,34 +129,35 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
         gzip: true
     }));
 
-    const updates: (() => Promise<unknown>)[] = [];
+    const updates = new Map<string, FSEventsDocument["events"]>();
+    const addEvent = (document: string, event: CourseEvent) => {
+        let grouped = updates.get(document);
+        if (!grouped) {
+            grouped = {};
+            updates.set(document, grouped);
+        }
+        grouped[event.id] = event;
+    };
 
-    for (let event of events) {
+    for (const event of events) {
         if (!event.course) {
             console.log("Skipped over event", event);
             continue;
         }
-
-        let docname = event.course + (event.section ? '-' + event.section : '')
-
-        if (event.type === 'section_added' || event.type === 'section_removed') {
-            updates.push(() => events_collection.doc(event.course).set({
-                events: {
-                    [event.id]: event
-                }
-            }, {merge: true}));
+        if (event.type === "section_added" || event.type === "section_removed") {
+            addEvent(event.course, event);
         }
-
-        updates.push(() => events_collection.doc(docname).set({
-            events: {
-                [event.id]: event
-            }
-        }, {merge: true}));
+        addEvent(event.course + (event.section ? "-" + event.section : ""), event);
     }
 
-    console.log("Updated historical state for ", prefix)
-
-    await measure("firestore.write_events", () => Promise.all(updates.map(update => update())), {count: updates.length});
+    await measure("firestore.write_events", async () => {
+        const results = Promise.allSettled([...updates].map(([document, grouped]) =>
+            writer.set(events_collection.doc(document), {events: grouped}, {merge: true})));
+        void writer.flush();
+        for (const result of await results) {
+            if (result.status === "rejected") throw result.reason;
+        }
+    }, {count: updates.size, events: events.length});
 
     await measure("firestore.write_course_state", () => docRef.set({
         latest: data,
@@ -299,10 +301,16 @@ export const scraperLauncher = async (request: Request) => {
     }
 
     console.log("Waiting for scraper completion");
-    const results = await Promise.allSettled(batch.map(({semester, prefix}) => {
-        console.log("Started scraper for ", prefix);
-        return measure("scraper.department", () => runScraper(semester, prefix, publishedAt, eventId), {semester, department: prefix});
-    }));
+    const writer = fsdb.bulkWriter({throttling: {initialOpsPerSecond: 100, maxOpsPerSecond: 100}});
+    let results: PromiseSettledResult<void>[];
+    try {
+        results = await Promise.allSettled(batch.map(({semester, prefix}) => {
+            console.log("Started scraper for ", prefix);
+            return measure("scraper.department", () => runScraper(semester, prefix, publishedAt, eventId, writer), {semester, department: prefix});
+        }));
+    } finally {
+        await writer.close();
+    }
     let failed = 0;
     results.forEach((result, index) => {
         if (result.status === "rejected") {
