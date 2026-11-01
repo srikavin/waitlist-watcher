@@ -1,5 +1,6 @@
 import axios from "axios";
-import {JSDOM} from "jsdom";
+import type {CheerioAPI} from "cheerio";
+const {load} = require("cheerio/slim") as Pick<typeof import("cheerio"), "load">;
 
 import {measure} from "../telemetry";
 import * as http from "http";
@@ -53,22 +54,23 @@ export type ScrapedOutput = Record<string, ScrapedCourse>;
 const getCourseList = async (semester: string, prefix: string) => {
     const data = (await measure("testudo.fetch_courses", () => axiosInstance.get(COURSE_LIST_URL(semester, prefix)))).data;
 
-    // @ts-ignore
-    return measure("testudo.parse_courses", () => Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course")]
-        .map((e, i) => {
-            let courseTitle = e.querySelector(".course-title");
-            if (!courseTitle) {
-                // workaround for some course pages
-                courseTitle = e.parentNode!.querySelectorAll(`.course-title`)[i]
+    return measure("testudo.parse_courses", () => {
+        const $ = load(data);
+        return Object.fromEntries($(".course").toArray().map((element, i) => {
+            const course = $(element);
+            let courseTitle = course.find(".course-title").first();
+            if (!courseTitle.length) {
+                courseTitle = course.parent().find(".course-title").eq(i);
             }
-            return [
-                e.id, {
-                    name: (courseTitle && courseTitle.textContent) ? courseTitle.textContent : "<unknown>",
-                    description: e.querySelector(".approved-course-texts-container")?.textContent!.trim()
-                        .replace(/\t/g, "").replace(/\n\s*\n/g, '\n') ?? "<none>"
-                }
-            ]
-        })));
+            const description = course.find(".approved-course-texts-container").first();
+            return [course.attr("id")!, {
+                name: courseTitle.text() || "<unknown>",
+                description: description.length
+                    ? description.text().trim().replace(/\t/g, "").replace(/\n\s*\n/g, '\n')
+                    : "<none>"
+            }];
+        }));
+    });
 }
 
 const parseNumber = (val: string) => {
@@ -83,30 +85,25 @@ const parseNumber = (val: string) => {
     return Number(val);
 }
 
-export const getMeetingTimes = (sectionNode: Element): ScrapedMeeting[] => {
-    // @ts-ignore
-    return [...sectionNode.querySelectorAll(".class-days-container > .row")].map(meeting => {
-        let meetingType = meeting.querySelector(".class-type");
-        let buildingCode = meeting.querySelector('.building-code');
-        let classRoom = meeting.querySelector('.class-room');
-        let sectionText = meeting.querySelector('.section-text');
-        let days = meeting.querySelector('.section-days');
-        let start = meeting.querySelector('.class-start-time');
-        let end = meeting.querySelector('.class-end-time');
-        let elmsClassMessage = meeting.querySelector('.elms-class-message');
-
+const getMeetingTimes = (section: ReturnType<CheerioAPI>, $: CheerioAPI): ScrapedMeeting[] => {
+    return section.find(".class-days-container > .row").toArray().map(element => {
+        const meeting = $(element);
+        const optionalText = (selector: string, key: string) => {
+            const field = meeting.find(selector).first();
+            return field.length ? {[key]: field.text()} : {};
+        };
         return {
-            ...(days ? {days: days.textContent} : {}),
-            ...(start ? {start: start.textContent} : {}),
-            ...(end ? {end: end.textContent} : {}),
+            ...optionalText(".section-days", "days"),
+            ...optionalText(".class-start-time", "start"),
+            ...optionalText(".class-end-time", "end"),
             location: {
-                ...(buildingCode ? {buildingCode: buildingCode.textContent} : {}),
-                ...(classRoom ? {classRoom: classRoom.textContent} : {}),
-                ...(sectionText ? {sectionText: sectionText.textContent} : {}),
-                ...(elmsClassMessage ? {elmsClassMessage: elmsClassMessage.textContent} : {}),
+                ...optionalText(".building-code", "buildingCode"),
+                ...optionalText(".class-room", "classRoom"),
+                ...optionalText(".section-text", "sectionText"),
+                ...optionalText(".elms-class-message", "elmsClassMessage"),
             },
-            ...(meetingType ? {type: meetingType.textContent} : {})
-        } as ScrapedMeeting;
+            ...optionalText(".class-type", "type")
+        };
     });
 }
 
@@ -115,27 +112,31 @@ export const getSectionInformation = async (semester: string, prefix: string): P
     const courseList = Object.keys(courseData).join(",");
     const data = (await measure("testudo.fetch_sections", () => axiosInstance.get(SECTIONS_URL(semester, prefix, courseList)))).data;
 
-    // @ts-ignore
-    return measure("testudo.parse_sections", () => Object.fromEntries([...(new JSDOM(data)).window.document.querySelectorAll(".course-sections")]
-        .map(course => {
-            return [course.id, {
-                course: course.id,
-                name: courseData[course.id] ? courseData[course.id].name : "<unknown>",
-                description: courseData[course.id] ? courseData[course.id].description : "<none>",
-                sections: Object.fromEntries([...course.querySelectorAll(".section")].map(section => {
-                    const waitlistField = [...section.querySelectorAll(".waitlist-count")];
-                    let holdfile = waitlistField.length === 2 ? parseNumber(waitlistField[1].textContent!) : 0;
-                    let sectionName = section.querySelector(".section-id")!.textContent!.trim();
+    return measure("testudo.parse_sections", () => {
+        const $ = load(data);
+        return Object.fromEntries($(".course-sections").toArray().map(element => {
+            const course = $(element);
+            const courseId = course.attr("id")!;
+            return [courseId, {
+                course: courseId,
+                name: courseData[courseId]?.name ?? "<unknown>",
+                description: courseData[courseId]?.description ?? "<none>",
+                sections: Object.fromEntries(course.find(".section").toArray().map(element => {
+                    const section = $(element);
+                    const waitlistField = section.find(".waitlist-count");
+                    const holdfile = waitlistField.length === 2 ? parseNumber(waitlistField.eq(1).text()) : 0;
+                    const sectionName = section.find(".section-id").first().text().trim();
                     return [sectionName, {
                         section: sectionName,
-                        meetings: getMeetingTimes(section),
-                        openSeats: parseNumber(section.querySelector(".open-seats-count")!.textContent!),
-                        totalSeats: parseNumber(section.querySelector(".total-seats-count")!.textContent!),
-                        instructor: [...section.querySelectorAll(".section-instructor")].map(e => e.textContent).sort().join(', '),
-                        waitlist: waitlistField.length > 0 ? parseNumber(waitlistField[0].textContent!) : 0,
+                        meetings: getMeetingTimes(section, $),
+                        openSeats: parseNumber(section.find(".open-seats-count").first().text()),
+                        totalSeats: parseNumber(section.find(".total-seats-count").first().text()),
+                        instructor: section.find(".section-instructor").toArray().map(e => $(e).text()).sort().join(', '),
+                        waitlist: waitlistField.length > 0 ? parseNumber(waitlistField.first().text()) : 0,
                         holdfile: holdfile
                     }];
                 }))
-            }]
-        })));
+            }];
+        }));
+    });
 }
