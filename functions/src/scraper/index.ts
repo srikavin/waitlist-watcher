@@ -273,12 +273,11 @@ export const scraperLauncher = async (event: CloudEvent<MessagePublishedData>) =
     state.prefixIndex = state.prefixIndex % WEIGHTED_PREFIXES.length;
     console.log("Scraping batch of size ", SCRAPER_CONFIG.batch_size, " at index ", state.prefixIndex, " weighted pool size ", WEIGHTED_PREFIXES.length);
 
-    const prefixPromises = [];
+    const batch: {semester: string; prefix: string}[] = [];
     for (const semester of SCRAPE_SEMESTERS) {
         for (let i = 0; i < SCRAPER_CONFIG.batch_size; ++i) {
             const prefix = WEIGHTED_PREFIXES[(state.prefixIndex + i) % WEIGHTED_PREFIXES.length];
-            prefixPromises.push(runScraper(semester, prefix, event.time, event.id))
-            console.log("Started scraper for ", prefix);
+            batch.push({semester, prefix});
         }
     }
 
@@ -286,6 +285,17 @@ export const scraperLauncher = async (event: CloudEvent<MessagePublishedData>) =
     await triggerDataRef.set(state);
 
     console.log("Waiting for scraper completion");
-    await Promise.all(prefixPromises);
-    console.log("Scrapers finished");
+    const results = await Promise.allSettled(batch.map(({semester, prefix}) => {
+        console.log("Started scraper for ", prefix);
+        return runScraper(semester, prefix, event.time, event.id);
+    }));
+    let failed = 0;
+    results.forEach((result, index) => {
+        if (result.status === "rejected") {
+            failed++;
+            const {semester, prefix} = batch[index];
+            console.error("Scraper failed for", semester, prefix, result.reason);
+        }
+    });
+    console.log("Scrapers finished", {succeeded: results.length - failed, failed});
 }

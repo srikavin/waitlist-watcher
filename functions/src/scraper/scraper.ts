@@ -133,7 +133,7 @@ export const getSectionInformation = async (semester: string, prefix: string): P
                         openSeats: parseNumber(section.querySelector(".open-seats-count")!.textContent!),
                         totalSeats: parseNumber(section.querySelector(".total-seats-count")!.textContent!),
                         instructor: [...section.querySelectorAll(".section-instructor")].map(e => e.textContent).sort().join(', '),
-                        waitlist: parseNumber(waitlistField[0].textContent!),
+                        waitlist: waitlistField.length > 0 ? parseNumber(waitlistField[0].textContent!) : 0,
                         holdfile: holdfile
                     }];
                 }))
