@@ -1,21 +1,18 @@
-.old {
-    background: #ffb4b4;
+.old, .new, .nowrap {
     margin: 0;
     white-space: pre-wrap;
-    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    border-radius: 3px;
+}
+
+.old {
+    background: #fee2e2;
+    color: #991b1b;
     flex-shrink: 5;
     flex-basis: 0;
 }
 
 .new {
-    background: #96f696;
-    margin: 0;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-.nowrap {
-    margin: 0;
-    white-space: pre-wrap;
-    word-wrap: break-word;
+    background: #dcfce7;
+    color: #166534;
 }

@@ -1,10 +1,8 @@
-import {Link} from "evergreen-ui";
-import {useNavigate} from "react-router-dom";
+import {Link} from "react-router-dom";
 import {useMemo} from "react";
 import {useSemesterContext} from "@/frontend/src/context/SemesterContext";
 
 export function CoursePrefixListing() {
-    const navigate = useNavigate();
     const {courseListing} = useSemesterContext();
     const prefixes = useMemo(() => {
         const result = new Set<string>();
@@ -17,11 +15,9 @@ export function CoursePrefixListing() {
     }, [courseListing]);
 
     return (
-        <div style={{columnCount: 10, marginTop: 8}}>
+        <div className="department-grid">
             {prefixes.map((e) => (
-                <div key={e}>
-                    <Link onClick={() => navigate(`/department/${e}`)} href="#" color={"neutral"}>{e}</Link>
-                </div>
+                <Link key={e} className="department-link" to={`/department/${e}`}>{e}</Link>
             ))}
         </div>
     );

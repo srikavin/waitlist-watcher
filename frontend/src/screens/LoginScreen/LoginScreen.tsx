@@ -78,7 +78,7 @@ export function LoginScreen() {
     }
 
     return (
-        <Pane margin={10}>
+        <Pane>
             <Tablist marginBottom={16} flexBasis={2000} marginRight={24}>
                 {tabs.map((tab, index) => (
                     <Tab
@@ -96,7 +96,7 @@ export function LoginScreen() {
                 ))}
             </Tablist>
 
-            <Card border="1px solid #c1c4d6" paddingY={20} paddingX={15}>
+            <Card paddingY={12}>
                 {error ? (
                     <Alert marginBottom={20} intent="danger"
                            title={`Failed to ${selected.toLowerCase()}:`}>{error}</Alert>

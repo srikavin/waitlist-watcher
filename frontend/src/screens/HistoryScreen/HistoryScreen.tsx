@@ -55,9 +55,9 @@ export function FormattedCourseEvent(props: FormattedCourseEventProps) {
     }
 
     return (
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-1 sm:gap-3">
             <small className="flex-shrink-0">{dayjs(event.timestamp).format("MM-DD-YYYY HH:mm")}</small>
-            <span>
+            <span className="min-w-0">
             <span>{nameMapping[event.type]}
                 {event.type === 'section_added' || event.type === 'section_removed' ? <> ({event.section})</> : ''}
                 {event.type === 'course_added' && event.title ? <> ({event.course})</> : ''}
@@ -125,7 +125,7 @@ function FormattedCourseEvents(props: { events: Array<CourseEvent> }) {
                     return [
                         <details>
                             <summary className="list-outside">
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-1 sm:gap-3">
                                     <div className="leading-tight flex-shrink-0">
                                         <small
                                             className="block">{dayjs(x[0].timestamp).format("MM-DD-YYYY HH:mm")}</small>
@@ -288,16 +288,16 @@ export function HistoryScreen(props: HistoryScreenProps) {
         <>
             {!props.landing && (
                 <Pane display="flex" flexDirection="column" className="gap-1">
-                    <Heading size={900} className="text-slate-900">
-                        {LinkToSection}
-                        <span className="mx-1">
+                    <Pane display="flex" alignItems="center" flexWrap="wrap" gap={12}>
+                        <Heading size={900} className="text-slate-900">
+                            {LinkToSection}
+                        </Heading>
                         {isSection ?
                             <WatchButton courseName={courseName} sectionName={sectionName}/> :
                             <WatchCourseButton courseName={name}/>}
-                        </span>
-                    </Heading>
+                    </Pane>
 
-                    <Pane marginTop={-8}>
+                    <Pane marginTop={4}>
                         <Text className="text-slate-600">{WatchingInfo}</Text>
                     </Pane>
 
@@ -355,11 +355,11 @@ export function HistoryScreen(props: HistoryScreenProps) {
             <Card>
             {!isSection && (
                 <>
-                    <div className="ml-24">
+                    <div className="mt-8 space-y-8">
                         {(() => {
                             const filtered = courseListing.filter(e => e.startsWith(name + '-'));
                             if (filtered.length < 30) {
-                                return filtered.map(e => <div className="mt-8"><HistoryScreen key={e} name={e} minimal/>
+                                return filtered.map(e => <div key={e}><HistoryScreen name={e} minimal/>
                                 </div>)
                             }
                             return null;

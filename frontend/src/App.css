@@ -1,20 +1,81 @@
 html {
-    font-size: 18px !important;
+    font-size: 16px;
+    color: #0f172a;
+    background: #f8fafc;
+}
+
+body {
+    line-height: 1.5;
 }
 
 a {
     text-decoration: none;
 }
 
-
-a, a:visited {
-    color: #3366FF !important;
+a:not([class]) {
+    color: #2563eb;
 }
 
 a:hover {
-    color: #4CB6E1;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-a:active {
-    color: #0055AA;
+:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 3px;
+}
+
+.page-shell {
+    width: min(1152px, calc(100% - 48px));
+    margin: 40px auto 64px;
+    padding: 32px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    min-width: 0;
+}
+
+.page-shell--account {
+    max-width: 480px;
+}
+
+.department-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.department-link {
+    display: block;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    transition: background 150ms, border-color 150ms;
+}
+
+.department-link:hover {
+    color: #1d4ed8;
+    background: #eff6ff;
+    border-color: #93c5fd;
+    text-decoration: none;
+}
+
+.course-table {
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+@media (max-width: 640px) {
+    .page-shell {
+        width: calc(100% - 32px);
+        margin-top: 24px;
+        padding: 20px 16px;
+    }
 }

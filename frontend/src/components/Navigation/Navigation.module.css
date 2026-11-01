@@ -1,10 +1,99 @@
-.search {
-    max-width: 400px;
-    width: 100%;
+.header {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
 }
 
-@media only screen and (max-width: 1200px) {
+.navigation {
+    max-width: 1152px;
+    margin: 0 auto;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.brand {
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+}
+
+.links, .account {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.link, .active, .profile {
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.active {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.search {
+    flex: 1;
+    min-width: 160px;
+}
+
+.start {
+    background: #2563eb;
+    border-radius: 6px;
+    padding: 8px 14px;
+    color: white;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.brand:hover, .link:hover, .active:hover, .start:hover, .profile:hover {
+    text-decoration: none;
+}
+
+.link:hover, .profile:hover {
+    background: #f1f5f9;
+}
+
+.start:hover {
+    background: #1d4ed8;
+}
+
+@media (max-width: 1000px) {
+    .navigation {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .account {
+        margin-left: auto;
+    }
     .search {
-        max-width: unset;
+        order: 4;
+        flex-basis: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .navigation {
+        padding: 16px;
+    }
+    .links {
+        margin-left: auto;
+    }
+    .link, .active, .profile {
+        padding: 8px 6px;
+    }
+    .account {
+        flex-basis: 100%;
+        margin-left: 0;
+        justify-content: space-between;
+        flex-wrap: wrap;
     }
 }

@@ -6,7 +6,6 @@ import type {User} from "firebase/auth";
 import {signInWithCustomToken} from 'firebase/auth';
 import {AuthContext} from './context/AuthContext';
 import {SemesterContextProvider, SemesterInfo} from "./context/SemesterContext";
-import {Card} from 'evergreen-ui'
 import {Navigation} from "./components/Navigation/Navigation";
 import {Route, Routes, useLocation, useNavigate, useParams, useSearchParams} from "react-router-dom";
 import {LandingPageScreen} from "./screens/LandingPageScreen/LandingPageScreen";
@@ -56,9 +55,10 @@ function HistoryRenderer() {
 }
 
 function PageRenderer() {
+    const {pathname} = useLocation();
+    const isAccountPage = pathname === "/login" || pathname === "/onboarding";
     return (
-        <Card marginTop={32} overflow="auto" maxWidth={1000} marginRight="auto" marginLeft="auto"
-              justifyContent="center">
+        <main className={`page-shell${isAccountPage ? " page-shell--account" : ""}`}>
             <Routes>
                 <Route path="/department/:prefix" element={<PrefixRenderer/>}/>
                 <Route path="/departments" element={<DepartmentsScreen/>}/>
@@ -67,7 +67,7 @@ function PageRenderer() {
                 <Route path="/login" element={<LoginScreen/>}/>
                 <Route path="/onboarding" element={<OnboardingScreen/>}/>
             </Routes>
-        </Card>
+        </main>
     );
 }
 

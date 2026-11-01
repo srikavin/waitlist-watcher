@@ -8,7 +8,7 @@ export function DepartmentsScreen() {
     return (
         <>
             <Heading size={900} marginBottom={12}>Departments</Heading>
-            <Text size={600} marginBottom={16}>Choose a department</Text>
+            <Text size={500} color="muted">Choose a department to browse courses and section availability.</Text>
             <CoursePrefixListing/>
         </>
     );

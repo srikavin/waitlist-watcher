@@ -33,7 +33,8 @@ export function Search() {
                             {...getInputProps()}
                             width="100%"
                             height={40}
-                            fontSize={20}
+                            fontSize={14}
+                            aria-label="Search courses and sections"
                         />
                     )
                 }}

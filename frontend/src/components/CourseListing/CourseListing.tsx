@@ -521,7 +521,7 @@ export function CourseListing(props: CourseListingProps) {
 
     const headingPane = (
         <Pane display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" width="fit-content">
-            <Pane display="flex" flexDirection="row" gap={8}>
+            <Pane display="flex" flexDirection="row" flexWrap="wrap" alignItems="center" gap={12}>
                 <Heading size={900}>{prefix}</Heading>
                 <WatchDepartmentButton departmentName={prefix}/>
             </Pane>
@@ -553,10 +553,13 @@ export function CourseListing(props: CourseListingProps) {
                 .sort((a, b) => a.course.localeCompare(b.course))
                 .map((e) => (
                     <Pane key={e.course} display="flex" paddingY={16} flexBasis="bottom" flexDirection="column" gap={8}>
-                        <Heading size={700}>
-                            <WatchCourseButton courseName={e.course}/>&nbsp;
-                            <Link to={`/history/${e.course}`}>{e.course} - {e.name}</Link>
-                        </Heading>
+                        <Pane display="flex" alignItems="center" flexWrap="wrap" gap={12}>
+                            <Heading size={700}>
+                                <Link to={`/history/${e.course}`}>{e.course} - {e.name}</Link>
+                            </Heading>
+                            <WatchCourseButton courseName={e.course}/>
+                        </Pane>
+                        <div className="course-table">
                         <Table minWidth="800px">
                             <Table.Head>
                                 <Table.TextHeaderCell flexBasis={100} flexShrink={0}
@@ -599,6 +602,7 @@ export function CourseListing(props: CourseListingProps) {
                                 )}
                             </Table.Body>
                         </Table>
+                        </div>
                     </Pane>
                 ))}
         </>

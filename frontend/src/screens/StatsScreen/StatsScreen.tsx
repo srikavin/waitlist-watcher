@@ -94,7 +94,11 @@ function TreemapLabelContent(props: any) {
 
     const fill = String(payload?.fill ?? props?.fill ?? "#dbeafe");
     const rawLabel = String(name ?? payload?.name ?? "");
-    const textColor = fill === "#b91c1c" ? "#ffffff" : "#0f172a";
+    const channels = fill.match(/\d+/g)?.map(Number);
+    const luminance = channels?.length === 3
+        ? (0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]) / 255
+        : 1;
+    const textColor = luminance < 0.55 ? "#ffffff" : "#0f172a";
     const fontSize = 13;
     const horizontalPadding = 8;
     const avgCharWidth = 7.2;
@@ -361,7 +365,7 @@ export function StatsScreen() {
     });
 
     return (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
             <div className="flex items-end justify-between gap-4 flex-wrap">
                 <div>
                     <h1 className="h2 text-slate-900">Stats</h1>
@@ -373,12 +377,15 @@ export function StatsScreen() {
             </div>
 
             <section className="space-y-4">
-                <div className="grid lg:grid-cols-3 gap-4">
-                    <div className="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-3">
+                <div className="grid lg:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2">
                     <style>
                         {`
+                        .stats-treemap .recharts-surface {
+                            overflow: visible;
+                        }
                         .recharts-treemap-nest-index-wrapper {
-                            margin-top: 10px !important;
+                            margin-top: 40px !important;
                             text-align: center !important;
                         }
                         .recharts-treemap-nest-index-box {
@@ -425,13 +432,13 @@ export function StatsScreen() {
                             ))}
                         </div>
                     </div>
-                    <div className="h-[420px]">
+                    <div className="stats-treemap h-[450px]">
                         {treemapData.length === 0 ? (
                             <div className="h-full flex items-center justify-center text-slate-500 text-sm">
                                 No waitlist section data yet.
                             </div>
                         ) : (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={420}>
                             <Treemap
                                 data={treemapData}
                                 dataKey="size"
@@ -451,7 +458,7 @@ export function StatsScreen() {
                     <div className="mt-2 flex items-center justify-start gap-2 text-xs text-slate-500">
                         <span>{treemapHighlightMode === "filled" ? "Filled seats:" : "Pressure:"}</span>
                         <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700">Low</span>
-                        <span className="px-2 py-0.5 rounded bg-orange-400 text-white">Medium</span>
+                        <span className="px-2 py-0.5 rounded text-slate-900" style={{backgroundColor: heatColor(0.5)}}>Medium</span>
                         <span className="px-2 py-0.5 rounded bg-red-800 text-white">High</span>
                     </div>
                 </div>
@@ -632,6 +639,6 @@ export function StatsScreen() {
                 </div>
                 </div>
             </section>
-        </div>
+        </main>
     );
 }
