@@ -1,6 +1,6 @@
 import {measure} from "../telemetry";
 import {eventsIngestTopic, fsdb, historical_bucket, snapshotsIngestTopic, updateTopic} from "../common";
-import {CURRENT_SEMESTER_ID, SCRAPER_CONFIG} from "../common/config";
+import {CURRENT_SEMESTER_ID, SCRAPER_CONFIG, SEMESTER_DEFINITIONS} from "../common/config";
 
 import type {Request} from "firebase-functions/v2/https";
 import type {CourseEvent} from "../common/events";
@@ -58,7 +58,26 @@ const buildWeightedPrefixSchedule = (prefixes: string[]): string[] => {
 };
 
 const WEIGHTED_PREFIXES: string[] = buildWeightedPrefixSchedule(SCRAPER_CONFIG.prefixes);
-const SCRAPE_SEMESTERS: string[] = [CURRENT_SEMESTER_ID];
+const SEASONAL_TERM_CODES = ["05", "12"] as const;
+export type ScrapeTier = "primary" | "seasonal";
+
+const latestSemesterForTermCode = (termCode: string): string | undefined => {
+    const semesters = SEMESTER_DEFINITIONS
+        .filter(({id}) => id.endsWith(termCode))
+        .map(({id}) => id)
+        .sort();
+    return semesters[semesters.length - 1];
+};
+
+const getScrapeSemesters = (tier: ScrapeTier): string[] => {
+    if (tier === "primary") {
+        return [CURRENT_SEMESTER_ID];
+    }
+
+    return SEASONAL_TERM_CODES
+        .map(latestSemesterForTermCode)
+        .filter((semester): semester is string => semester !== undefined);
+};
 
 const stringifyEventValue = (event: any, key: "old" | "new") => {
     if (!(key in event)) {
@@ -256,7 +275,7 @@ const runScraper = async (semester: string, prefix: string, publishedAt: string,
 }
 
 
-export const scraperLauncher = async (request: Request) => {
+export const scraperLauncher = async (request: Request, forcedTier?: ScrapeTier) => {
     if (request.method !== "POST") {
         return {status: 405, body: "Use POST"};
     }
@@ -267,12 +286,22 @@ export const scraperLauncher = async (request: Request) => {
     }
     const publishedAt = new Date(Date.parse(scheduledAt)).toISOString();
     const eventId = `${jobName}:${publishedAt}`;
-    console.log("Scraper triggered", {eventId, scheduledAt: publishedAt});
+    const requestedTier = forcedTier ?? request.get("X-Waitlist-Scrape-Tier") ?? "primary";
+    if (requestedTier !== "primary" && requestedTier !== "seasonal") {
+        return {status: 400, body: "Invalid scrape tier"};
+    }
+    const tier: ScrapeTier = requestedTier;
+    const scrapeSemesters = getScrapeSemesters(tier);
+    console.log("Scraper triggered", {eventId, scheduledAt: publishedAt, tier, scrapeSemesters});
     if (WEIGHTED_PREFIXES.length === 0) {
         return {status: 503, body: "No prefixes configured"};
     }
+    if (scrapeSemesters.length === 0) {
+        return {status: 200, body: {skipped: "No semesters available for scrape tier"}};
+    }
 
-    const triggerDataRef = fsdb.collection("trigger_data").doc("state");
+    const triggerStateId = tier === "primary" ? "state" : "seasonal-state";
+    const triggerDataRef = fsdb.collection("trigger_data").doc(triggerStateId);
     const prefixIndex = await measure("firestore.claim_batch", () => fsdb.runTransaction(async transaction => {
         const snapshot = await transaction.get(triggerDataRef);
         const state = snapshot.exists ? snapshot.data()! : {};
@@ -293,7 +322,7 @@ export const scraperLauncher = async (request: Request) => {
     console.log("Scraping batch of size", SCRAPER_CONFIG.batch_size, "at index", prefixIndex);
 
     const batch: {semester: string; prefix: string}[] = [];
-    for (const semester of SCRAPE_SEMESTERS) {
+    for (const semester of scrapeSemesters) {
         for (let i = 0; i < SCRAPER_CONFIG.batch_size; ++i) {
             const prefix = WEIGHTED_PREFIXES[(prefixIndex + i) % WEIGHTED_PREFIXES.length];
             batch.push({semester, prefix});

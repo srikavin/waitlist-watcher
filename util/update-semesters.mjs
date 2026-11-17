@@ -1,17 +1,27 @@
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
+const TERM_NAMES = {
+    '01': 'Spring',
+    '05': 'Summer',
+    '08': 'Fall',
+    '12': 'Winter',
+};
+
+const PRIMARY_TERM_CODES = new Set(['01', '08']);
+
 export function updateSemesters(config, html) {
     const select = html.match(/<select\b[^>]*\bid=["']term-id-input["'][^>]*>([\s\S]*?)<\/select>/i);
     if (!select) throw new Error('Testudo term selector missing; keeping existing config');
-    const ids = [...select[1].matchAll(/<option\b[^>]*\bvalue=["'](\d{4}(?:01|08))["']/gi)]
+    const ids = [...select[1].matchAll(/<option\b[^>]*\bvalue=["'](\d{4}(?:01|05|08|12))["']/gi)]
         .map(match => match[1]).sort();
-    if (!ids.length) throw new Error('No Spring/Fall terms found; keeping existing config');
-    const latest = ids.at(-1);
+    const primaryIds = ids.filter(id => PRIMARY_TERM_CODES.has(id.slice(-2)));
+    if (!primaryIds.length) throw new Error('No Spring/Fall terms found; keeping existing config');
+    const latest = primaryIds.at(-1);
     if (latest < config.semesters.current) throw new Error('Term regression; keeping existing config');
     for (const id of ids) {
         if (!config.semesters.semesters.some(term => term.id === id)) {
-            config.semesters.semesters.push({id, name: `${id.endsWith('01') ? 'Spring' : 'Fall'} ${id.slice(0, 4)}`, suffix: id});
+            config.semesters.semesters.push({id, name: `${TERM_NAMES[id.slice(-2)]} ${id.slice(0, 4)}`, suffix: id});
         }
     }
     config.semesters.semesters.sort((a, b) => a.id.localeCompare(b.id));

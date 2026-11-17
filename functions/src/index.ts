@@ -52,7 +52,31 @@ export const scraperhttp = onRequest({
         const {withScraperTelemetry} = await import("./telemetry");
         const result = await withScraperTelemetry(request, async () => {
             const {scraperLauncher} = await import("./scraper");
-            return scraperLauncher(request);
+            return scraperLauncher(request, "primary");
+        });
+        if (result.status === 405) response.set("Allow", "POST");
+        response.status(result.status).send(result.body);
+    } catch (error) {
+        console.error("Scraper batch failed", error);
+        response.status(500).send("Scraper batch failed");
+    }
+});
+
+export const scraperseasonal = onRequest({
+    invoker: "scraper-scheduler@waitlist-watcher.iam.gserviceaccount.com",
+    memory: "512MiB",
+    cpu: 'gcf_gen1',
+    secrets: ["DISCORD_CLIENT_SECRET", "VAPID_PRIV_KEY"],
+    region: "us-east1",
+    maxInstances: 1,
+    concurrency: 1,
+    timeoutSeconds: 5 * 60
+}, async (request, response) => {
+    try {
+        const {withScraperTelemetry} = await import("./telemetry");
+        const result = await withScraperTelemetry(request, async () => {
+            const {scraperLauncher} = await import("./scraper");
+            return scraperLauncher(request, "seasonal");
         });
         if (result.status === 405) response.set("Allow", "POST");
         response.status(result.status).send(result.body);

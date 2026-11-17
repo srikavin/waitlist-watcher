@@ -48,8 +48,10 @@ data "google_project" "current" {
 }
 
 locals {
-  scraper_http_host = "scraperhttp-${data.google_project.current.number}.us-east1.run.app"
-  scraper_http_uri  = "https://${local.scraper_http_host}"
+  scraper_http_host          = "scraperhttp-${data.google_project.current.number}.us-east1.run.app"
+  scraper_http_uri           = "https://${local.scraper_http_host}"
+  seasonal_scraper_http_host = "scraperseasonal-${data.google_project.current.number}.us-east1.run.app"
+  seasonal_scraper_http_uri  = "https://${local.seasonal_scraper_http_host}"
 }
 
 resource "google_pubsub_topic" "prefix-update-topic" {
@@ -57,9 +59,8 @@ resource "google_pubsub_topic" "prefix-update-topic" {
 }
 
 resource "google_cloud_scheduler_job" "job" {
-  name        = "scraper-launcher-job"
-  description = "Cycles through course prefixes to scrape"
-  schedule    = "*/5 0-5,11-23 * * *"
+  name     = "scraper-launcher-job"
+  schedule = "*/5 0-5,11-23 * * *"
 
   attempt_deadline = "320s"
   time_zone        = "Etc/UTC"
@@ -76,6 +77,29 @@ resource "google_cloud_scheduler_job" "job" {
     oidc_token {
       service_account_email = google_service_account.scraper_scheduler.email
       audience              = local.scraper_http_uri
+    }
+  }
+}
+
+resource "google_cloud_scheduler_job" "seasonal_scraper" {
+  name     = "scraper-launcher-seasonal"
+  schedule = "0 * * * *"
+
+  attempt_deadline = "320s"
+  time_zone        = "Etc/UTC"
+
+  retry_config {
+    retry_count        = 0
+    max_retry_duration = "0s"
+  }
+
+  http_target {
+    uri         = local.seasonal_scraper_http_uri
+    http_method = "POST"
+
+    oidc_token {
+      service_account_email = google_service_account.scraper_scheduler.email
+      audience              = local.seasonal_scraper_http_uri
     }
   }
 }
