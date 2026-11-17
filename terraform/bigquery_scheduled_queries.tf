@@ -61,7 +61,7 @@ locals {
   historical_weekly_schedule = "every sunday 08:00"
   app_config                 = jsondecode(file("${path.module}/../common/config.json"))
   stats_semesters            = sort([for semester in local.app_config.semesters.semesters : tostring(semester.id)])
-  latest_stats_semester      = local.stats_semesters[length(local.stats_semesters) - 1]
+  primary_stats_semester     = tostring(local.app_config.semesters.current)
   scheduled_query_definitions = flatten([
     for f in local.scheduled_query_files : [
       for semester in local.stats_semesters : {
@@ -76,7 +76,7 @@ locals {
           output_bucket   = google_storage_bucket.scheduled_query_outputs.name
           semester        = semester
         })
-        schedule = semester == local.latest_stats_semester ? local.business_hours_schedule : local.historical_weekly_schedule
+        schedule = semester == local.primary_stats_semester ? local.business_hours_schedule : local.historical_weekly_schedule
       }
     ]
   ])
