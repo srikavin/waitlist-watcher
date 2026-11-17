@@ -110,11 +110,27 @@ const getMeetingTimes = (section: ReturnType<CheerioAPI>, $: CheerioAPI): Scrape
 export const getSectionInformation = async (semester: string, prefix: string): Promise<ScrapedOutput> => {
     const courseData = await getCourseList(semester, prefix);
     const courseList = Object.keys(courseData).join(",");
+    if (courseList.length === 0) {
+        return {};
+    }
     const data = (await measure("testudo.fetch_sections", () => axiosInstance.get(SECTIONS_URL(semester, prefix, courseList)))).data;
 
     return measure("testudo.parse_sections", () => {
         const $ = load(data);
-        return Object.fromEntries($(".course-sections").toArray().map(element => {
+        const courseSectionElements = $(".course-sections").toArray();
+        const requestedCourseSectionElements = courseSectionElements.filter(element => {
+            const courseId = $(element).attr("id");
+            return courseId !== undefined && courseData[courseId] !== undefined;
+        });
+        if (requestedCourseSectionElements.length !== courseSectionElements.length) {
+            console.warn("Ignoring unexpected course sections from Testudo", {
+                requestedPrefix: prefix,
+                expectedCourses: Object.keys(courseData).length,
+                receivedCourses: courseSectionElements.length,
+                ignoredCourses: courseSectionElements.length - requestedCourseSectionElements.length,
+            });
+        }
+        return Object.fromEntries(requestedCourseSectionElements.map(element => {
             const course = $(element);
             const courseId = course.attr("id")!;
             return [courseId, {

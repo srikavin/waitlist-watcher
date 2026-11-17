@@ -4,6 +4,7 @@ export type SemesterDefinition = {
     id: string;
     name: string;
     suffix: string;
+    prefixes?: string[];
 };
 
 type SemestersConfig = {

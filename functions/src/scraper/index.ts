@@ -57,9 +57,13 @@ const buildWeightedPrefixSchedule = (prefixes: string[]): string[] => {
     return schedule;
 };
 
-const WEIGHTED_PREFIXES: string[] = buildWeightedPrefixSchedule(SCRAPER_CONFIG.prefixes);
 const SEASONAL_TERM_CODES = ["05", "12"] as const;
 export type ScrapeTier = "primary" | "seasonal";
+
+const weightedPrefixesForSemester = (semester: string): string[] => {
+    const configuredPrefixes = SEMESTER_DEFINITIONS.find(({id}) => id === semester)?.prefixes;
+    return buildWeightedPrefixSchedule(configuredPrefixes?.length ? configuredPrefixes : SCRAPER_CONFIG.prefixes);
+};
 
 const latestSemesterForTermCode = (termCode: string): string | undefined => {
     const semesters = SEMESTER_DEFINITIONS
@@ -293,12 +297,14 @@ export const scraperLauncher = async (request: Request, forcedTier?: ScrapeTier)
     const tier: ScrapeTier = requestedTier;
     const scrapeSemesters = getScrapeSemesters(tier);
     console.log("Scraper triggered", {eventId, scheduledAt: publishedAt, tier, scrapeSemesters});
-    if (WEIGHTED_PREFIXES.length === 0) {
-        return {status: 503, body: "No prefixes configured"};
-    }
     if (scrapeSemesters.length === 0) {
         return {status: 200, body: {skipped: "No semesters available for scrape tier"}};
     }
+    const schedules = scrapeSemesters.map(semester => ({semester, prefixes: weightedPrefixesForSemester(semester)}));
+    if (schedules.some(({prefixes}) => prefixes.length === 0)) {
+        return {status: 503, body: "No prefixes configured"};
+    }
+    const longestSchedule = Math.max(...schedules.map(({prefixes}) => prefixes.length));
 
     const triggerStateId = tier === "primary" ? "state" : "seasonal-state";
     const triggerDataRef = fsdb.collection("trigger_data").doc(triggerStateId);
@@ -308,10 +314,10 @@ export const scraperLauncher = async (request: Request, forcedTier?: ScrapeTier)
         if (Date.parse(state.lastScheduledTime) >= Date.parse(publishedAt)) {
             return null;
         }
-        const index = Number(state.prefixIndex ?? 0) % WEIGHTED_PREFIXES.length;
+        const index = Number(state.prefixIndex ?? 0) % longestSchedule;
         transaction.set(triggerDataRef, {
             ...state,
-            prefixIndex: (index + SCRAPER_CONFIG.batch_size) % WEIGHTED_PREFIXES.length,
+            prefixIndex: (index + SCRAPER_CONFIG.batch_size) % longestSchedule,
             lastScheduledTime: publishedAt,
         });
         return index;
@@ -322,9 +328,9 @@ export const scraperLauncher = async (request: Request, forcedTier?: ScrapeTier)
     console.log("Scraping batch of size", SCRAPER_CONFIG.batch_size, "at index", prefixIndex);
 
     const batch: {semester: string; prefix: string}[] = [];
-    for (const semester of scrapeSemesters) {
+    for (const {semester, prefixes} of schedules) {
         for (let i = 0; i < SCRAPER_CONFIG.batch_size; ++i) {
-            const prefix = WEIGHTED_PREFIXES[(prefixIndex + i) % WEIGHTED_PREFIXES.length];
+            const prefix = prefixes[(prefixIndex + i) % prefixes.length];
             batch.push({semester, prefix});
         }
     }

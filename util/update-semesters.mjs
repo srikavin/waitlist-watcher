@@ -10,11 +10,28 @@ const TERM_NAMES = {
 
 const PRIMARY_TERM_CODES = new Set(['01', '08']);
 
-export function updateSemesters(config, html) {
+export function extractTermIds(html) {
     const select = html.match(/<select\b[^>]*\bid=["']term-id-input["'][^>]*>([\s\S]*?)<\/select>/i);
     if (!select) throw new Error('Testudo term selector missing; keeping existing config');
-    const ids = [...select[1].matchAll(/<option\b[^>]*\bvalue=["'](\d{4}(?:01|05|08|12))["']/gi)]
+    return [...select[1].matchAll(/<option\b[^>]*\bvalue=["'](\d{4}(?:01|05|08|12))["']/gi)]
         .map(match => match[1]).sort();
+}
+
+export function extractPrefixes(html, semester) {
+    const prefixes = new Set();
+    const addMatches = (regex) => {
+        for (const match of html.matchAll(regex)) {
+            const prefix = String(match[1] || '').toUpperCase();
+            if (/^[A-Z]{3,8}$/.test(prefix)) prefixes.add(prefix);
+        }
+    };
+    addMatches(/<div\s+id="([A-Z]{3,8})"\s+class="course-prefix\b[^"]*"/g);
+    addMatches(new RegExp(`${semester}/([A-Z]{3,8})\\b`, 'g'));
+    return [...prefixes].sort();
+}
+
+export function updateSemesters(config, html) {
+    const ids = extractTermIds(html);
     const primaryIds = ids.filter(id => PRIMARY_TERM_CODES.has(id.slice(-2)));
     if (!primaryIds.length) throw new Error('No Spring/Fall terms found; keeping existing config');
     const latest = primaryIds.at(-1);
@@ -26,6 +43,15 @@ export function updateSemesters(config, html) {
     }
     config.semesters.semesters.sort((a, b) => a.id.localeCompare(b.id));
     config.semesters.current = latest;
+    return config;
+}
+
+export function updateSemesterPrefixes(config, semester, html) {
+    const prefixes = extractPrefixes(html, semester);
+    if (!prefixes.length) throw new Error(`No departments found for ${semester}; keeping existing config`);
+    const term = config.semesters.semesters.find(candidate => candidate.id === semester);
+    if (!term) throw new Error(`Unknown semester ${semester}`);
+    term.prefixes = prefixes;
     return config;
 }
 
@@ -45,14 +71,28 @@ export async function runUpdate({
         if (!response.ok) throw new Error(`Testudo returned ${response.status}`);
         return response.text();
     },
+    fetchSemesterHtml = async semester => {
+        const response = await fetch(`https://app.testudo.umd.edu/soc/${semester}`, {signal: AbortSignal.timeout(30000)});
+        if (!response.ok) throw new Error(`Testudo returned ${response.status} for ${semester}`);
+        return response.text();
+    },
 } = {}) {
     const previous = JSON.parse(readFileSync(configPath, 'utf8'));
-    const config = updateSemesters(structuredClone(previous), await fetchHtml());
+    const rootHtml = await fetchHtml();
+    const discoveredSemesterIds = extractTermIds(rootHtml);
+    const config = updateSemesters(structuredClone(previous), rootHtml);
+    await Promise.all(discoveredSemesterIds.map(async semester =>
+        updateSemesterPrefixes(config, semester, await fetchSemesterHtml(semester))));
     const summary = {
         dryRun,
         previousSemester: previous.semesters.current,
         nextSemester: config.semesters.current,
         addedSemesters: config.semesters.semesters.filter(term => !previous.semesters.semesters.some(old => old.id === term.id)),
+        updatedSemesterPrefixes: discoveredSemesterIds.filter(semester => {
+            const previousTerm = previous.semesters.semesters.find(term => term.id === semester);
+            const updatedTerm = config.semesters.semesters.find(term => term.id === semester);
+            return JSON.stringify(previousTerm?.prefixes ?? []) !== JSON.stringify(updatedTerm?.prefixes ?? []);
+        }),
         indexOverrides: firestoreIndexes(config).fieldOverrides.length,
     };
     if (!dryRun) {
