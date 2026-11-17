@@ -82,12 +82,32 @@
       "indexes": []
     },
     {
+      "collectionGroup": "events202605",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202605",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
       "collectionGroup": "events202608",
       "fieldPath": "events",
       "indexes": []
     },
     {
       "collectionGroup": "course_data202608",
+      "fieldPath": "latest",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "events202612",
+      "fieldPath": "events",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "course_data202612",
       "fieldPath": "latest",
       "indexes": []
     },
